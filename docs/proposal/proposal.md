@@ -45,7 +45,39 @@
 
 ### Achievements
 
-> What functions will the project provide? Who will the users be?
+#### Target Users
+Hoku is an educational tool designed for individuals learning programming concepts. However, our primary audience **children**, and we will craft the user interface and overall experience with their needs in mind.
+
+Additionally, **teachers and mentors** will play a key role by using Hoku to guide students and assign programming tasks.
+
+Our target demographic is split into two groups;
+ - **Students (Ages 9 - 17)** - Engaging young learners in systems and programming concepts.
+ - **Mentors**- While there’s no specific age range for mentors, we assume a certain level of technical proficiency.
+
+#### Functions Provided
+##### User Interface
+The user interface will simulate a familiar operating system, tailored specifically to the needs of children. Our goal is to create an environment that is **fun, intuitive, and immersive**, tricking the user into believing they are interacting with a full-fledged OS.
+
+Key features include:
+ - **Floating Window Manager**
+ - **Desktop Environment**
+ - **Toolbar**
+
+##### Core Apps
+The system will come equipped with essential, built-in apps designed to teach programming and system interaction. These core apps will include (but are not limited to):
+ - **Text Editor**
+ - **Terminal**
+ - **Shell**
+ - **Task System**
+ - **Settings Wizard**
+
+##### Execution Environment
+In order to teach children programming concepts, and to further allow them to interact with our system, we will need to create an execution environment that allows children to execute arbitrary code. 
+
+Although we could support multiple different languages, we will first support the **Lua programming language** due to its lightweight and embeddable nature.
+
+##### Filesystem
+A filesystem is crucial for students to manage their progress and save their work. However, due to the sensitive nature of our target demographic, we will not store any user data. Instead, users will be able to **download their filesystem state** at the end of a session or **upload it** when starting one, ensuring privacy and control over their own data. 
 
 ### Justification
 
