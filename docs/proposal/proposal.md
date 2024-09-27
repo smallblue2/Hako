@@ -49,7 +49,22 @@
 
 ### Justification
 
-> Why/when/where/how will it be useful?
+#### Why?
+We have identified significant gaps in the current methods used to teach programming, particularly in the area of **systems literacy**. Most existing platforms focus on teaching how to code, but rarely emphasize understanding the environment in which that code runs. Without this foundational knowledge, students are limited in their ability to troubleshoot, reason about system behavior, and become well-rounded programmers. Hoku seeks to **bridge this gap** by teaching children to engage with and manipulate systems, not just write code.
+
+#### When and Where?
+Hoku will be useful in **educational settings** where programming concepts are being introduced, such as:
+ - **Classrooms and lab environments**: Teachers can use Hoku to demonstrate how systems work and assign tasks that build on that knowledge.
+ - **After-school coding programs**: Environments like CoderDojo can leverage Hoku to enhance the systems literacy of young coders.
+ - **Home-based learning**: Independent learners can use Hoku to explore and practice coding in a fun and interactive way, supported by a rich systems-level experience.
+
+#### How?
+Hoku accomplishes its educational mission by creating a **simplified system environment** with a **custom API**. This stripped-back operating system allows children to interact directly with the system, offering an experience similar to native development but without the complications of hardware dependencies. Additionally, there will be a **task system** allowing mentors to share tasks to their students, and even encouraging students to share their own problems amongst eachother. By leveraging this platform, students can:
+ - **Run code in real-time** through an interactive execution environment.
+ - **Learn core systems concepts** through built-in applications like a text editor, terminal, and task system.
+ - **Manage their projects** with a serializable filesystem that ensures privacy and security for young learners.
+ - **Experience immediate feedback** from system interactions, mimicking real-world operating systems to make the learning process intuitive and rewarding.
+ - **Complete, create and share tasks** from our custom task system, enabling mentors to push tasks onto their students systems, even allowing children to share their own interesting tasks.
 
 ### Programming language(s)
 
