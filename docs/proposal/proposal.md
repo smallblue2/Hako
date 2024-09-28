@@ -41,9 +41,9 @@
 
 ### Background
 
-#### Where Hoku Began
+#### Where Hako Began
 
-Hoku stems from our shared passion for both **learning** and **teaching** computer science, specifically programming for children. Over the years, Niall has worked with various pedagogical methods and platforms like [CodeAcademy](www.codeacademy.org), [Scratch](www.scratch.mit.edu), and [KhanAcademy](www.khanacademy.org). While these platforms do a great job teaching programming languages, we realized something was missing.
+Hako stems from our shared passion for both **learning** and **teaching** computer science, specifically programming for children. Over the years, Niall has worked with various pedagogical methods and platforms like [CodeAcademy](www.codeacademy.org), [Scratch](www.scratch.mit.edu), and [KhanAcademy](www.khanacademy.org). While these platforms do a great job teaching programming languages, we realized something was missing.
 
 #### The Problem We Saw
 
@@ -51,13 +51,13 @@ Many educational platforms focus on just the **code** – they teach how to writ
 
 #### Our Solution
 
-That’s where Hoku comes in. We’re developing a **browser-based**, **hardware-agnostic** platform that removes the complexity of hardware while introducing learners to the systems in which their code operates. We want to empower children not just to write code, but to interact with the system, reason about behavior, and debug issues – skills essential for a well-rounded programmer.
+That’s where Hako comes in. We’re developing a **browser-based**, **hardware-agnostic** platform that removes the complexity of hardware while introducing learners to the systems in which their code operates. We want to empower children not just to write code, but to interact with the system, reason about behaviour, and debug issues – skills essential for a well-rounded programmer.
 
 #### Our Experience
  - Niall has spent **over a decade** teaching children programming concepts from the ages of 9 - 17, and has plentiful experience in Systems Programming.
  - Cathal is **deeply proficient** with Systems Programming, and has experience mentoring university-level students.
 
-Together, we’ll shaped Hoku to not just teach programming, but to bring systems literacy to the forefront. Our combined expertise in Systems Programming and Pedagogy gives us the tools to fill the gaps left by traditional programming education.
+Together, we’ll shaped Hako to not just teach programming, but to bring systems literacy to the forefront. Our combined expertise in Systems Programming and Pedagogy gives us the tools to fill the gaps left by traditional programming education.
 
 ### Achievements
 
