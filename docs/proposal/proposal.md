@@ -64,17 +64,17 @@
 > Describe any non-standard hardware components which will be required.
 
 ### Learning Challenges
-Cathal and Niall bring different expertise to this project, meaning each of us will face unique learning challenges. This section outlines the areas where one or both contributors will need to develop new skills as part of Hoku's development.
+Cathal and Niall bring different expertise to this project, meaning each of us will face unique learning challenges. This section outlines the areas where one or both contributors will need to develop new skills as part of Hako's development.
 
 #### Learning New Programming Languages
 We've chosen certain programming languages for their suitability for this project, but the below particularly present a learning curve.
- - **Web Assembly** - A portable binary format that allows native execution in the browser. We will need to learn how to work with WebAssembly to effectively implement Hoku's system components.
+ - **Web Assembly** - A portable binary format that allows native execution in the browser. We will need to learn how to work with WebAssembly to effectively implement Hako's system components.
  - **Zig** - A modern, statically typed systems programming language. While it offers powerful features for system-level programming, Niall is not yet familiar with its syntax and conventions.
 
 #### Learning New Tools / Technologies
-We will also need to get up to speed on a range of tools and technologies that are crucial for Hoku's development:
+We will also need to get up to speed on a range of tools and technologies that are crucial for Hako's development:
  - **Emscripten** - This LLVM/Clang-based compiler is essential for compiling C and C++ code into WebAssembly. Using it to port applications for browser execution will be new territory for us.
- - **WebRTC**- This real-time communication protocol will enable peer-to-peer networking for Hoku. We are unfamiliar with WebRTC, so we will need to learn how to use it to facilitate decentralized networking.
+ - **WebRTC**- This real-time communication protocol will enable peer-to-peer networking for Hako. We are unfamiliar with WebRTC, so we will need to learn how to use it to facilitate decentralized networking.
  - **Nix** - As a declarative package manager, Nix will allow us to manage builds and development environments. Niall is not yet proficient with Nix and will need to invest time in learning its ecosystem.
  - **WebGL** - We'll use WebGL to render graphics within the browser, enabling 2D and 3D rendering using the GPU. Although familiar with some graphics APIs, using WebGL will be a new challenge.
 
@@ -82,7 +82,7 @@ We will also need to get up to speed on a range of tools and technologies that a
 We'll use WebGL to render graphics within the browser, enabling 2D and 3D rendering using the GPU. Although familiar with some graphics APIs, using WebGL will be a new challenge.
 
 #### Web Assembly Ecosystem
-Working with WebAssembly to build core systems for Hoku presents a number of challenges. We will need to learn how to:
+Working with WebAssembly to build core systems for Hako presents a number of challenges. We will need to learn how to:
  - **Develop with WebAssembly** as the target environment.
  - **Patch and port software** for execution in the browser.
  - **Use Emscripten's custom libc** to correctly compile applications for WebAssembly.
@@ -92,7 +92,7 @@ This process, from setup to final execution, is new to us, and learning how to h
 We will need to familiarise ourselves with several JavaScript and browser APIs, including:
  - **Web Workers** for multi-threading.
  - **The browser's filesystem API** to enable persistent user data.
-These are areas we have little experience in, so mastering these will be essential for Hoku's success.
+These are areas we have little experience in, so mastering these will be essential for Hako's success.
 
 #### UI/UX Design For Children
 Designing an intuitive and engaging interface specifically for children is an entirely new area for us. Creating a system that is both educational and appealing to younger audiences presents a significant challenge, as children's user needs differ greatly from typical adult users.
