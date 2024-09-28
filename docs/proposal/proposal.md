@@ -46,7 +46,7 @@
 ### Achievements
 
 #### Target Users
-Hako is an educational tool designed for individuals learning programming concepts. However, our primary audience **children**, and we will craft the user interface and overall experience with their needs in mind.
+Hako is an educational tool designed for individuals learning programming concepts. However, our primary audience is **children**, and we will craft the user interface and overall experience with their needs in mind.
 
 Additionally, **teachers and mentors** will play a key role by using Hako to guide students and assign programming tasks.
 
