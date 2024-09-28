@@ -68,20 +68,20 @@
 > List the main new things (technologies, languages, tools, etc) that you will have to learn.
 
 ### Breakdown of work
+We will be attempting to split work according to our strengths, whilst still enabling both of us to learn new technologies. The breakdown of work is based on core systems of the project, and has been divided as:
 
-> Clearly identify who will undertake which parts of the project.
->
-> It must be clear from the explanation of this breakdown of work both that each student is responsible for
-> separate, clearly-defined tasks, and that those responsibilities substantially cover all of the work required
-> for the project.
+#### Cathal
+ - UI System
+ - Execution Environment
+ - Text Editor
+ - Terminal
 
-#### Student 1
-
-> *Student 1 should complete this section.*
-
-#### Student 2
-
-> *Student 2 should complete this section.*
+#### Niall
+ - Networking
+ - Task Portal
+ - Filesystem
+ - Shell
+ - UI Design
 
 ## Example
 
