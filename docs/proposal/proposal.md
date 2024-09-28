@@ -46,9 +46,9 @@
 ### Achievements
 
 #### Target Users
-Hoku is an educational tool designed for individuals learning programming concepts. However, our primary audience **children**, and we will craft the user interface and overall experience with their needs in mind.
+Hako is an educational tool designed for individuals learning programming concepts. However, our primary audience **children**, and we will craft the user interface and overall experience with their needs in mind.
 
-Additionally, **teachers and mentors** will play a key role by using Hoku to guide students and assign programming tasks.
+Additionally, **teachers and mentors** will play a key role by using Hako to guide students and assign programming tasks.
 
 Our target demographic is split into two groups;
  - **Students (Ages 9 - 17)** - Engaging young learners in systems and programming concepts.
