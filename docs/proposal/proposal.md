@@ -59,6 +59,23 @@
 
 > Describe the compiler, database, web server, etc., and any other software tools you plan to use.
 
+* Browser
+  - WebGL (likely version 2)
+    Used for graphics/UI.
+  - File System API
+    For interacting with persistent storage on the client.
+* Emscripten
+  For compiling C/C++ to wasm to be able to run in the browser.
+* WebRTC
+  For peer-to-peer connections
+* Containerd/Podman
+  For ease of hosting the WebRTC server
+* Zig Compiler
+* Golang Compiler
+* Lua Interpreter
+* Just build system
+  A generic build system for managing our own builds as well as vendor dependency builds (e.g. lua interpretter)
+
 ### Hardware
 
 > Describe any non-standard hardware components which will be required.
