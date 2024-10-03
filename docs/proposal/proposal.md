@@ -128,6 +128,8 @@ A filesystem is crucial for students to manage their progress and save their wor
 
 > Describe any non-standard hardware components which will be required.
 
+Both client and server components target standard platforms, meaning they should run on any contemporary computing device.
+
 ### Learning Challenges
 
 > List the main new things (technologies, languages, tools, etc) that you will have to learn.
