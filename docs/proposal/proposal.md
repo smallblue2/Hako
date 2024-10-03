@@ -35,6 +35,12 @@
 
 > Describe the general area covered by the project.
 
+Accessiblity of computers is as high as ever, and still rising, no longer do you need specialized skills to make use of a computer. While this has its obvious benefits for broader humanity, for those who are looking into more specialized areas in Computing, the level of abstraction that is presented leaves a complex and difficult system to understand, we consider this a barrier to *Systems Literacy*.
+
+We believe that *Systems Literacy* is a crucial part of computer science as it motivates otherwise mundane tasks as a challenge in understanding the underlying systems at play. We want to shift the perspective of code to be a means for extracting value from computers, rather than a disjoint activity, whos output is disconnected from the system you are interacting with.
+
+To achieve this we propose a design of a simpler, platform-agnostic system that is constrained by design. The goal of which is to promote programming of the very environment you are using to write code.
+
 ### Outline
 
 > Outline the proposed project.
