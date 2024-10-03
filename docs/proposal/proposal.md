@@ -152,8 +152,57 @@ Hako accomplishes its educational mission by creating a **simplified system envi
 Both client and server components target standard platforms, meaning they should run on any contemporary computing device.
 
 ### Learning Challenges
+Cathal and Niall bring different expertise to this project, meaning each of us will face unique learning challenges. This section outlines the areas where one or both contributors will need to develop new skills as part of Hako's development.
 
-> List the main new things (technologies, languages, tools, etc) that you will have to learn.
+#### Learning New Programming Languages
+We've chosen certain programming languages for their suitability for this project, but the below particularly present a learning curve.
+ - **Web Assembly** - A portable binary format that allows native execution in the browser. We will need to learn how to work with WebAssembly to effectively implement Hako's system components.
+ - **Zig** - A modern, statically typed systems programming language. While it offers powerful features for system-level programming, Niall is not yet familiar with its syntax and conventions.
+
+#### Learning New Tools / Technologies
+We will also need to get up to speed on a range of tools and technologies that are crucial for Hako's development:
+ - **Emscripten** - This LLVM/Clang-based compiler is essential for compiling C and C++ code into WebAssembly. Using it to port applications for browser execution will be new territory for us.
+ - **WebRTC**- This real-time communication protocol will enable peer-to-peer networking for Hako. We are unfamiliar with WebRTC, so we will need to learn how to use it to facilitate decentralized networking.
+ - **Nix** - As a declarative package manager, Nix will allow us to manage builds and development environments. Niall is not yet proficient with Nix and will need to invest time in learning its ecosystem.
+ - **WebGL** - We'll use WebGL to render graphics within the browser, enabling 2D and 3D rendering using the GPU. Although familiar with some graphics APIs, using WebGL will be a new challenge.
+
+#### Decentralised Networking
+We'll use WebGL to render graphics within the browser, enabling 2D and 3D rendering using the GPU. Although familiar with some graphics APIs, using WebGL will be a new challenge.
+
+#### Web Assembly Ecosystem
+Working with WebAssembly to build core systems for Hako presents a number of challenges. We will need to learn how to:
+ - **Develop with WebAssembly** as the target environment.
+ - **Patch and port software** for execution in the browser.
+ - **Use Emscripten's custom libc** to correctly compile applications for WebAssembly.
+This process, from setup to final execution, is new to us, and learning how to harness WebAssembly's full potential will be one of the key challenges in the project.
+
+#### Javascript/Browser APIs
+We will need to familiarise ourselves with several JavaScript and browser APIs, including:
+ - **Web Workers** for multi-threading.
+ - **The browser's filesystem API** to enable persistent user data.
+These are areas we have little experience in, so mastering these will be essential for Hako's success.
+
+#### UI/UX Design For Children
+Designing an intuitive and engaging interface specifically for children is an entirely new area for us. Creating a system that is both educational and appealing to younger audiences presents a significant challenge, as children's user needs differ greatly from typical adult users.
+
+#### Combination of Non-Conventional Technologies
+While many of the technologies we plan to use - such as WebAssembly, WebRTC, and WebGL - are well-documented and supported by active communities, the challenge lies in our **specific use case**. We will be combining these technologies in a relatively **unusual environment**: a browser-based platform that simulates an operating system.
+Creating this type of system requires stitching together tools that are not typically used in this context. For example, using WebAssembly to manage a floating window manager or designing a complete execution environment with support for real-time peer-to-peer networking is not a common approach. The challenge will be **adapting these technologies** to work together in a cohesive and innovative way that mimics an OS-like experience for children.
+
+#### Designing New Systems We're Unfamiliar With
+We will also need to design and implement several complex systems that we've never worked on before, such as (but are not limited to):
+ - A **custom execution environment**.
+ - A **system API** to allow users to interact directly with the environment.
+ - A **floating window manager** to simulate a familiar operating system experience.
+These are ambitious goals, and developing these systems from scratch will require significant research and problem-solving.
+
+#### User Testing
+We have limited experience with formal user testing, and since our target audience consists of children, this introduces several additional challenges. We will need to:
+ - Develop **clear protocols** for handling sensitive data.
+ - Ensure **ethical considerations** are met, including parental consent and child safety.
+ - Implement strict measures to **anonymise and secure user data**.
+Balancing the practicalities of testing with ethical and legal obligations will be one of our largest hurdles.
+
 
 ### Breakdown of work
 We will be attempting to split work according to our strengths, whilst still enabling both of us to learn new technologies. The breakdown of work is based on core systems of the project, and has been divided as:
