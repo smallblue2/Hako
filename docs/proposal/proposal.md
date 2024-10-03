@@ -7,20 +7,14 @@
 
 ## SECTION A
 
-|                     |                   |
-|---------------------|-------------------|
-|Project Title:       | xxxxxx            |
-|Student 1 Name:      | xxxxxx            |
-|Student 1 ID:        | xxxxxx            |
-|Student 2 Name:      | xxxxxx            |
-|Student 2 ID:        | xxxxxx            |
-|Project Supervisor:  | xxxxxx            |
-
-> Ensure that the Supervisor formally agrees to supervise your project; this is only recognised once the
-> Supervisor assigns herself/himself via the project Dashboard.
->
-> Project proposals without an assigned
-> Supervisor will not be accepted for presentation to the Approval Panel.
+|                     |                     |
+|---------------------|---------------------|
+|Project Title:       | Hako                |
+|Student 1 Name:      | Niall Ryan          |
+|Student 1 ID:        | 21454746            |
+|Student 2 Name:      | Cathal O'Grady      |
+|Student 2 ID:        | xxxxxx              |
+|Project Supervisor:  | Prof. Stephen Blott |
 
 ## SECTION B
 
