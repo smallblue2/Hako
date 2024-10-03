@@ -13,7 +13,7 @@
 |Student 1 Name:      | Niall Ryan          |
 |Student 1 ID:        | 21454746            |
 |Student 2 Name:      | Cathal O'Grady      |
-|Student 2 ID:        | xxxxxx              |
+|Student 2 ID:        | 21442084            |
 |Project Supervisor:  | Prof. Stephen Blott |
 
 ## SECTION B
