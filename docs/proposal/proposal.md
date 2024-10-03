@@ -53,7 +53,20 @@
 
 ### Programming language(s)
 
-> List the proposed language(s) to be used.
+* Javascript:
+  Targetting the browser, will need javascript for client code.
+* Zig:
+  For Wasm targetted client programs as part of GNU coreutils like software (e.g. ls, cat, etc)
+* Wasm (C/C++):
+  Apart from Zig, we also anticipate using other C/C++ tools or libraries. At the very least we will need to modify the build of a C/C++ program (e.g. lua or cpython).
+* Golang:
+  For the peer-to-peer connection establishment server as part of the task system.
+* Lua:
+  Lua is proposed to be used a simple language for user facing code to access/manipulate the system (akin C on linux).
+* Nix:
+  For maintaining a reproduceable development environment for both CI/CD and regular development. We don't want to do double work setting up the environment on each others machines.
+* Shell:
+  For glue code in the build process.
 
 ### Programming tools / Tech stack
 
