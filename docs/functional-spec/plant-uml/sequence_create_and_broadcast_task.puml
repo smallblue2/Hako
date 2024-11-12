@@ -1,0 +1,48 @@
+@startuml
+
+actor Mentor
+
+participant "Task Application (Mentor)"
+participant "System Interface (Mentor)"
+participant "Filesystem (Mentor)"
+participant "Network (Mentor)"
+
+participant "Network (Student)"
+participant "Filesystem (Student)"
+participant "System Interface (Student)"
+participant "Task Application (Student)"
+
+actor Student
+
+Mentor -> "Task Application (Mentor)": Define Task
+"Task Application (Mentor)" -> "Task Application (Mentor)": Generate task JSON
+"Task Application (Mentor)" -> "System Interface (Mentor)": Write task JSON
+"System Interface (Mentor)" -> "Filesystem (Mentor)": Write task JSON
+"Filesystem (Mentor)" --> "System Interface (Mentor)": OK
+"System Interface (Mentor)" --> "Task Application (Mentor)": OK
+"Task Application (Mentor)" --> Mentor: Task Created
+
+Mentor -> "Task Application (Mentor)": Send task to group
+"Task Application (Mentor)" -> "System Interface (Mentor)": Send task JSON to group
+"System Interface (Mentor)" -> "Filesystem (Mentor)": Read task JSON
+"Filesystem (Mentor)" --> "System Interface (Mentor)": OK
+"System Interface (Mentor)" -> "Network (Mentor)": Transmit task JSON
+"Network (Mentor)" -> "Network (Student)": Send task JSON
+"Network (Student)" --> "Network (Mentor)": OK
+"Network (Mentor)" --> "System Interface (Mentor)": OK
+"System Interface (Mentor)" --> "Task Application (Mentor)": OK
+"Task Application (Mentor)" --> Mentor: Task sent successfully
+
+"Network (Student)" -> "System Interface (Student)": Received task JSON
+"System Interface (Student)" -> "Filesystem (Student)": Write task JSON
+"Filesystem (Student)" --> "System Interface (Student)": OK
+"System Interface (Student)" --> "Network (Student)": OK
+Student -> "Task Application (Student)": Check tasks
+"Task Application (Student)" -> "System Interface (Student)": Check tasks directory
+"System Interface (Student)" -> "Filesystem (Student)": Read tasks directory
+"Filesystem (Student)" --> "System Interface (Student)": OK
+"System Interface (Student)" --> "Task Application (Student)": OK
+"Task Application (Student)" --> Student: Display new task
+
+@enduml
+
