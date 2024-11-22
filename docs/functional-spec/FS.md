@@ -123,9 +123,9 @@ The shell will support:
 * pipes
 * IO redirection
 * path
-* simples shell scripts
+* simple shell scripts
 
-Additionally, shell scrips ran will affect the environment of the shell, as opposed to an isolated environment. So if a `cd` is performed in a shell script, it will affect the user's current shell instance. For this reason, shell scripts will solely be ran via the `exec` built-in keyword.
+Additionally, shell scripts ran will affect the environment of the shell, as opposed to an isolated environment. So if a `cd` is performed in a shell script, it will affect the user's current shell instance. For this reason, shell scripts will solely be ran via the `exec` built-in keyword.
 
 ###### 2.1.1.3.3 Core Utils
 
@@ -147,7 +147,7 @@ The minimum core utils implemented will be;
 
 ###### 2.1.1.3.4 File Manager
 
-As we are assuming our users to be non-technical and we are aiming to have our system feel familiar we will include a file manager. 
+As we are assuming our users to be non-technical and we are aiming to have our system feel familiar we will include a file manager.
 
 This will allow users not yet familiar with the 'command-line' to manipulate and view the state of their file system.
 
@@ -161,9 +161,9 @@ The text editor will support basic syntax highlighting for shell and lua scripts
 
 #### 2.1.1.4 System Interface/API
 
-A simple system API will be available to the user, to allow them to manipulate the state of the system through code, encouraging 'system programming'.
+A simple system API will be available to the user to allow them to manipulate the state of the system through code encouraging 'system programming'.
 
-All system APIs will be custom and high-level abstracts, as opposed to trying to aim for POSIX compliance, for a beginner-friendly entry to systems programming.
+All system APIs will be custom and high-level abstracts, as opposed to trying to aim for POSIX compliance for a beginner-friendly entry to systems programming.
 
 ##### 2.1.1.4.1 File System API
 
@@ -192,7 +192,7 @@ Process I/O will be incredibly stripped back, with only `stdin` and `stdout` str
 
 #### 2.1.1.5 File Storage
 
-The system will be using the standardised web browser file system API to store files on the clients machine, and users will be able to interact with this file storage via our operating system's 'file system' acting as a proxy. It will perform as a typical and familiar file-system.
+The system will be using the standardised web browser file system API to store files on the client's machine. Users will be able to interact with this file storage via our operating system's 'file system' acting as a proxy. It will perform as a typical and familiar file-system.
 
 #### 2.1.1.6 Processes
 
@@ -231,7 +231,7 @@ WebRTC will be utilised with specially modified signalling servers to support ro
 
 Mentors will create rooms and be able to broadcast tasks to all members of a room.
 
-Furthermore, students will send signals to the room owner indicating successful completion of tasks, for the mentor to be able to keep track of progress.
+Furthermore, students will send signals to the room owner indicating successful completion of tasks for the mentor to be able to keep track of progress.
 
 ### 2.2 User Characteristics and Objectives
 
@@ -262,11 +262,10 @@ explained in context of the objectives below.
 
 The system should also provide a subset of the fundamental commands that would be
 expected to exist on any Unix-like system. These commands should also be
-trimmed down so as not to be overwhelming, with the help messages assuming less
-about what the already knows user.
+trimmed down so as not to be overwhelming, with the help messages assuming less about what the user already knows.
 
 Since the commands are trimmed down their use cases are less broad, so it is
-easier for the user to get an overall understanding of the what the key
+easier for the user to get an overall understanding of what the key
 functions of each of the commands are.
 
 **Teach programming as it fits into a broader environment**
@@ -278,7 +277,7 @@ the tools and reducing abstraction we are trying to make computing less magical
 and more comprehensible.
 
 The user should feel like the programs they write are much the same as those
-that they are using to write it.
+that they are using to write them.
 
 **Unify the execution environment and reduce overhead of learning programming**
 
@@ -286,9 +285,9 @@ The system should be platform agnostic such that the actual operating system is
 abstracted by our system. This is crucial as it reduces the barrier to entry for
 individuals and also allows mentors to spend more time teaching the important
 things. This in turn also reduces the overhead of learning programming as the
-system is more predictable across users devices.
+system is more predictable across user's devices.
 
-Our system is in contrast to other programming environments that platform
+Our system is in contrast to other programming environments that are platform
 agnostic which fully hide execution from the user and restrict the user from
 learning the system at play.
 
@@ -310,7 +309,7 @@ Prior knowledge of programming and systems is expected, and as such the mechanis
 
 The system inherently succeeds in this objective as it provides an all-in-one environment to be able to create programs, run programs, and interact with the operating system.
 
-As it is stripped back and designed purely for education, using it as a tool for education should be easy and feel natural to the mentor.
+As it is stripped back and designed purely for education, using it as a tool for teaching should be easy and feel natural to the mentor.
 
 **Assign tasks and monitor student progress**
 
@@ -326,16 +325,17 @@ The system is all-in-one.
 
 Not only does it provide the tools to create and run programs, but it itself is an entire environment with no dependencies. The user doesn't have to install various languages, IDE's, tools or anything else.
 
-This makes teaching systems programming far more convenient for the mentor.
+This makes teaching systems and programming far more convenient for the mentor.
 
 ### 2.3 Operational Scenarios
+
 End-to-end scenarios that best explain the user's perspective
 
 #### 2.3.1 Primary Operational Scenarios
+
 These are operational scenarios associated with primary functions, and are associated with deliverables.
 
 ##### 2.3.1.1 Students / Young Learners
-
 
 ###### 2.3.1.1.1 Writing a program
 
@@ -345,7 +345,7 @@ The user can open a text editor and create a new program file. The user can then
 
 The user can execute graphical programs by double clicking their icon, or by opening the terminal and running them by their command
 name. If the program is not builtin and not placed in the special path the user must run the program by either running it directly with the 
-interpreter or by running by entering the full path and the shell will look for a shebang to see what to pass it to.
+interpreter or by entering the full path. The shell will then look for a shebang to see what to pass it to.
 
 ###### 2.3.1.1.3 Manage the file system 
 
@@ -356,7 +356,7 @@ Alternatively, the terminal and shell can be utilised by more experienced studen
 
 ###### 2.3.1.1.4 Interacting with system interface
 
-The user can write code that interacts with a system interface / API.
+The user can write code that interacts with a system interface API.
 
 For example, a user could write a program that automatically creates a tiled layout of all their open programs' windows, by utilising the window manager API.
 
@@ -369,7 +369,7 @@ These are operational scenarios associated with secondary functions / stretch go
 ###### 2.3.2.1.1 Viewing a task description
 
 The user can open the task application and view the tasks that they have been given by their mentor. They can also view whether they have
-successfully completed.
+successfully completed a task.
 
 ###### 2.3.2.1.2 Submitting a task solution
 
@@ -378,13 +378,12 @@ a file in file manager and select to submit the task.
 
 ##### 2.3.2.2 Mentors
 
-
 ###### 2.3.2.2.1 Creating a task
 
-The user can create a task in the task application either:
+The user can create a task in the task application by either:
 
-* Manually by typing in specific test cases
-* Automatically, by running a program with test cases and capturing its output
+* Manually typing in specific test cases
+* Automatically running a program with test cases and capturing its output
 
 This will then generate a task description which the user can send to connected peers.
 
@@ -397,8 +396,6 @@ The user can select any of their defined tasks, and then broadcast them to all c
 If a peer connected to the user has completed one of their tasks successfully, the user will receive that information through the application portal.
 
 This information will be received in real-time.
-
-**2.4 Constraints**
 
 ### 2.4 Constraints
 
@@ -414,7 +411,7 @@ Browsers limit the resources that a web application can access. Any heavy comput
 
 **Memory Usage**
 
-The browser enforces memory caps per tab which could cause slow-downs or even possibly crashes if our app consumes too much memory.
+The browser enforces memory caps per tab which could cause slow-downs or even possibly crash our app if it consumes too much memory.
 
 **Multi-Threading**
 
@@ -446,7 +443,7 @@ Balancing a meet-in-the-middle design between Windows and Linux whilst ensuring 
 
 ##### 2.4.1.3 Development Time
 
-**Team Skill set**
+**Team Skill Set**
 
 We're tackling many new technologies such as WebAssembly, browser APIs and WebRTC to name a few. The learning curve could slow down development.
 
@@ -458,7 +455,7 @@ Peer-to-peer networking has it's own constraints, primarily when connections are
 
 **Network Restrictions**
 
-Peer-to-peer networks rely heavily on techniques like stun/turn for NAT traversal. Users behind restrictive firewalls or other restrictions may have trouble connecting directly.
+Peer-to-peer networks rely heavily on techniques like STUN/TURN for NAT traversal. Users behind restrictive firewalls or other restrictions may have trouble connecting directly.
 
 **Latency and Reliability**
 
@@ -468,17 +465,13 @@ Peer-to-peer networks inherently have higher latency than centralised systems du
 
 Users with poor internet connections might experience issues with task synchronisation or progress reporting.
 
-
 ## 3. Functional Requirements
 
 In the following functional requirements, criticality is grouped into levels:
 
-* High - crucial for system to operation
+* High - crucial for system operation
 * Medium - not crucial for system operation
 * Low - stretch goal
-
-1 What must the system requirement?
-2 How does it meet these requirements?
 
 **\* Any functional requirements denoted with a star are associated with stretch goals**
 
@@ -486,9 +479,9 @@ In the following functional requirements, criticality is grouped into levels:
 
 **Description**
 
-The system should be respond differently depending on the state that it can read
-available. A bootstrap process should check if a file system is already available
-and use that when loading the application, otherwise it should create a new one.
+The system should respond differently depending on the state that it can read.
+A bootstrap process should check if a file system is already available
+and use that when loading the application. Otherwise it should create a new one.
 
 **Criticality**
 
@@ -501,14 +494,13 @@ There are three key technical issues we see:
 
 * Data corruption - Corrupt data may cause configuration files to be read incorrectly, even if other files are not
   corrupted the system should have a way to restore default configurations and keep other files available.
-* Unbootable states - If dependencies are managed incorrectly you could reach unbootable states in the system where
-  it just hangs in dead lock.
+* Unbootable states - If dependencies are managed incorrectly you could reach unbootable states in the system where it just hangs in a dead lock.
 * Restoring missing core files - If core application and program files are missing the system needs to be able to
   restore them.
 
 **Dependencies With Other Requirements**
 
- * **3.6 Read a file** - To read the file system during initialization.
+ * **3.6 Read a file** - To read the file system during initialisation.
  * **3.7 Write a file** - To create the file system if it is missing.
 
 ### 3.2 Exit System
@@ -557,11 +549,11 @@ High - Fundamental to the system's usability and functionality.
 
 **Description**
 
-Users should be able to manage windows by resizing, moving, minimizing, maximizing, and closing them. This functionality will enhance the desktop's usability and familiarity.
+Users should be able to manage windows by resizing, moving, minimising, maximizing, and closing them. This functionality will enhance the desktop's usability and familiarity.
 
 **Criticality**
 
-Medium – Improves usability but not strictly essential for basic operation.
+High – Fundamental to the system's usability and functionality.
 
 **Technical Issues**
 
@@ -586,7 +578,7 @@ High - Core functionality for interacting with the file system in a user-friendl
 **Technical Issues**
 
  * File Operations - Ensuring operations like deleting or renaming are reflected correctly in the file system.
- * Permission Management - Although we're not implementing user permissions, we do need to prevent unauthorized modifications to core system files.
+ * Permission Management - Although we're not implementing user permissions, we do need to prevent unauthorised modifications to core system files.
 
 **Dependencies With Other Requirements**
 
@@ -725,14 +717,13 @@ to manipulate the file system:
 * Read/Write from/to files
 
 The system should also expose functionality to create windows. These windows should also provide primitive drawing
-functions on them. All windows should be able to be programmatically manipulated by using the system interfaces: i.e.
-not just those opened by a given program.
+functions on them. All windows should be able to be programmatically manipulated by using the system interfaces.
 
 IO operations like printing to stdout or reading from stdin are also provided by the system API.
 
 **Criticality**
 
-High - These interfaces are core part in program execution. Especially important is input and output or some graphics, programs
+High - These interfaces are a core part in program execution. Especially important is input and output of some form of graphics. Programs
 without this are not verifiable and not very interesting.
 
 **Technical Issues**
@@ -757,10 +748,10 @@ Essentially the state surface area is large.
 **Description**
 
 Through a custom signalling server clients can create task rooms via the task
-application. A unique room id, is produced to the client so that it can share it
+application. A unique room id is produced to the client so that it can share it
 with other clients that want to connect. The task room is a peer-to-peer
 connection between other clients. The client that creates the room acts as the
-central client where all other clients are peripheral.
+central client whereas all other clients are peripheral.
 
 **Criticality**
 
@@ -783,9 +774,9 @@ No dependencies.
 
 Clients should be able to join task rooms via their respective task id that is
 generated when creating a task room. A client can only be in one task room at a
-time, the signalling server should enforce this. Joining a task room involves
+time, and the signalling server should enforce this. Joining a task room involves
 asking the signalling server to join the task room given the id and once joined
-the client can act as a peripheral receiving tasks from the central client.
+the client can act as a peripheral, receiving tasks from the central client.
 
 **Criticality**
 
@@ -794,10 +785,9 @@ Low - This is a stretch goal.
 **Technical Issues**
 
 * Handling inconsistent connections - essentially avoiding issues of client
-disconnections not being represented by the signalling servers state that it is
-actively operating on. This state must be handled without the assumption that
-that it is always valid.
-* How do clients respond to signalling server going down? - The clients should
+disconnections not being represented by the signalling server's state that it is
+actively operating on. This state must be handled without the assumption that it is always valid.
+* How do clients respond to the signalling server going down? - The clients should
   not assume the signalling server is able to connect them successfully.
 
 **Dependencies With Other Requirements**
@@ -825,8 +815,7 @@ task rooms is implemented.
 
 **Dependencies With Other Requirements**
 
-This only depends on "Create Task Room" as that is the bear minimum for a client to be connected
-to a room.
+ * **3.13 Create Task Rooms** - A task room must exist before it can be left.
 
 ### 3.16 Submit Task Solution*
 
@@ -838,7 +827,7 @@ dragging the file into the task application. Task solutions are only accepted
 for tasks that were published in the current task room session. Submitting the
 task should run the program and check that the hash of the output matches the
 expected hashed output, if every input and hashed output pair run successfully
-the client will signal the central client that they successfully completed the
+the client will signal the central client that they have successfully completed the
 task.
 
 **Criticality**
@@ -861,10 +850,9 @@ central clients so that a fixed window for submission is maintained per client.
 **Description**
 
 Publishing a task involves a central client submitting a task configuration
-which includes a list of input and hashed output pairs, the name of the unique
-name of the task program as well as on optional timeout field to specify the
+which includes a list of input and hashed output pairs, the unique name of the task program as well as on optional timeout field to specify the
 limit on execution time for the task. A user can submit this configuration via
-the task application and after submission can in the same place view the names
+the task application and after submission can, in the same place, view the names
 of the clients that have completed the task.
 
 **Criticality**
@@ -875,7 +863,7 @@ Low - This is a stretch goal,
 
 When a new client is connected they must receive the previously published tasks
 that are saved on the central client. Clients will need to validate published
-tasks, as if the task description gets corrupted or mangled in transit it
+tasks - as, if the task description gets corrupted or mangled in transit,
 submitting correct solutions could come back as incorrect.
 
 **Dependencies With Other Requirements**
@@ -888,12 +876,12 @@ submitting correct solutions could come back as incorrect.
 
 A simple configuration file is kept on the file system to allow users to
 customize the appearance of the system. For example the user can change
-colors and font size of different parts of the system.
+colours and font size of different parts of the system.
 
 **Criticality**
 
-Medium - While not its function is not depended upon by other systems, it is important
-for accessibility reasons and to allow users to make their system more to their liking.
+Medium - While its function is not depended upon by other systems, it is important
+for accessibility reasons to allow users to configure their system more to their liking.
 
 **Technical Issues**
 
@@ -987,8 +975,8 @@ A minimal text editor for editing code and scripts, designed with simplicity in 
 
 A configuration utility allowing users to customize the system's appearance and behavior, ensuring accessibility and user preference alignment.
 
-### 4.2 Stretch Goals
-The following components are stretch goals intended to expand the system's functionality if time permits. These components are illustrated in the Stretch Goal System Design diagram:
+### 4.2 System With Stretch Goals
+The following `Network` and `Task System` components are stretch goals intended to expand the system's functionality if time permits. These components are illustrated in the extended system diagram:
 
 ![](res/stretch_goal_system_design.png)
 
@@ -996,8 +984,8 @@ The following components are stretch goals intended to expand the system's funct
 
 The task system enables mentors to create, distribute, and track programming tasks for students. It includes:
 
- * **Task Application** -  An interface for defining and managing tasks.
- * **Task Delivery** - A decentralized peer-to-peer mechanism for broadcasting tasks to students.
+ * **Task Application** - An interface for defining and managing tasks.
+ * **Task Delivery** - A decentralised peer-to-peer mechanism for broadcasting tasks to students.
  * **Task Validation** - A secure process for validating student submissions without executing untrusted code on remote systems.
 
 #### 4.2.2 Networking
