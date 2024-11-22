@@ -1,4 +1,11 @@
-# 0. Table of Contents
+---
+title: "Hako - Functional Specification"
+author: "Niall Ryan & Cathal O'Grady"
+toc: true
+toc-depth: 8
+---
+
+\pagebreak
 
 # 1. Introduction
 
@@ -1022,4 +1029,8 @@ The networking component leverages WebRTC to enable peer-to-peer communication. 
 
 ## 6. Preliminary Schedule
 
+### 6.1 Semester One
 ![](res/Gantt-sem1.png)
+
+### 6.1 Semester Two
+![](res/Gantt-sem2.png)
