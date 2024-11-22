@@ -76,7 +76,6 @@ This project will be released under the free open-source software (FOSS) ideolog
 Below are the main functions of our system, and are deliverables for our project.
 
 ##### 2.1.1.1 Code Execution Environment
-\
 
 A code execution environment will provide a context in which code can execute on
 our system. As a foundation for a basic environment, we will be integrating a
@@ -86,7 +85,6 @@ This will allow students to improve their programming skills, and provide a
 means to interact with their system via code.
 
 ##### 2.1.1.2 Desktop User Interface
-\
 
 A desktop user interface will improve the familiarity of our system to the
 student user. Our primary assumption is that most students will have familiarity
@@ -97,7 +95,6 @@ meets in the middle of these two.
 There will be a desktop where the user can store files. There will also be a task-bar where core and open applications will be pinned. We will be aiming to mimic a familiar desktop environment for the user.
 
 ##### 2.1.1.3 Core Applications
-\
 
 In order to be perceived as a full-fledged operating system, we will provide necessary 'core applications'. These applications should feel familiar, and in the scenario where they're not, feel intuitive to pick up.
 
@@ -153,14 +150,12 @@ We want to detach users from the abstractions IDE's provide, and couple developm
 The text editor will support basic syntax highlighting for shell and lua scripts, and file manipulation.
 
 #### 2.1.1.4 System Interface/API
-\
 
 A simple system API will be available to the user, to allow them to manipulate the state of the system through code, encouraging 'system programming'.
 
 All system APIs will be custom and high-level abstracts, as opposed to trying to aim for POSIX compliance, for a beginner-friendly entry to systems programming.
 
 ##### 2.1.1.4.1 File System API
-\
 
 Our file system will be accessible via an API. This will allow the user, through code, to;
 
@@ -171,7 +166,6 @@ Our file system will be accessible via an API. This will allow the user, through
 * Close
 
 ##### 2.1.1.4.2 Window API
-\
 
 The user will have full access to the window manager, allowing them to create and manipulate windows. This further emphasises and encourages the user to manipulate their system via code, encouraging systems programming.
 
@@ -183,17 +177,14 @@ The user will be able to:
 * Close existing windows
 
 ##### 2.1.1.4.3 I/O API
-\
 
 Process I/O will be incredibly stripped back, with only `stdin` and `stdout` streams, allowing the user to input and receive output to programs running on the system.
 
 #### 2.1.1.5 File Storage
-\
 
 The system will be using the standardised web browser file system API to store files on the clients machine, and users will be able to interact with this file storage via our operating system's 'file system' acting as a proxy. It will perform as a typical and familiar file-system.
 
 #### 2.1.1.6 Processes
-\
 
 Processes will be simulated and kept simple. They will contain exit codes and stdin and stdout streams.
 
@@ -204,7 +195,6 @@ Additionally, the user will be able to list processes, and be able to perform li
 Below are non-deliverables for our project, but are components we would like to be able to implement if the time is available.
 
 #### 2.1.4 Task System
-\
 
 The task system is intended as an additional feature for our secondary demographic of mentors.
 
@@ -216,7 +206,6 @@ A high-level example of a task;
 * Test cases: `[{input: "10", expected: "1 2 Fizz 4 Buzz Fizz 7 8 Fizz Buzz"}, ...]`
 
 ##### 2.1.4.1 Application
-\
 
 The application will allow the creation of task definitions, and provide as an interface to allow mentors to send tasks to users wishing to receive them.
 
@@ -225,7 +214,6 @@ Additionally, it will report back to the mentor which users have completed what 
 Furthermore, task completion will be validated by clients to avoid code being sent over networks and executed remotely on other's machines for security.
 
 ##### 2.1.4.2 Networking
-\
 
 The task system will utilise decentralised peer-to-peer networking as to avoid saving any state about users.
 
@@ -241,7 +229,6 @@ Furthermore, students will send signals to the room owner indicating successful 
 
 ##### 2.2.1.1 Students / Young Learners
 
-\
 
 ###### 2.2.1.1.1 Expertise
 
@@ -300,7 +287,6 @@ learning the system at play.
 These are users associated with secondary functions / stretch goals.
 
 ##### 2.2.2.1 Mentors
-\
 
 ###### 2.2.2.1.1 Expertise
 
@@ -340,7 +326,6 @@ These are operational scenarios associated with primary functions, and are assoc
 
 ##### 2.3.1.1 Students / Young Learners
 
-\
 
 ###### 2.3.1.1.1 Writing a program
 
@@ -370,7 +355,6 @@ For example, a user could write a program that automatically creates a tiled lay
 These are operational scenarios associated with secondary functions / stretch goals, and aren't associated with deliverables.
 
 ##### 2.3.2.1 Students / Young Learners
-\
 
 ###### 2.3.2.1.1 Viewing a task description
 
@@ -384,7 +368,6 @@ a file in file manager and select to submit the task.
 
 ##### 2.3.2.2 Mentors
 
-\
 
 ###### 2.3.2.2.1 Creating a task
 
@@ -413,7 +396,6 @@ This information will be received in real-time.
 These are constraints of primary functions of this project, and are associated with deliverables.
 
 ##### 2.4.1.1 Browser Platform
-\
 Creating a web-based operating system inherently is limited by the browser's capabilities.
 
 **CPU/GPU Usage**
@@ -443,7 +425,6 @@ Browsers are used on everything from high-end gaming computers to low-powered ch
 While modern browsers are converging on standards, certain APIs may not work uniformly across all browsers.
 
 ##### 2.4.1.2 Design Constraints
-\
 
 **UI/UX Complexity**
 
@@ -454,7 +435,6 @@ The design needs to be responsive, adapting well to various screen sizes.
 Balancing a meet-in-the-middle design between Windows and Linux whilst ensuring an intuitive design might be tricky.
 
 ##### 2.4.1.3 Development Time
-\
 
 **Team Skill set**
 
@@ -464,7 +444,6 @@ We're tackling many new technologies such as WebAssembly, browser APIs and WebRT
 These are constraints of secondary functions / stretch goals of this project, and are not associated with deliverables.
 
 ##### 2.4.2.1 Peer-to-peer Networking
-\
 Peer-to-peer networking has it's own constraints, primarily when connections are outside of local networks.
 
 **Network Restrictions**
