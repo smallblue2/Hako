@@ -1,6 +1,7 @@
 ---
 title: "Hako - Functional Specification"
-author: "Niall Ryan & Cathal O'Grady"
+author: "Niall Ryan [21454746] & Cathal O'Grady [21442084]"
+date: "2024-11-22"
 toc: true
 toc-depth: 8
 ---
