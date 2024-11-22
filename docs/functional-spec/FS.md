@@ -479,6 +479,8 @@ In the following functional requirements, criticality is grouped into levels:
 1 What must the system requirement?
 2 How does it meet these requirements?
 
+**\* Any functional requirements denoted with a star are associated with stretch goals**
+
 ### 3.1 Bootstrap System
 
 **Description**
