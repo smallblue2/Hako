@@ -496,7 +496,8 @@ There are three key technical issues we see:
 
 **Dependencies With Other Requirements**
 
- * File System API - In order for the system to bootstrap, the file system API must be available.
+ * **3.6 Read a file** - To read the file system during initialization.
+ * **3.7 Write a file** - To create the file system if it is missing.
 
 ### 3.2 Exit System
 
@@ -515,8 +516,9 @@ High - Critical for preserving user data and ensuring consistent state when rest
 
 **Dependencies With Other Requirements**
 
- * File System - To save current state persistently.
- * Processes - Running processes must be terminated or saved gracefully.
+ * **3.6 Read a file** - To retrieve the saved state upon restarting.
+ * **3.7 Write a file** - To save the current state of the system.
+ * **3.10 List Processes** - To determine which processes are running and need to be saved or terminated.
 
 ### 3.3 Open Application
 
@@ -535,8 +537,9 @@ High - Fundamental to the system's usability and functionality.
 
 **Dependencies With Other Requirements**
 
- * Window Manager - For displaying and managing application windows.
- * File System - Applications like the text editor rely on the file system to open files.
+ * **3.4 Manage Windows** - To create and manage the application's windows.
+ * **3.6 Read a file** - To retrieve application data, such as settings or saved documents.
+ * **3.7 Write a file** - To save application data.
 
 ### 3.4 Manage Windows
 
@@ -555,9 +558,8 @@ Medium – Improves usability but not strictly essential for basic operation.
 
 **Dependencies With Other Requirements**
 
- * Desktop Environment - Windows must interact seamlessly with other desktop components like the taskbar.
- * System API - Programmatic controls over windows relies on the API.
-
+ * **3.3 Open Application** - To manage windows of open applications.
+ * **3.11 Interface with system API** - For programmatically controlling windows.
 
 ### 3.5 Browse File Manager
 
@@ -576,8 +578,8 @@ High - Core functionality for interacting with the file system in a user-friendl
 
 **Dependencies With Other Requirements**
 
- * File System - Provides the data and operations for browsing and managing files.
- * Desktop Environment - File manager must integrate seamlessly as a desktop application.
+ * **3.6 Read a file** - To display file contents in the file manager.
+ * **3.7 Write a file** - To perform file operations like creation and deletion.
 
 ### 3.6 Read a file
 
@@ -596,8 +598,7 @@ High – Fundamental for interacting with stored data.
 
 **Dependencies With Other Requirements**
 
- * File System API - Provides methods for reading files programmatically.
- * Core Applications - Applications like the text editor require this functionality.
+ * **3.7 Write a file** - To ensure compatibility with files written by the system.
 
 ### 3.7 Write a file
 
@@ -616,8 +617,7 @@ High – Core functionality for user productivity and learning.
 
 **Dependencies With Other Requirements**
 
- * File System API - Provides methods for writing files programmatically.
- * Core Applications - Applications like the text editor require this functionality.
+ * **3.6 Read a file** - To ensure compatibility with files read by the system.
 
 ### 3.8 Run a command
 
@@ -636,10 +636,8 @@ High – Essential for teaching shell and Unix-like system usage.
 
 **Dependencies With Other Requirements**
 
- * Shell - Interprets and executes the commands.
- * Processes - Commands often result in spawning new processes.
-
-**Others as Appropriate**
+ * **3.10 List Processes** - To monitor processes created by commands.
+ * **3.9 Execute a file** - For running program files.
 
 ### 3.9 Execute a file
 
@@ -657,12 +655,52 @@ High – Core functionality for enabling programming and systems learning.
 
 **Dependencies With Other Requirements**
 
- * Shell - Handles the execution request and interpreter lookup.
- * Execution Environment - Runs the program within the browser's constraints.
+ * **3.8 Run a command** - For command-line execution of files.
+ * **3.2 Exit System** - To ensure processes are saved or terminated when the system exits.
 
-**Others as Appropriate**
+### 3.10 List Processes
 
-### 3.10 Interface with system API
+**Description**
+
+Users should be able to list all currently running processes in the system. This includes displaying the process ID (PID). The listing should provide users an overview of the system's active processes.
+
+**Criticality**
+
+Medium – Important for teaching process management concepts but not essential for the system's basic operation.
+
+**Technical Issues**
+
+ * **Performance** - Ensuring that listing processes does not introduce performance bottlenecks, especially if many processes are simulated.
+ * **Accuracy** - Representing simulated processes in a way that reflects real-world systems while remaining simple for educational purposes.
+
+**Dependencies With Other Requirements**
+
+ * **3.8 Run a command** - For processes spawned by commands.
+ * **3.9 Execute file** - For processes spawned by file execution.
+
+### 3.11 Kill Processes
+
+**Description**
+
+Users should be able to terminate processes manually. This functionality is useful for handling misbehaving programs or processes that consume excessive resources. The system should support identifying a process by its PID or name and terminating it cleanly.
+
+**Criticality**
+
+Medium – Enhances process management education but is not essential for the MVP.
+
+**Technical Issues**
+
+ * **Safe Termination** - Ensuring processes are terminated safely without leaving orphaned or zombie processes.
+ * **Error Handling** - Handling scenarios where a process cannot be terminated (e.g., invalid PID or restricted system processes).
+ * **User Feedback** - Providing clear feedback to the user on whether the process was successfully terminated.
+
+**Dependencies With Other Requirements**
+
+ * **3.10 List Processes** - To identify processes to terminate.
+ * **3.8 Run a command** - For processes spawned by commands.
+ * **3.9 Execute file** - For processes spawned by file execution.
+
+### 3.12 Interface with system API
 
 **Description**
 
@@ -698,10 +736,11 @@ Essentially the state surface area is large.
 
 **Dependencies With Other Requirements**
 
-The system API depends on the File System for file operations and the Window
-Manager for window creation and manipulation.
+ * **3.6 Read a file** - For programmatically reading files.
+ * **3.7 Write a file** - For manipulating files programmatically.
+ * **3.4 Manage Windows** - For managing windows created by API interactions.
 
-### 3.11 Create Task Rooms*
+### 3.13 Create Task Rooms*
 
 **Description**
 
@@ -726,7 +765,7 @@ There are some key issues to tackle:
 
 No dependencies.
 
-### 3.12 Join Task Rooms*
+### 3.14 Join Task Rooms*
 
 **Description**
 
@@ -751,10 +790,9 @@ that it is always valid.
 
 **Dependencies With Other Requirements**
 
-This depends on "Create Task Room" as joining a task room is an operation for the
-peripheral clients, the central client connects when it creates the room.
+ * **3.13 Create Task Rooms** - A task room must exist before it can be joined.
 
-### 3.13 Leave Task Rooms*
+### 3.15 Leave Task Rooms*
 
 **Description**
 
@@ -778,7 +816,7 @@ task rooms is implemented.
 This only depends on "Create Task Room" as that is the bear minimum for a client to be connected
 to a room.
 
-### 3.14 Submit Task Solution*
+### 3.16 Submit Task Solution*
 
 **Description**
 
@@ -803,11 +841,10 @@ central clients so that a fixed window for submission is maintained per client.
 
 **Dependencies With Other Requirements**
 
-This depends on "Create Task Rooms" and "Join Task Room" as both a task room needs
-to be created as well as some peripheral client joining it for task submission to
-be a possibility.
+ * **3.13 Create Task Rooms** - A task room must exist to assign tasks.
+ * **3.14 Join Task Rooms** - A client must be part of a task room to submit a task solution.
 
-### 3.15 Publish a Task*
+### 3.17 Publish a Task*
 
 **Description**
 
@@ -831,9 +868,9 @@ submitting correct solutions could come back as incorrect.
 
 **Dependencies With Other Requirements**
 
-This depends on "Create Task Rooms".
+ * **3.13 Create Task Rooms** - Task publishing requires the creation of a task room.
 
-### 3.16 Configure System
+### 3.18 Configure System
 
 **Description**
 
@@ -854,10 +891,10 @@ to a good state if the user finds issues.
 
 **Dependencies With Other Requirements**
 
-The configuration itself does not depend on functional requirements however the things
-it specifies implies a wide range of the system is functioning.
+ * **3.6 Read a file** - To read the configuration file.
+ * **3.7 Write a file** - To save changes to the configuration.
 
-### 3.17 Save Files to Desktop*
+### 3.19 Save Files to Desktop*
 
 **Description**
 
@@ -866,8 +903,7 @@ directory on the file system.
 
 **Criticality**
 
-Low - Files are still accessible through the file manager and the shell, so this is not
-crucial for system operation.
+Low - Files are still accessible through the file manager and the shell, so this is not crucial for system operation.
 
 **Technical Issues**
 
@@ -877,59 +913,88 @@ interacts with the other items on the desktop.
 
 **Dependencies With Other Requirements**
 
+ * **3.6 Read a file** - To access files for creating shortcuts.
+ * **3.7 Write a file** - To save changes to shortcut configurations.
+ * **3.12 Interface with system API** - To handle programmatic file access.
+
 This depends on "Interface with system API" for reading files.
 
 ## 4. System Architecture
 
 ### 4.1 Minimum Viable Product
 
+The MVP focuses on delivering the primary functionality necessary for the educational platform. The following components form the backbone of the system, as illustrated in the MVP System Design diagram:
+
 ![](res/MVPOverallSystemDesign.png)
 
 #### 4.1.1 User Interface (UI)
-Explanation
+
+The user interface is responsible for ensuring ease of interaction and familiarity for users transitioning from other systems. It contains the following subcomponents:
 
 ##### 4.1.1.1 Window Manager
-Explanation
+
+The window manager handles the creation, positioning, resizing, and closing of graphical application windows. It also provides APIs for programmatically manipulating windows, enabling users to interact with their system through code.
 
 ##### 4.1.1.2 Desktop Environment
-Explanation
+
+The desktop environment provides a visual and navigable workspace, mimicking familiar desktop metaphors such as icons and a taskbar. Users can store and access shortcuts to files and applications.
 
 #### 4.1.2 Execution Environment
-Explanation
+
+The execution environment serves as the runtime context for executing programs. It integrates a lightweight **Lua interpreter**, allowing users to run code directly in the system. The execution environment will work closely with the shell and system APIs, enabling interaction with the system's processes, files, and windows.
 
 #### 4.1.3 File System
-Explanation
+
+The file system provides a hierarchical structure for file and directory storage. Built on top of the browser's File System Access API, it abstracts away browser limitations while maintaining simplicity for educational purposes. Users interact with the file system via the terminal, file browser, and APIs.
 
 #### 4.1.4 Process Manager
-Explanation
+
+The process manager simulates lightweight process handling. Processes can be created, listed, and terminated, allowing users to understand fundamental process concepts. Processes include basic input/output streams (stdin and stdout) and exit codes for interaction and debugging.
 
 #### 4.1.5 Core Applications
-Explanation
+
+Core applications provide essential functionality that enables the system to operate as a basic educational platform. These applications include:
 
 ##### 4.1.5.1 Terminal
-Explanation
 
-##### 4.1.5.2 Settings
-Explanation
+A simple terminal emulator that serves as the primary interface for interacting with the shell and running commands.
 
-##### 4.1.5.3 File Browser
-Explanation
+##### 4.1.5.2 File Browser
 
-##### 4.1.5.4 Shell
-Explanation
+A graphical interface for managing files and directories, offering basic operations such as create, delete, and rename.
 
-##### 4.1.5.5 Text Editor
-Explanation
+##### 4.1.5.3 Shell
+
+A user-friendly shell that supports basic scripting and command execution. It is stripped back to reduce learning overhead while retaining essential features such as pipes, I/O redirection, and environment manipulation.
+
+##### 4.1.5.4 Text Editor
+
+A minimal text editor for editing code and scripts, designed with simplicity in mind. It supports basic syntax highlighting for Lua and shell scripts.
+
+##### 4.1.5.5 Settings
+
+A configuration utility allowing users to customize the system's appearance and behavior, ensuring accessibility and user preference alignment.
 
 ### 4.2 Stretch Goals
+The following components are stretch goals intended to expand the system's functionality if time permits. These components are illustrated in the Stretch Goal System Design diagram:
 
 ![](res/ImprovedOverallSystemDesign.png)
 
 #### 4.2.1 Task System
-Explanation
+
+The task system enables mentors to create, distribute, and track programming tasks for students. It includes:
+
+ * **Task Application** -  An interface for defining and managing tasks.
+ * **Task Delivery** - A decentralized peer-to-peer mechanism for broadcasting tasks to students.
+ * **Task Validation** - A secure process for validating student submissions without executing untrusted code on remote systems.
 
 #### 4.2.2 Networking
-Explanation
+
+The networking component leverages WebRTC to enable peer-to-peer communication. It includes:
+
+ * **Signaling Server** - Facilitates connection setup between peers.
+ * **Room Management** - Allows mentors to create and manage rooms for task distribution.
+ * **Connection Handling** - Manages latency, reliability, and NAT traversal for consistent performance.
 
 ## 5. High-level Design
 
