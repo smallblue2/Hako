@@ -36,8 +36,8 @@ made the observation that a big part of why learning systems and execution
 environments is difficult is because of the amount of features (including
 legacy) that the tools and APIs they provide have. The system we are building
 tackles this issue rather than hiding it all together, we simplify the tools and
-APIs and centralize execution, the idea is to give new programmers a broader
-model of a simpler system that is based on the larger Unix-like systems
+APIs and centralise execution, the idea is to give new programmers a broader
+model of a simpler system that is based on the larger Unix-like systems,
 programmers come accustomed to as they grow. The system we are building is
 hopefully a system that people can use as practice for learning larger systems.
 
@@ -63,7 +63,7 @@ This project will be released under the free open-source software (FOSS) ideolog
 | **Lua** | A lightweight, embeddable programming language often used for scripting. Known for its simplicity and ease of learning, making it suitable for educational purposes. |
 | **Mentor** | An individual with intermediate to expert knowledge in programming and systems who guides students in learning, often by providing tasks and feedback. |
 | **NAT Traversal** | A technique used to establish peer-to-peer connections across network address translators (NATs), which often block direct connections between devices. |
-| **Peer-to-Peer (P2P)** | A decentralized networking model where devices communicate directly with each other without relying on a central server. |
+| **Peer-to-Peer (P2P)** | A decentralised networking model where devices communicate directly with each other without relying on a central server. |
 | **POSIX Compliance** | Adherence to a standard for maintaining compatibility between operating systems, defining APIs, utilities, and shells for Unix-like systems. |
 | **Sandboxing** | A security mechanism that isolates running programs to prevent them from affecting the host system or accessing sensitive resources. In browsers, web applications are sandboxed to restrict access to system resources. |
 | **Shell** | A command-line interpreter that allows users to interact with the operating system by executing commands, managing files, and running scripts. |
@@ -875,8 +875,8 @@ submitting correct solutions could come back as incorrect.
 **Description**
 
 A simple configuration file is kept on the file system to allow users to
-customize the appearance of the system. For example the user can change
-colours and font size of different parts of the system.
+customise the appearance of the system. For example the user can change
+colors and font size of different parts of the system.
 
 **Criticality**
 
@@ -973,7 +973,7 @@ A minimal text editor for editing code and scripts, designed with simplicity in 
 
 ##### 4.1.5.5 Settings
 
-A configuration utility allowing users to customize the system's appearance and behavior, ensuring accessibility and user preference alignment.
+A configuration utility allowing users to customise the system's appearance and behavior, ensuring accessibility and user preference alignment.
 
 ### 4.2 System With Stretch Goals
 The following `Network` and `Task System` components are stretch goals intended to expand the system's functionality if time permits. These components are illustrated in the extended system diagram:
