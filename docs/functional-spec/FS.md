@@ -33,7 +33,9 @@ model of a simpler system that is based on the larger Unix-like systems
 programmers come accustomed to as they grow. The system we are building is
 hopefully a system that people can use as practice for learning larger systems.
 
-![](res/ImprovedOverallSystemDesign.png)
+![](res/stretch_goal_system_design.png)
+
+*Stretch goal system design diagram*
 
 ## 1.2 Business Context
 
@@ -925,7 +927,7 @@ This depends on "Interface with system API" for reading files.
 
 The MVP focuses on delivering the primary functionality necessary for the educational platform. The following components form the backbone of the system, as illustrated in the MVP System Design diagram:
 
-![](res/MVPOverallSystemDesign.png)
+![](res/mvp_system_design.png)
 
 #### 4.1.1 User Interface (UI)
 
@@ -978,7 +980,7 @@ A configuration utility allowing users to customize the system's appearance and 
 ### 4.2 Stretch Goals
 The following components are stretch goals intended to expand the system's functionality if time permits. These components are illustrated in the Stretch Goal System Design diagram:
 
-![](res/ImprovedOverallSystemDesign.png)
+![](res/stretch_goal_system_design.png)
 
 #### 4.2.1 Task System
 
@@ -1000,15 +1002,15 @@ The networking component leverages WebRTC to enable peer-to-peer communication. 
 
 ### 5.1 Creating and Running Programs Sequence Diagram
 
-![](res/creatingAndRunningProgramSequence.png)
+![](res/creating_and_running_program_sequence.png)
 
 ### 5.2 File System Initialisation State Diagram
 
-![](res/filesystemInitialisationStateDiagram.png)
+![](res/file_system_initialisation_state_diagram.png)
 
 ### 5.3 Window API Interaction Sequence Diagram
 
-![](res/WindowAPIInteractionSequenceDiagram.png)
+![](res/window_api_interaction_sequence_diagram.png)
 
 ### 5.4 Stretch Goal Create and Broadcast Task Sequence Diagram
 
@@ -1020,4 +1022,4 @@ The networking component leverages WebRTC to enable peer-to-peer communication. 
 
 ## 6. Preliminary Schedule
 
-![](res/gantt.png)
+![](res/Gantt-sem1.png)
