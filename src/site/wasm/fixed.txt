@@ -1,0 +1,8 @@
+              handlerSignal = PTY.onSignal(
+                (sig) => {
+                  if (PTY_signalNameToCode[sig] != 28 /* SIGWINCH */) {
+                    resolve(1 /* interrupted */);
+                  }
+                }
+              );
+

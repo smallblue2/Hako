@@ -1,0 +1,1 @@
+emcc -std=gnu99 -O2 -sEXPORTED_FUNCTIONS='["_malloc", "_main"]' --pre-js=pre.js -s PROXY_TO_PTHREAD -s ASSERTIONS -s EXPORT_ES6 -s ENVIRONMENT=web,worker --js-library=../node_modules/xterm-pty/emscripten-pty.js -o lua.mjs -pthread lua.c
