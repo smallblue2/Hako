@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Filesystem Testing</title>
+</head>
+
+<body>
+  <script type="module">
+    import {BrowserFileSystem} from './src/main.js';
+
+    const myFilesystem = new BrowserFileSystem();
+
+    const initButton = document.createElement('button');
+    initButton.textContent = "Set Filesystem Root";
+    initButton.addEventListener('click', () => myFilesystem.initialise());
+
+    document.body.appendChild(initButton);
+    document.body.appendChild(document.createElement('br'));
+
+    const fileNameInput = document.createElement('input');
+    fileNameInput.placeholder = "File to create";
+
+    document.body.appendChild(fileNameInput);
+
+    const createFileButton = document.createElement('button');
+    createFileButton.textContent = "Create file";
+    createFileButton.addEventListener('click', () => {
+      const fileName = fileNameInput.value;
+      if (fileName) {
+        myFilesystem.createFile(fileName, myFilesystem.root);
+      } else {
+        alert("File name cannot be empty!");
+      }
+    });
+
+    document.body.appendChild(createFileButton);
+    document.body.appendChild(document.createElement('br'));
+
+    const dirNameInput = document.createElement('input');
+    dirNameInput.placeholder = "Directory to create";
+
+    document.body.appendChild(dirNameInput);
+
+    const createDirButton = document.createElement('button');
+    createDirButton.textContent = "Create directory";
+    createDirButton.addEventListener('click', () => {
+      const dirName = dirNameInput.value;
+      if (dirName) {
+        myFilesystem.createDirectory(dirName, myFilesystem.root);
+      } else {
+        alert("Directory name cannot be empty");
+      }
+    });
+
+    document.body.appendChild(createDirButton);
+
+    document.body.append(document.createElement('br'));
+
+    const toRead = document.createElement('input');
+    toRead.placeholder = "File To Read"
+
+    document.body.append(toRead);
+
+    const readFileButton = document.createElement('button');
+    readFileButton.textContent = ""
+
+
+
+  </script>
+</body>
+
+</html>

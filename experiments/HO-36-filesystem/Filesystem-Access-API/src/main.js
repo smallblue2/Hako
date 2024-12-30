@@ -1,0 +1,1 @@
+export { BrowserFileSystem } from './filesystem';
