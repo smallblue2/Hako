@@ -49,7 +49,7 @@ int MAX_PATH_LENGTH = 256;
 void syncFS() {
   EM_ASM({
     // Force an initial sync - despite `autoPersist` flag
-    FS.syncfs(false, function(err) {
+    FS.syncfs(true, function(err) {
       if (err) {
         console.error("[JS] Error during sync:", err);
       } else {
@@ -79,11 +79,15 @@ void initialiseFS() {
 
     // Mount IDBFS
     console.log("[JS] Mounting IDBFS at", persistentRoot);
-    FS.mount(IDBFS, {autoPersist : true}, persistentRoot);
+    try {
+      FS.mount(IDBFS, {autoPersist : true}, persistentRoot);
+    } catch (err) {
+      console.error("[JS] Failed to mount filesystem:", err);
+    }
   },
   PERSISTENT_ROOT_NAME);
 
-  // syncFS(); // Not sure if needed due to autoPersist: true
+  syncFS(); // Not sure if needed due to autoPersist: true
 
   printf("[C] Finished filesystem initialisation!\n");
 
@@ -126,10 +130,14 @@ void readFile(char* file_path) {
     while ((c = getc(file)) != EOF) {
       putchar(c);
     }
+    // As emscripten flushes on '\n', which doesn't always exist
+    putchar('\n');
+
     fclose(file);
   } else {
     fprintf(stderr, "[C] Error opening '%s' for reading!\n", full_path);
   }
+
 
   return;
 }
@@ -181,7 +189,7 @@ int main() {
   initialiseFS();
   writeFile("/persistent/test0.txt", "This is a test!\n");
   writeFile("/persistent/test1.txt", "This is another test!\n");
-  readFile("/persistent/test2.txt");
-  printNodeStat("/home");
+  readFile("/persistent/test1.txt");
+  printNodeStat("/persistent");
   return 0;
 }

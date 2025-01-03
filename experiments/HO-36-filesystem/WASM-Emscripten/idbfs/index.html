@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>IDBFS Filesystem Testing</title>
+</head>
+
+<body>
+  <!-- Create wrappers on exposed WASM functions -->
+  <script>
+    var Filesystem = {};
+
+    // Global Module object which Emscripten uses to interact with
+    // and initialise WASM.
+    var Module = {
+      onRuntimeInitialized: function () {
+        console.log("Module initialised!");
+
+        // Cwraps [Function Signatures]
+        Filesystem.initialiseFS = Module.cwrap(
+          'initialiseFS', // Function name
+          'null', // Return type
+          [], // Argument types
+        )
+        Filesystem.syncFS = Module.cwrap(
+          'syncFS', // Function name
+          'null', // Return type
+          [], // Argument types
+        )
+        Filesystem.writeFile = Module.cwrap(
+          'writeFile', // Function name
+          'null', // Return type
+          ['string', 'string'], // Argument types
+        )
+        Filesystem.readFile = Module.cwrap(
+          'readFile', // Function name
+          'null', // Return type
+          ['string', 'string'], // Argument types
+        )
+        Filesystem.printNodeStat = Module.cwrap(
+          'printNodeStat', // Function name
+          'null', // Return type
+          ['string'] // Argument types
+        )
+      }
+    }
+  </script>
+  <!-- Loads filesystem emscripten WASM -->
+  <script async type="text/javascript" src="main.js"></script>
+
+  <h1>IDBFS Filesystem Test</h1>
+  <p>Experiment with the filesystem API (through the developer console) exposed via compiled 'C' code into WASM.</p>
+  <p>IndexedDB is mounted under <code>/persistent</code> when initialised, and stays persistent past browser sessions.
+  </p>
+  <ul>
+    <li><strong>Initialise the filesystem via <code>Filesystem.initialiseFS();</code> first!</strong></li>
+    <li>Use <code>Filesystem.writeFile(location: string, content: string)</code> to write a file</li>
+    <li>Use <code>Filesystem.readFile(location: string)</code> to read a file</li>
+    <li>Use <code>Filesystem.printNodeStat(location: string)</code> to output the stat of a filesystem node to the
+      console</li>
+  </ul>
+</body>
+
+</html>
