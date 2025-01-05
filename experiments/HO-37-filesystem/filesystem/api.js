@@ -9,84 +9,79 @@ export function initialiseAPI(Module) {
     'null', // Return type
     [], // Argument types
   )
-  Filesystem.syncFS = Module.cwrap(
+  Filesystem.sync = Module.cwrap(
     'syncFS', // Function name
     'null', // Return type
     [], // Argument types
   )
-  Filesystem.fs_open = Module.cwrap(
+  Filesystem.open = Module.cwrap(
     'fs_open', // Function name
     'number', // Return type
     ['string', 'number', 'number'], // Argument types
   )
-  Filesystem.fs_close = Module.cwrap(
+  Filesystem.close = Module.cwrap(
     'fs_close', // Function name
     'number', // Return type
     ['number'], // Argument types
   )
-  Filesystem.fs_read = Module.cwrap(
-    'fs_read', // Function name
-    'number', // Return type
-    ['number', 'array', 'number'], // Argument types
-  )
-  Filesystem.fs_write = Module.cwrap(
+  Filesystem.write = Module.cwrap(
     'fs_write', // Function name
     'number', // Return type
     ['number', 'array', 'number'], // Argument types
   )
-  Filesystem.fs_lseek = Module.cwrap(
+  Filesystem.lseek = Module.cwrap(
     'fs_lseek', // Function name
     'number', // Return type
     ['number', 'number', 'number'], // Argument types
   )
-  Filesystem.printNodeStat = Module.cwrap(
+  Filesystem.printStat = Module.cwrap(
     'printNodeStat', // Function name
     'null', // Return type
     ['string'] // Argument types
   )
-}
+  Filesystem.read = function(fd, amt) {
 
-// Global Module object which Emscripten uses to interact with
-// and initialise WASM.
-var Module = {
-  onRuntimeInitialized: function() {
-    console.log("Module initialised!");
+    // Save the current stack pointer
+    const sp = Module.stackSave();
+    
+    // Prepare a stack allocation for the result struct (two 32-bit fields)
+    const resultStructPtr = Module.stackAlloc(8);
 
-    // Cwraps [Function Signatures]
-    Filesystem.initialiseFS = Module.cwrap(
-      'initialiseFS', // Function name
-      'null', // Return type
-      [], // Argument types
-    )
-    Filesystem.syncFS = Module.cwrap(
-      'syncFS', // Function name
-      'null', // Return type
-      [], // Argument types
-    )
-    Filesystem.fs_open = Module.cwrap(
-      'fs_open', // Function name
-      'number', // Return type
-      ['string', 'number', 'number'], // Argument types
-    )
-    Filesystem.fs_close = Module.cwrap(
-      'fs_close', // Function name
-      'number', // Return type
-      ['number'], // Argument types
-    )
-    Filesystem.fs_read = Module.cwrap(
+    // TODO: Possibly cwrap this as an optimisation [WANT TO HIDE FROM ENDUSER THOUGH]
+    Module.ccall(
       'fs_read', // Function name
-      'number', // Return type
-      ['number', 'array', 'number'], // Argument types
-    )
-    Filesystem.fs_write = Module.cwrap(
-      'fs_write', // Function name
-      'number', // Return type
-      ['number', 'array', 'number'], // Argument types
-    )
-    Filesystem.printNodeStat = Module.cwrap(
-      'printNodeStat', // Function name
-      'null', // Return type
-      ['string'] // Argument types
-    )
+      null, // No return
+      ['number', 'number', 'number'], // Param type
+      [fd, resultStructPtr, amt], // Call with function arguments
+    );
+
+    // Extract fileds: rr.data -> offset 0, rr.size -> 4
+    const dataPtr = Module.getValue(resultStructPtr, 'i32');
+    const size = Module.getValue(resultStructPtr+4, 'i32');
+
+
+    if (size > 0) {
+      // Copy bytes out into a JS TypedArray
+      const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, size);
+      // Make a copy for a stable buffer in JS
+      const copy = new Uint8Array(dataView);
+
+      // Don't need the pointer anymore - free it to avoid WASM memory leaks
+      Module.ccall(
+        "free_read_ptr",
+        null,
+        ["number"],
+        [dataPtr],
+      );
+      // Clean up stack too
+      Module.stackRestore(sp);
+
+      return { data: copy, size: size };
+    } else {
+      console.error("read returned error:", size);
+      // Clean up
+      Module.stackRestore(sp);
+      return;
+    }
   }
 }

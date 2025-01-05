@@ -37,6 +37,7 @@
 #include <emscripten.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -138,7 +139,7 @@ void printNodeStat(char* file_path) {
   return;
 }
 
-int fs_open(const char *pathname, int flags, mode_t mode) {
+int fs_open(const char *pathname, int flags, int mode) {
   int fd = open(pathname, flags, mode);
   if (fd == -1) {
     perror("Failed to open file");
@@ -154,30 +155,59 @@ int fs_close(int fd) {
   return result;
 }
 
-ssize_t fs_read(int fd, void *buf, size_t count) {
-  ssize_t bytesRead = read(fd, buf, count);
-  if (bytesRead == -1) {
-    perror("Failed to read file");
-  }
-  return bytesRead;
-}
+/* 
+ * Doesn't work due to emscripten passing the buffer by value
+ */
+// ssize_t fs_read(int fd, void *buf, size_t count) {
+//   ssize_t bytesRead = read(fd, buf, count);
+//   if (bytesRead == -1) {
+//     perror("Failed to read file");
+//   }
+//   return bytesRead;
+// }
 
-ssize_t fs_write(int fd, void *buf, size_t count) {
-  ssize_t bytesWritten = write(fd, buf, count);
+
+int fs_write(int fd, void *buf, int count) {
+  int bytesWritten = write(fd, buf, count);
   if (bytesWritten == -1) {
     perror("Failed to write file");
   }
   return bytesWritten;
 }
 
-off_t fs_lseek(int fd, off_t offset, int whence) {
-  off_t result = lseek(fd, offset, whence);
+int fs_lseek(int fd, int offset, int whence) {
+  int result = lseek(fd, offset, whence);
 
   if (result == -1) {
     perror("Failed to seek file.");
   }
 
   return result;
+}
+
+typedef struct {
+  unsigned char* data;
+  int size;
+} ReadResult;
+
+void fs_read(int fd, ReadResult* rr, int count) {
+  // Create buffer
+  unsigned char* buffer = (unsigned char*)malloc(count);
+  if (!buffer) {
+    perror("Failed to create buffer to read file");
+    return;
+  }
+
+  // Read into buffer
+  int bytesRead = read(fd, buffer, count);
+  rr->data = buffer;
+  rr->size = bytesRead;
+
+  return;
+}
+
+void free_read_ptr(unsigned char* ptr) {
+  free(ptr);
 }
 
 int main() {

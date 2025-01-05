@@ -309,6 +309,9 @@ function assert(condition, text) {
 
 // We used to include malloc/free by default in the past. Show a helpful error in
 // builds with assertions.
+function _malloc() {
+  abort('malloc() called but not included in the build - add `_malloc` to EXPORTED_FUNCTIONS');
+}
 function _free() {
   // Show a helpful error since we used to include free by default in the past.
   abort('free() called but not included in the build - add `_free` to EXPORTED_FUNCTIONS');
@@ -889,8 +892,8 @@ function dbg(...args) {
 // === Body ===
 
 var ASM_CONSTS = {
-  68824: () => { FS.syncfs(true, function(err) { if (err) { console.error("[JS] Error during sync:", err); } else { console.log("[JS] Sync completed succesfully!"); } }); },  
- 68982: ($0) => { let persistentRoot = UTF8ToString($0); let check = FS.analyzePath(persistentRoot, false); if (check.exists) { console.log("[JS]", persistentRoot, "already exists!"); console.log("[JS] Directory info:", check); } else { console.log("[JS] Creating directory:", persistentRoot); FS.mkdir(persistentRoot); } console.log("[JS] Mounting IDBFS at", persistentRoot); try { FS.mount(IDBFS, {autoPersist : true}, persistentRoot); } catch (err) { console.error("[JS] Failed to mount filesystem:", err); } }
+  68840: () => { FS.syncfs(true, function(err) { if (err) { console.error("[JS] Error during sync:", err); } else { console.log("[JS] Sync completed succesfully!"); } }); },  
+ 68998: ($0) => { let persistentRoot = UTF8ToString($0); let check = FS.analyzePath(persistentRoot, false); if (check.exists) { console.log("[JS]", persistentRoot, "already exists!"); console.log("[JS] Directory info:", check); } else { console.log("[JS] Creating directory:", persistentRoot); FS.mkdir(persistentRoot); } console.log("[JS] Mounting IDBFS at", persistentRoot); try { FS.mount(IDBFS, {autoPersist : true}, persistentRoot); } catch (err) { console.error("[JS] Failed to mount filesystem:", err); } }
 };
 
 // end include: preamble.js
@@ -4361,14 +4364,11 @@ var ASM_CONSTS = {
       return (...args) => ccall(ident, returnType, argTypes, args, opts);
     };
 
-  
-  
-  var stringToNewUTF8 = (str) => {
-      var size = lengthBytesUTF8(str) + 1;
-      var ret = _malloc(size);
-      if (ret) stringToUTF8(str, ret, size);
-      return ret;
-    };
+
+
+
+
+
 
   var FS_createPath = FS.createPath;
 
@@ -4418,13 +4418,13 @@ var _syncFS = Module['_syncFS'] = createExportWrapper('syncFS', 0);
 var _initialiseFS = Module['_initialiseFS'] = createExportWrapper('initialiseFS', 0);
 var _fs_open = Module['_fs_open'] = createExportWrapper('fs_open', 3);
 var _fs_close = Module['_fs_close'] = createExportWrapper('fs_close', 1);
-var _fs_read = Module['_fs_read'] = createExportWrapper('fs_read', 3);
 var _fs_write = Module['_fs_write'] = createExportWrapper('fs_write', 3);
-var _fs_lseek = Module['_fs_lseek'] = createExportWrapper('fs_lseek', 4);
+var _fs_lseek = Module['_fs_lseek'] = createExportWrapper('fs_lseek', 3);
+var _fs_read = Module['_fs_read'] = createExportWrapper('fs_read', 3);
+var _free_read_ptr = Module['_free_read_ptr'] = createExportWrapper('free_read_ptr', 1);
 var _main = createExportWrapper('main', 2);
 var _fflush = createExportWrapper('fflush', 1);
 var _strerror = createExportWrapper('strerror', 1);
-var _malloc = createExportWrapper('malloc', 1);
 var __emscripten_tempret_set = createExportWrapper('_emscripten_tempret_set', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
 var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();
@@ -4441,9 +4441,14 @@ var dynCall_jiji = Module['dynCall_jiji'] = createExportWrapper('dynCall_jiji', 
 
 Module['addRunDependency'] = addRunDependency;
 Module['removeRunDependency'] = removeRunDependency;
+Module['stackSave'] = stackSave;
+Module['stackRestore'] = stackRestore;
+Module['stackAlloc'] = stackAlloc;
 Module['ccall'] = ccall;
 Module['cwrap'] = cwrap;
-Module['stringToNewUTF8'] = stringToNewUTF8;
+Module['setValue'] = setValue;
+Module['getValue'] = getValue;
+Module['UTF8ToString'] = UTF8ToString;
 Module['FS_createPreloadedFile'] = FS_createPreloadedFile;
 Module['FS_unlink'] = FS_unlink;
 Module['FS_createPath'] = FS_createPath;
@@ -4515,6 +4520,7 @@ var missingLibrarySymbols = [
   'UTF32ToString',
   'stringToUTF32',
   'lengthBytesUTF32',
+  'stringToNewUTF8',
   'registerKeyEventCallback',
   'maybeCStringToJsString',
   'findEventTarget',
@@ -4634,9 +4640,6 @@ var unexportedSymbols = [
   'writeStackCookie',
   'checkStackCookie',
   'convertI32PairToI53Checked',
-  'stackSave',
-  'stackRestore',
-  'stackAlloc',
   'ptrToString',
   'zeroMemory',
   'getHeapMax',
@@ -4661,13 +4664,10 @@ var unexportedSymbols = [
   'getCFunc',
   'freeTableIndexes',
   'functionsInTableMap',
-  'setValue',
-  'getValue',
   'PATH',
   'PATH_FS',
   'UTF8Decoder',
   'UTF8ArrayToString',
-  'UTF8ToString',
   'stringToUTF8Array',
   'stringToUTF8',
   'lengthBytesUTF8',
