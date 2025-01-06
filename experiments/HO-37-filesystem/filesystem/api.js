@@ -84,4 +84,9 @@ export function initialiseAPI(Module) {
       return;
     }
   }
+  Filesystem.unlink = Module.cwrap(
+    "fs_unlink", // Function name
+    null, // Return type
+    ["string"], // Argument types
+  );
 }

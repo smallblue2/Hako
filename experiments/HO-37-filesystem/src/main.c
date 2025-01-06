@@ -4,9 +4,9 @@
  *  - INITIALISATION + MOUNTING
  *    - Proper bootstrap
  *  - FILE OPERATIONS
- *    - Create a file
- *    - Read a file
- *    - Write to a file
+ *    - Create a file [x]
+ *    - Read a file [x]
+ *    - Write to a file [x]
  *    - Unlink a file
  *    - Rename a file
  *    - Check existence
@@ -208,6 +208,14 @@ void fs_read(int fd, ReadResult* rr, int count) {
 
 void free_read_ptr(unsigned char* ptr) {
   free(ptr);
+}
+
+void fs_unlink(const char* filename) {
+  int result = unlink(filename);
+  if (result < 0) {
+    perror("Failed to remove file!");
+  }
+  return;
 }
 
 int main() {
