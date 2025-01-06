@@ -7,7 +7,7 @@
  *    - Create a file [x]
  *    - Read a file [x]
  *    - Write to a file [x]
- *    - Unlink a file
+ *    - Unlink a file [x]
  *    - Rename a file
  *    - Check existence
  *  - DIRECTORY OPERATION
@@ -20,11 +20,11 @@
  *    - Stat a link (lstat)
  *    - Set metadata (permissions, timestamps, any custom logic, etc)
  *  - FILE DESCRIPTORS
- *    - Open a file
- *    - Close a file
- *    - Read from descriptor
- *    - Write from descriptor
- *    - Seek
+ *    - Open a file [x]
+ *    - Close a file [x]
+ *    - Read from descriptor [x]
+ *    - Write from descriptor [x]
+ *    - Seek [x]
  *  - ADVANCED [DO WE WANT?]
  *    - Symbolic links
  *    - Hard links
@@ -154,18 +154,6 @@ int fs_close(int fd) {
   }
   return result;
 }
-
-/* 
- * Doesn't work due to emscripten passing the buffer by value
- */
-// ssize_t fs_read(int fd, void *buf, size_t count) {
-//   ssize_t bytesRead = read(fd, buf, count);
-//   if (bytesRead == -1) {
-//     perror("Failed to read file");
-//   }
-//   return bytesRead;
-// }
-
 
 int fs_write(int fd, void *buf, int count) {
   int bytesWritten = write(fd, buf, count);
