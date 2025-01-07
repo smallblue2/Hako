@@ -206,6 +206,13 @@ void fs_unlink(const char* filename) {
   return;
 }
 
+void fs_rename(const char* old, const char* new) {
+  if (rename(old, new) < 0) {
+    perror("Unable to rename file. Please check file exists and you have permission to modify files.");
+  }
+  return;
+}
+
 int main() {
   initialiseFS();
   return 0;

@@ -892,8 +892,8 @@ function dbg(...args) {
 // === Body ===
 
 var ASM_CONSTS = {
-  68872: () => { FS.syncfs(true, function(err) { if (err) { console.error("[JS] Error during sync:", err); } else { console.log("[JS] Sync completed succesfully!"); } }); },  
- 69030: ($0) => { let persistentRoot = UTF8ToString($0); let check = FS.analyzePath(persistentRoot, false); if (check.exists) { console.log("[JS]", persistentRoot, "already exists!"); console.log("[JS] Directory info:", check); } else { console.log("[JS] Creating directory:", persistentRoot); FS.mkdir(persistentRoot); } console.log("[JS] Mounting IDBFS at", persistentRoot); try { FS.mount(IDBFS, {autoPersist : true}, persistentRoot); } catch (err) { console.error("[JS] Failed to mount filesystem:", err); } }
+  68952: () => { FS.syncfs(true, function(err) { if (err) { console.error("[JS] Error during sync:", err); } else { console.log("[JS] Sync completed succesfully!"); } }); },  
+ 69110: ($0) => { let persistentRoot = UTF8ToString($0); let check = FS.analyzePath(persistentRoot, false); if (check.exists) { console.log("[JS]", persistentRoot, "already exists!"); console.log("[JS] Directory info:", check); } else { console.log("[JS] Creating directory:", persistentRoot); FS.mkdir(persistentRoot); } console.log("[JS] Mounting IDBFS at", persistentRoot); try { FS.mount(IDBFS, {autoPersist : true}, persistentRoot); } catch (err) { console.error("[JS] Failed to mount filesystem:", err); } }
 };
 
 // end include: preamble.js
@@ -4110,6 +4110,21 @@ var ASM_CONSTS = {
   }
   }
 
+  function ___syscall_renameat(olddirfd, oldpath, newdirfd, newpath) {
+  try {
+  
+      oldpath = SYSCALLS.getStr(oldpath);
+      newpath = SYSCALLS.getStr(newpath);
+      oldpath = SYSCALLS.calculateAt(olddirfd, oldpath);
+      newpath = SYSCALLS.calculateAt(newdirfd, newpath);
+      FS.rename(oldpath, newpath);
+      return 0;
+    } catch (e) {
+    if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
+    return -e.errno;
+  }
+  }
+
   function ___syscall_unlinkat(dirfd, path, flags) {
   try {
   
@@ -4416,6 +4431,8 @@ var wasmImports = {
   /** @export */
   __syscall_openat: ___syscall_openat,
   /** @export */
+  __syscall_renameat: ___syscall_renameat,
+  /** @export */
   __syscall_unlinkat: ___syscall_unlinkat,
   /** @export */
   _emscripten_memcpy_js: __emscripten_memcpy_js,
@@ -4444,6 +4461,7 @@ var _fs_lseek = Module['_fs_lseek'] = createExportWrapper('fs_lseek', 3);
 var _fs_read = Module['_fs_read'] = createExportWrapper('fs_read', 3);
 var _free_read_ptr = Module['_free_read_ptr'] = createExportWrapper('free_read_ptr', 1);
 var _fs_unlink = Module['_fs_unlink'] = createExportWrapper('fs_unlink', 1);
+var _fs_rename = Module['_fs_rename'] = createExportWrapper('fs_rename', 2);
 var _main = createExportWrapper('main', 2);
 var _fflush = createExportWrapper('fflush', 1);
 var _strerror = createExportWrapper('strerror', 1);

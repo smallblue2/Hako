@@ -89,4 +89,9 @@ export function initialiseAPI(Module) {
     null, // Return type
     ["string"], // Argument types
   );
+  Filesystem.rename = Module.cwrap(
+    "fs_rename", // Function name
+    null, // Return type
+    ["string", "string"], // Argument types
+  )
 }
