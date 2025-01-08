@@ -1,11 +1,11 @@
 <script>
   import * as lib from "$lib";
 
-  let { id, onResize, data, dataRef } = $props();
+  let { id, onResize, onWindowFocus, data, dataRef, layerFromId } = $props();
 
-  /** @type {HTMLDivElement} */
-  let root;
-  
+  /** @type {HTMLDivElement | undefined} */
+  let root = $state();
+
   let min = 100;
   let resizing = false;
 
@@ -124,11 +124,15 @@
       document.body.style.cursor = "revert";
     }
   }
+
+  $effect(() => {
+    root.style.zIndex = layerFromId[id];
+  })
 </script>
 
 <!-- svelte-ignore a11y_mouse_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={root} id="{id}" class="window"
+<div bind:this={root} class="window" tabindex="-1" onfocusin={(ev) => onWindowFocus(id, ev)}
 
   onmousemove={onMoveResizeArea}
   onmouseout={onExitResizeArea}
@@ -144,6 +148,7 @@
 .window {
   position: absolute;
   background-color: rgba(0,0,0,0);
+  outline: none;
 }
 
 .ev-wrapper {

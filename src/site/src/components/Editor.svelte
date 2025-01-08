@@ -1,23 +1,40 @@
 <script>
-  import Window from "../components/Window.svelte";
   import * as lib from "$lib";
+  import Window from "../components/Window.svelte";
 
-  import * as xterm from "@xterm/xterm";
-  const { Terminal } = xterm;
+  import { EditorView, keymap, lineNumbers, drawSelection } from "@codemirror/view";
+  import { EditorState } from "@codemirror/state";
+  import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 
-  import { FitAddon } from "@xterm/addon-fit";
-
-  import { openpty } from "xterm-pty";
-
-  let { id, onWindowFocus, wasmModule, layerFromId } = $props();
-
-  let min = 100;
+  let { id, onWindowFocus, layerFromId } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
 
   let width = 320;
   let height = 260;
+
+  $effect(() => {
+    let startState = EditorState.create({
+      doc: "Hello, world!",
+      extensions: [
+        keymap.of(defaultKeymap),
+        keymap.of(historyKeymap),
+        keymap.of([indentWithTab]),
+        lineNumbers(),
+        drawSelection(),
+        history()
+      ],
+    });
+
+    let view = new EditorView({
+      state: startState,
+      parent: root,
+    });
+
+    root.style.width = width.toString() + "px";
+    root.style.height = height.toString() + "px";
+  })
 
   /**
    * @param {number} n
@@ -29,12 +46,6 @@
     }
     return n;
   }
-
-
-  let terminal;
-
-  /** @type {FitAddon} */
-  let fitAddon;
 
   /**
    * @param {number} sect
@@ -76,51 +87,26 @@
         break;
     }
 
-    width = clamp(width + dw, min);
-    height = clamp(height + dh, min);
+    width = clamp(width + dw, 100);
+    height = clamp(height + dh, 100);
     root.style.width = width.toString() + "px";
     root.style.height = height.toString() + "px";
 
-    fitAddon.fit();
-
     return true; // you can return false to say you can't resize
   }
-
-  let master;
-  let slave;
-
-  $effect(async () => {
-    let { default: initEmscripten } = await import(wasmModule);
-
-    terminal = new Terminal();
-    terminal.open(root);
-
-    const pty = openpty();
-    master = pty.master;
-    slave = pty.slave;
-
-    fitAddon = new FitAddon();
-    terminal.loadAddon(fitAddon);
-
-    terminal.loadAddon(master);
-    fitAddon.fit();
-
-    await initEmscripten({
-      pty: slave
-    });
-  })
 </script>
 
 <Window {layerFromId} {id} {onWindowFocus} {onResize} dataRef={root}>
   {#snippet data()}
-    <div bind:this={root} class="contents"></div>
+    <div bind:this={root} class="editor">
+    </div>
   {/snippet}
 </Window>
 
 <style>
-.contents {
-  background-color: red;
-  width: 320px;
-  height: 260px;
+:global(.cm-editor) {
+  width: inherit;
+  height: inherit;
+  background-color: slategray;
 }
 </style>
