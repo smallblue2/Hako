@@ -40,50 +40,28 @@ export function initialiseAPI(Module) {
     ['string'] // Argument types
   )
   Filesystem.read = function(fd, amt) {
+    const sp = Module.stackSave(); // Save the stack pointer
+    const resultStructPtr = Module.stackAlloc(8); // Allocate space for the result struct
 
-    // Save the current stack pointer
-    const sp = Module.stackSave();
-    
-    // Prepare a stack allocation for the result struct (two 32-bit fields)
-    const resultStructPtr = Module.stackAlloc(8);
+    try {
+      Module.ccall('fs_read', null, ['number', 'number', 'number'], [fd, resultStructPtr, amt]);
 
-    // TODO: Possibly cwrap this as an optimisation [WANT TO HIDE FROM ENDUSER THOUGH]
-    Module.ccall(
-      'fs_read', // Function name
-      null, // No return
-      ['number', 'number', 'number'], // Param type
-      [fd, resultStructPtr, amt], // Call with function arguments
-    );
+      const dataPtr = Module.getValue(resultStructPtr, 'i32');
+      const size = Module.getValue(resultStructPtr + 4, 'i32');
 
-    // Extract fileds: rr.data -> offset 0, rr.size -> 4
-    const dataPtr = Module.getValue(resultStructPtr, 'i32');
-    const size = Module.getValue(resultStructPtr+4, 'i32');
-
-
-    if (size > 0) {
-      // Copy bytes out into a JS TypedArray
-      const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, size);
-      // Make a copy for a stable buffer in JS
-      const copy = new Uint8Array(dataView);
-
-      // Don't need the pointer anymore - free it to avoid WASM memory leaks
-      Module.ccall(
-        "free_read_ptr",
-        null,
-        ["number"],
-        [dataPtr],
-      );
-      // Clean up stack too
-      Module.stackRestore(sp);
-
-      return { data: copy, size: size };
-    } else {
-      console.error("read returned error:", size);
-      // Clean up
-      Module.stackRestore(sp);
-      return;
+      if (size > 0) {
+        const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, size);
+        const copy = new Uint8Array(dataView); // Create a stable copy
+        Module.ccall('free_read_ptr', null, ['number'], [dataPtr]); // Free the buffer
+        return { data: copy, size: size };
+      } else {
+        console.error("read returned error:", size);
+        return null;
+      }
+    } finally {
+      Module.stackRestore(sp); // Restore the stack pointer
     }
-  }
+  };
   Filesystem.unlink = Module.cwrap(
     "fs_unlink", // Function name
     null, // Return type
@@ -99,4 +77,56 @@ export function initialiseAPI(Module) {
     "number", // Return type
     ["string", "number"], // Argument types
   )
+  Filesystem.stat = function(name) {
+
+    // Save the current stack pointer
+    const sp = Module.stackSave();
+
+    // Allocate memory on heap for StatResult struct
+    const statResultPtr = Module._malloc(48); // 48 bytes
+    if (!statResultPtr) {
+      console.error("Faild to stat node!");
+      return;
+    }
+
+    // Call the wasm procedure
+    Module.ccall(
+      "fs_stat",
+      null,
+      ["string", "number"],
+      [name, statResultPtr],
+    );
+
+    // Extract fields from StatResult struct
+    const size = Module.getValue(statResultPtr, "i32");
+    const blocks = Module.getValue(statResultPtr + 4, "i32");
+    const blocksize = Module.getValue(statResultPtr + 8, "i32");
+    const ino = Module.getValue(statResultPtr + 12, "i32");
+    const nlink = Module.getValue(statResultPtr + 16, "i32");
+    const mode = Module.getValue(statResultPtr + 20, "i32");
+
+    const atimeSec = Module.getValue(statResultPtr + 24, "i32");
+    const atimeNSec = Module.getValue(statResultPtr + 28, "i32");
+    const mtimeSec = Module.getValue(statResultPtr + 32, "i32");
+    const mtimeNSec = Module.getValue(statResultPtr + 36, "i32");
+    const ctimeSec = Module.getValue(statResultPtr + 40, "i32");
+    const ctimeNSec = Module.getValue(statResultPtr + 42, "i32");
+
+    // Free the heap memory
+    Module._free(statResultPtr);
+    // Clean up stack
+    Module.stackRestore(sp);
+
+    return {
+      size: size,
+      blocks: blocks,
+      blocksize: blocksize,
+      ino: ino,
+      nlink: nlink,
+      mode: mode,
+      atime: { sec: atimeSec, nsec: atimeNSec },
+      mtime: { sec: mtimeSec, nsec: mtimeNSec },
+      ctime: { sec: ctimeSec, nsec: ctimeNSec },
+    }
+  }
 }

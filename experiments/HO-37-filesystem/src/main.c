@@ -217,6 +217,45 @@ int fs_access(const char* name, int type) {
   return access(name, type);
 }
 
+typedef struct {
+  int sec;
+  int nsec;
+} Time;
+
+typedef struct { // 48 bytes
+  int size;
+  int blocks;
+  int blocksize;
+  int ino;
+  int nlink;
+  int mode; // 24 bytes
+  Time atime;
+  Time mtime;
+  Time ctime; // 24 bytes
+} StatResult;
+
+void fs_stat(const char* name, StatResult* sr) {
+  struct stat fileStat;
+  if (stat(name, &fileStat) < 0) {
+    perror("Failed to stat file!");
+  }
+
+  sr->size = fileStat.st_size;
+  sr->blocks = fileStat.st_blocks;
+  sr->blocksize = fileStat.st_blksize;
+  sr->ino = fileStat.st_ino;
+  sr->nlink = fileStat.st_nlink;
+  sr->mode = fileStat.st_mode;
+  sr->atime.sec = (int)fileStat.st_atim.tv_sec;
+  sr->atime.nsec = (int)fileStat.st_atim.tv_nsec;
+  sr->mtime.sec = (int)fileStat.st_mtim.tv_sec;
+  sr->mtime.nsec = (int)fileStat.st_mtim.tv_nsec;
+  sr->ctime.sec = (int)fileStat.st_ctim.tv_sec;
+  sr->ctime.nsec = (int)fileStat.st_ctim.tv_nsec;
+
+  return;
+}
+
 int main() {
   initialiseFS();
   return 0;
