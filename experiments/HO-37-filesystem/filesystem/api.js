@@ -129,4 +129,56 @@ export function initialiseAPI(Module) {
       ctime: { sec: ctimeSec, nsec: ctimeNSec },
     }
   }
+    Filesystem.lstat = function(name) {
+
+    // Save the current stack pointer
+    const sp = Module.stackSave();
+
+    // Allocate memory on heap for StatResult struct
+    const statResultPtr = Module._malloc(48); // 48 bytes
+    if (!statResultPtr) {
+      console.error("Faild to stat node!");
+      return;
+    }
+
+    // Call the wasm procedure
+    Module.ccall(
+      "fs_lstat",
+      null,
+      ["string", "number"],
+      [name, statResultPtr],
+    );
+
+    // Extract fields from StatResult struct
+    const size = Module.getValue(statResultPtr, "i32");
+    const blocks = Module.getValue(statResultPtr + 4, "i32");
+    const blocksize = Module.getValue(statResultPtr + 8, "i32");
+    const ino = Module.getValue(statResultPtr + 12, "i32");
+    const nlink = Module.getValue(statResultPtr + 16, "i32");
+    const mode = Module.getValue(statResultPtr + 20, "i32");
+
+    const atimeSec = Module.getValue(statResultPtr + 24, "i32");
+    const atimeNSec = Module.getValue(statResultPtr + 28, "i32");
+    const mtimeSec = Module.getValue(statResultPtr + 32, "i32");
+    const mtimeNSec = Module.getValue(statResultPtr + 36, "i32");
+    const ctimeSec = Module.getValue(statResultPtr + 40, "i32");
+    const ctimeNSec = Module.getValue(statResultPtr + 42, "i32");
+
+    // Free the heap memory
+    Module._free(statResultPtr);
+    // Clean up stack
+    Module.stackRestore(sp);
+
+    return {
+      size: size,
+      blocks: blocks,
+      blocksize: blocksize,
+      ino: ino,
+      nlink: nlink,
+      mode: mode,
+      atime: { sec: atimeSec, nsec: atimeNSec },
+      mtime: { sec: mtimeSec, nsec: mtimeNSec },
+      ctime: { sec: ctimeSec, nsec: ctimeNSec },
+    }
+  }
 }

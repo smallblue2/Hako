@@ -16,7 +16,7 @@
  *    - Unlink a directory
  *    - Directory Traversal (FS.readdir())
  *  - METADATA OPERATIONS
- *    - Stat a node (stat)
+ *    - Stat a node (stat) [x]
  *    - Stat a link (lstat)
  *    - Set metadata (permissions, timestamps, any custom logic, etc)
  *  - FILE DESCRIPTORS
@@ -237,6 +237,28 @@ typedef struct { // 48 bytes
 void fs_stat(const char* name, StatResult* sr) {
   struct stat fileStat;
   if (stat(name, &fileStat) < 0) {
+    perror("Failed to stat file!");
+  }
+
+  sr->size = fileStat.st_size;
+  sr->blocks = fileStat.st_blocks;
+  sr->blocksize = fileStat.st_blksize;
+  sr->ino = fileStat.st_ino;
+  sr->nlink = fileStat.st_nlink;
+  sr->mode = fileStat.st_mode;
+  sr->atime.sec = (int)fileStat.st_atim.tv_sec;
+  sr->atime.nsec = (int)fileStat.st_atim.tv_nsec;
+  sr->mtime.sec = (int)fileStat.st_mtim.tv_sec;
+  sr->mtime.nsec = (int)fileStat.st_mtim.tv_nsec;
+  sr->ctime.sec = (int)fileStat.st_ctim.tv_sec;
+  sr->ctime.nsec = (int)fileStat.st_ctim.tv_nsec;
+
+  return;
+}
+
+void fs_lstat(const char* name, StatResult* sr) {
+  struct stat fileStat;
+  if (lstat(name, &fileStat) < 0) {
     perror("Failed to stat file!");
   }
 

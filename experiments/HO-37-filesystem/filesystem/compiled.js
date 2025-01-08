@@ -4645,6 +4645,7 @@ var _fs_unlink = Module['_fs_unlink'] = createExportWrapper('fs_unlink', 1);
 var _fs_rename = Module['_fs_rename'] = createExportWrapper('fs_rename', 2);
 var _fs_access = Module['_fs_access'] = createExportWrapper('fs_access', 2);
 var _fs_stat = Module['_fs_stat'] = createExportWrapper('fs_stat', 2);
+var _fs_lstat = Module['_fs_lstat'] = createExportWrapper('fs_lstat', 2);
 var _main = createExportWrapper('main', 2);
 var _fflush = createExportWrapper('fflush', 1);
 var _strerror = createExportWrapper('strerror', 1);
