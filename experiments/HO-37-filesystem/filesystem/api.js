@@ -94,4 +94,9 @@ export function initialiseAPI(Module) {
     null, // Return type
     ["string", "string"], // Argument types
   )
+  Filesystem.access = Module.cwrap(
+    "fs_access", // Function name
+    "number", // Return type
+    ["string", "number"], // Argument types
+  )
 }

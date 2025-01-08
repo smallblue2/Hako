@@ -27,8 +27,17 @@ Filesystem.__O_PATH = 0o010000000;
 Filesystem.__O_DSYNC = 0o010000;
 Filesystem.__O_TMPFILE = (0o020000000 | Filesystem.__O_DIRECTORY);
 
+/* Values for lseek 'whence' */
 Filesystem.SEEK_SET = 0;
 Filesystem.SEEK_CUR = 1;
 Filesystem.SEEK_END = 2;
+
+/* Values for the second argument to access.
+   These may be OR'd together.  */
+Filesystem.R_OK	= 4;		/* Test for read permission.  */
+Filesystem.W_OK	= 2;		/* Test for write permission.  */
+Filesystem.X_OK	= 1;		/* Test for execute permission.  */
+Filesystem.F_OK	= 0;		/* Test for existence.  */
+
 
 console.log("Definitions loaded.");

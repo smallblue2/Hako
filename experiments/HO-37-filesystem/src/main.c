@@ -8,8 +8,8 @@
  *    - Read a file [x]
  *    - Write to a file [x]
  *    - Unlink a file [x]
- *    - Rename a file
- *    - Check existence
+ *    - Rename a file [x]
+ *    - Access a file [x]
  *  - DIRECTORY OPERATION
  *    - Create a directory
  *    - Read a directory
@@ -211,6 +211,10 @@ void fs_rename(const char* old, const char* new) {
     perror("Unable to rename file. Please check file exists and you have permission to modify files.");
   }
   return;
+}
+
+int fs_access(const char* name, int type) {
+  return access(name, type);
 }
 
 int main() {
