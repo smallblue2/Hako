@@ -52,24 +52,24 @@ export function initialiseAPI(Module) {
       if (size > 0) {
         const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, size);
         const copy = new Uint8Array(dataView); // Create a stable copy
-        Module.ccall('free_read_ptr', null, ['number'], [dataPtr]); // Free the buffer
         return { data: copy, size: size };
       } else {
         console.error("read returned error:", size);
         return null;
       }
     } finally {
+      Module._free(dataPtr); // Free the buffer
       Module.stackRestore(sp); // Restore the stack pointer
     }
   };
   Filesystem.unlink = Module.cwrap(
     "fs_unlink", // Function name
-    null, // Return type
+    "number", // Return type
     ["string"], // Argument types
   );
   Filesystem.rename = Module.cwrap(
     "fs_rename", // Function name
-    null, // Return type
+    "number", // Return type
     ["string", "string"], // Argument types
   )
   Filesystem.access = Module.cwrap(
@@ -181,4 +181,14 @@ export function initialiseAPI(Module) {
       ctime: { sec: ctimeSec, nsec: ctimeNSec },
     }
   }
+  Filesystem.symlink = Module.cwrap(
+    "fs_symlink",
+    "number",
+    ["string", "string"],
+  );
+  Filesystem.link = Module.cwrap(
+    "fs_link",
+    "number",
+    ["string", "string"],
+  )
 }

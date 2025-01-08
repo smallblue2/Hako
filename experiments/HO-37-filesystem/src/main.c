@@ -140,37 +140,19 @@ void printNodeStat(char* file_path) {
 }
 
 int fs_open(const char *pathname, int flags, int mode) {
-  int fd = open(pathname, flags, mode);
-  if (fd == -1) {
-    perror("Failed to open file");
-  }
-  return fd;
+  return open(pathname, flags, mode);
 }
 
 int fs_close(int fd) {
-  int result = close(fd);
-  if (result == -1) {
-    perror("Failed to close file");
-  }
-  return result;
+  return close(fd);
 }
 
 int fs_write(int fd, void *buf, int count) {
-  int bytesWritten = write(fd, buf, count);
-  if (bytesWritten == -1) {
-    perror("Failed to write file");
-  }
-  return bytesWritten;
+  return write(fd, buf, count);
 }
 
 int fs_lseek(int fd, int offset, int whence) {
-  int result = lseek(fd, offset, whence);
-
-  if (result == -1) {
-    perror("Failed to seek file.");
-  }
-
-  return result;
+  return lseek(fd, offset, whence);
 }
 
 typedef struct {
@@ -194,23 +176,12 @@ void fs_read(int fd, ReadResult* rr, int count) {
   return;
 }
 
-void free_read_ptr(unsigned char* ptr) {
-  free(ptr);
+int fs_unlink(const char* filename) {
+  return unlink(filename);
 }
 
-void fs_unlink(const char* filename) {
-  int result = unlink(filename);
-  if (result < 0) {
-    perror("Failed to remove file!");
-  }
-  return;
-}
-
-void fs_rename(const char* old, const char* new) {
-  if (rename(old, new) < 0) {
-    perror("Unable to rename file. Please check file exists and you have permission to modify files.");
-  }
-  return;
+int fs_rename(const char* old, const char* new) {
+  return rename(old, new);
 }
 
 int fs_access(const char* name, int type) {
@@ -276,6 +247,14 @@ void fs_lstat(const char* name, StatResult* sr) {
   sr->ctime.nsec = (int)fileStat.st_ctim.tv_nsec;
 
   return;
+}
+
+int fs_symlink(const char* target, const char* linkpath) {
+  return symlink(target, linkpath);
+}
+
+int fs_link(const char* target, const char* linkpath) {
+  return link(target, linkpath);
 }
 
 int main() {

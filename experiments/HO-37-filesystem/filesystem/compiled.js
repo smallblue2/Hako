@@ -885,8 +885,8 @@ function dbg(...args) {
 // === Body ===
 
 var ASM_CONSTS = {
-  69720: () => { FS.syncfs(true, function(err) { if (err) { console.error("[JS] Error during sync:", err); } else { console.log("[JS] Sync completed succesfully!"); } }); },  
- 69878: ($0) => { let persistentRoot = UTF8ToString($0); let check = FS.analyzePath(persistentRoot, false); if (check.exists) { console.log("[JS]", persistentRoot, "already exists!"); console.log("[JS] Directory info:", check); } else { console.log("[JS] Creating directory:", persistentRoot); FS.mkdir(persistentRoot); } console.log("[JS] Mounting IDBFS at", persistentRoot); try { FS.mount(IDBFS, {autoPersist : true}, persistentRoot); } catch (err) { console.error("[JS] Failed to mount filesystem:", err); } }
+  69528: () => { FS.syncfs(true, function(err) { if (err) { console.error("[JS] Error during sync:", err); } else { console.log("[JS] Sync completed succesfully!"); } }); },  
+ 69686: ($0) => { let persistentRoot = UTF8ToString($0); let check = FS.analyzePath(persistentRoot, false); if (check.exists) { console.log("[JS]", persistentRoot, "already exists!"); console.log("[JS] Directory info:", check); } else { console.log("[JS] Creating directory:", persistentRoot); FS.mkdir(persistentRoot); } console.log("[JS] Mounting IDBFS at", persistentRoot); try { FS.mount(IDBFS, {autoPersist : true}, persistentRoot); } catch (err) { console.error("[JS] Failed to mount filesystem:", err); } }
 };
 
 // end include: preamble.js
@@ -4196,6 +4196,20 @@ var ASM_CONSTS = {
   }
   }
 
+  function ___syscall_symlinkat(target, dirfd, linkpath) {
+  try {
+  
+      target = SYSCALLS.getStr(target);
+      linkpath = SYSCALLS.getStr(linkpath);
+      linkpath = SYSCALLS.calculateAt(dirfd, linkpath);
+      FS.symlink(target, linkpath);
+      return 0;
+    } catch (e) {
+    if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
+    return -e.errno;
+  }
+  }
+
   function ___syscall_unlinkat(dirfd, path, flags) {
   try {
   
@@ -4607,6 +4621,8 @@ var wasmImports = {
   /** @export */
   __syscall_stat64: ___syscall_stat64,
   /** @export */
+  __syscall_symlinkat: ___syscall_symlinkat,
+  /** @export */
   __syscall_unlinkat: ___syscall_unlinkat,
   /** @export */
   _emscripten_memcpy_js: __emscripten_memcpy_js,
@@ -4639,16 +4655,17 @@ var _fs_write = Module['_fs_write'] = createExportWrapper('fs_write', 3);
 var _fs_lseek = Module['_fs_lseek'] = createExportWrapper('fs_lseek', 3);
 var _fs_read = Module['_fs_read'] = createExportWrapper('fs_read', 3);
 var _malloc = Module['_malloc'] = createExportWrapper('malloc', 1);
-var _free_read_ptr = Module['_free_read_ptr'] = createExportWrapper('free_read_ptr', 1);
-var _free = Module['_free'] = createExportWrapper('free', 1);
 var _fs_unlink = Module['_fs_unlink'] = createExportWrapper('fs_unlink', 1);
 var _fs_rename = Module['_fs_rename'] = createExportWrapper('fs_rename', 2);
 var _fs_access = Module['_fs_access'] = createExportWrapper('fs_access', 2);
 var _fs_stat = Module['_fs_stat'] = createExportWrapper('fs_stat', 2);
 var _fs_lstat = Module['_fs_lstat'] = createExportWrapper('fs_lstat', 2);
+var _fs_symlink = Module['_fs_symlink'] = createExportWrapper('fs_symlink', 2);
+var _fs_link = Module['_fs_link'] = createExportWrapper('fs_link', 2);
 var _main = createExportWrapper('main', 2);
 var _fflush = createExportWrapper('fflush', 1);
 var _strerror = createExportWrapper('strerror', 1);
+var _free = Module['_free'] = createExportWrapper('free', 1);
 var __emscripten_tempret_set = createExportWrapper('_emscripten_tempret_set', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
 var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();

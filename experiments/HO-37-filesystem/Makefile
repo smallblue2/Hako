@@ -10,7 +10,7 @@ build:
   	src/main.c \
   	-o out/compiled.js \
   	-s FORCE_FILESYSTEM \
-  	-s EXPORTED_FUNCTIONS=_syncFS,_initialiseFS,_fs_open,_fs_close,_fs_write,_fs_read,_fs_lseek,_free_read_ptr,_fs_unlink,_fs_rename,_fs_access,_printNodeStat,_fs_stat,_malloc,_free,_fs_lstat \
+  	-s EXPORTED_FUNCTIONS=_syncFS,_initialiseFS,_fs_open,_fs_close,_fs_write,_fs_read,_fs_lseek,_fs_unlink,_fs_rename,_fs_access,_printNodeStat,_fs_stat,_malloc,_free,_fs_lstat,_fs_symlink,_fs_link \
   	-s EXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue,stackAlloc,stackSave,stackRestore,UTF8ToString
 
 clean:
