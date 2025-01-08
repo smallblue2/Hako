@@ -2,34 +2,46 @@
   import Terminal from "../components/Terminal.svelte";
   import Editor from "../components/Editor.svelte";
 
-  let layerFromId = $state([
-    0,
-    1,
-    2,
-    3,
-  ]);
+  import * as lib from "$lib/windows.svelte.js";
 
-  /** @type {any[]} */
-  let windows = $state([
-    { id: 0, component: Editor, props: { layerFromId: layerFromId, } },
-    { id: 1, component: Terminal, props: { layerFromId: layerFromId, wasmModule: "/lua.mjs?url" } },
-    { id: 2, component: Terminal, props: { layerFromId: layerFromId, wasmModule: "/lua.mjs?url" } },
-    { id: 3, component: Editor, props: { layerFromId: layerFromId } }
-  ]);
+  $effect(() => lib.setRootSfc(document.body));
 
-  function onWindowFocus(id, ev) {
-    let maxz = Math.max(...layerFromId);
-    for (let i = 0; i < layerFromId.length; i++) {
-      layerFromId[i] = Math.max(0, layerFromId[i] - 1);
-    }
-    layerFromId[id] = maxz;
-    console.log(layerFromId);
-  }
+  //
+  // let layerFromId = $state([
+  //   0,
+  //   1,
+  //   2,
+  //   3,
+  // ]);
+  //
+  // /** @type {any[]} */
+  // let windows = $state([
+  //   { id: 0, component: Editor, props: { layerFromId: layerFromId, } },
+  //   { id: 1, component: Terminal, props: { layerFromId: layerFromId, wasmModule: "/lua.mjs?url" } },
+  //   { id: 2, component: Terminal, props: { layerFromId: layerFromId, wasmModule: "/lua.mjs?url" } },
+  //   { id: 3, component: Editor, props: { layerFromId: layerFromId } }
+  // ]);
+  //
+  // function onWindowFocus(id, ev) {
+  //   let maxz = Math.max(...layerFromId);
+  //   for (let i = 0; i < layerFromId.length; i++) {
+  //     layerFromId[i] = Math.max(0, layerFromId[i] - 1);
+  //   }
+  //   layerFromId[id] = maxz;
+  // }
 </script>
 
-{#each windows as { id, component: Component, props }}
-  <Component {onWindowFocus} {id} {...props}></Component>
-{/each}
+<!-- {#each windows as { id, component: Component, props }} -->
+<!--   <Component {onWindowFocus} {id} {...props}></Component> -->
+<!-- {/each} -->
+
+<button onclick={() => {
+  lib.openWindow(Terminal, { props: { wasmModule: "/lua.mjs?url" }});
+}}>Create Terminal</button>
+<button onclick={() => {
+  lib.openWindow(Editor);
+}}>Create Editor</button>
+
 
 <style>
 :global(body) {
