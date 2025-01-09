@@ -3,6 +3,9 @@ export const Filesystem = {};
 export function initialiseAPI(Module) {
   console.log("Initialising API functions");
 
+  Filesystem._UTF8Encoder = new TextEncoder();
+  Filesystem._UTF8Decoder = new TextDecoder("utf-8");
+
   // Cwraps [Function Signatures]
   Filesystem.initialiseFS = Module.cwrap(
     'initialiseFS', // Function name
@@ -24,11 +27,17 @@ export function initialiseAPI(Module) {
     'number', // Return type
     ['number'], // Argument types
   )
-  Filesystem.write = Module.cwrap(
-    'fs_write', // Function name
-    'number', // Return type
-    ['number', 'array', 'number'], // Argument types
-  )
+  Filesystem.write = function(fd, content) {
+    
+    const encodedContent = Filesystem._UTF8Encoder.encode(content);
+    
+    return Module.ccall(
+      'fs_write', // Function name
+      'number', // Return type
+      ['number', 'array', 'number'], // Argument types
+      [fd, encodedContent, encodedContent.length]
+    );
+  }
   Filesystem.lseek = Module.cwrap(
     'fs_lseek', // Function name
     'number', // Return type
@@ -40,28 +49,37 @@ export function initialiseAPI(Module) {
     ['string'] // Argument types
   )
   Filesystem.read = function(fd, amt) {
-    const sp = Module.stackSave(); // Save the stack pointer
-    const resultStructPtr = Module.stackAlloc(8); // Allocate space for the result struct
+    const sp = Module.stackSave();
+    const resultStructPtr = Module.stackAlloc(8);
+
+    // Declare "dataPtr" & "size" so they're always in scope
+    let dataPtr = 0;
+    let size = 0;
 
     try {
       Module.ccall('fs_read', null, ['number', 'number', 'number'], [fd, resultStructPtr, amt]);
 
-      const dataPtr = Module.getValue(resultStructPtr, 'i32');
-      const size = Module.getValue(resultStructPtr + 4, 'i32');
+      dataPtr = Module.getValue(resultStructPtr, 'i32');
+      size = Module.getValue(resultStructPtr + 4, 'i32');
 
-      if (size > 0) {
+      if (size >= 0) {
         const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, size);
-        const copy = new Uint8Array(dataView); // Create a stable copy
-        return { data: copy, size: size };
+        const copy = new Uint8Array(dataView);
+        return { data: Filesystem._UTF8Decoder.decode(copy), size: size };
       } else {
         console.error("read returned error:", size);
         return null;
       }
+
     } finally {
-      Module._free(dataPtr); // Free the buffer
-      Module.stackRestore(sp); // Restore the stack pointer
+      // Only free if dataPtr != 0 (or if size > 0, if that is your logic):
+      if (dataPtr) {
+        Module._free(dataPtr);
+      }
+      Module.stackRestore(sp);
     }
   };
+
   Filesystem.unlink = Module.cwrap(
     "fs_unlink", // Function name
     "number", // Return type
@@ -129,7 +147,7 @@ export function initialiseAPI(Module) {
       ctime: { sec: ctimeSec, nsec: ctimeNSec },
     }
   }
-    Filesystem.lstat = function(name) {
+  Filesystem.lstat = function(name) {
 
     // Save the current stack pointer
     const sp = Module.stackSave();
@@ -180,7 +198,7 @@ export function initialiseAPI(Module) {
       mtime: { sec: mtimeSec, nsec: mtimeNSec },
       ctime: { sec: ctimeSec, nsec: ctimeNSec },
     }
-  }
+  };
   Filesystem.symlink = Module.cwrap(
     "fs_symlink",
     "number",
@@ -190,5 +208,52 @@ export function initialiseAPI(Module) {
     "fs_link",
     "number",
     ["string", "string"],
+  );
+  Filesystem.mkdir = Module.cwrap(
+    "fs_mkdir",
+    "number",
+    ["string", "number"],
+  );
+  Filesystem.opendir = Module.cwrap(
+    "fs_opendir",
+    "number",
+    ["string"],
+  );
+  Filesystem.closedir = Module.cwrap(
+    "fs_closedir",
+    "number",
+    ["number"],
+  );
+  Filesystem.readdir = function(dd) {
+    const nameBufSize = 256;
+    const nameBufPtr = Module._malloc(nameBufSize);
+
+    let entries = [];
+
+    try {
+      while (true) {
+        const result = Module.ccall(
+          "fs_readdir",
+          "number",
+          ["number", "number"],
+          [dd, nameBufPtr]);
+        if (result < 0) {
+          // No more entries or error
+          break;
+        }
+
+        entries.push(Module.UTF8ToString(nameBufPtr));
+      }
+    } finally {
+      // Free buffer
+      Module._free(nameBufPtr);
+    }
+
+    return entries;
+  };
+  Filesystem.rmdir = Module.cwrap(
+    "fs_rmdir",
+    "number",
+    ["string"],
   )
 }

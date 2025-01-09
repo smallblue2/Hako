@@ -2,7 +2,7 @@
  *
  * TODO:
  *  - INITIALISATION + MOUNTING
- *    - Proper bootstrap
+ *    - Proper bootstrap [x]
  *  - FILE OPERATIONS
  *    - Create a file [x]
  *    - Read a file [x]
@@ -11,13 +11,12 @@
  *    - Rename a file [x]
  *    - Access a file [x]
  *  - DIRECTORY OPERATION
- *    - Create a directory
- *    - Read a directory
- *    - Unlink a directory
- *    - Directory Traversal (FS.readdir())
+ *    - Create a directory [x]
+ *    - Read a directory [x]
+ *    - Unlink a directory [x]
  *  - METADATA OPERATIONS
  *    - Stat a node (stat) [x]
- *    - Stat a link (lstat)
+ *    - Stat a link (lstat) [x]
  *    - Set metadata (permissions, timestamps, any custom logic, etc)
  *  - FILE DESCRIPTORS
  *    - Open a file [x]
@@ -26,8 +25,8 @@
  *    - Write from descriptor [x]
  *    - Seek [x]
  *  - ADVANCED [DO WE WANT?]
- *    - Symbolic links
- *    - Hard links
+ *    - Symbolic links [x]
+ *    - Hard links [?]
  *    - File locking for concurrency
  *    - Copy files
  *    - Truncate file
@@ -41,6 +40,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <dirent.h>
+#include <errno.h>
+#include <string.h>
 
 char *PERSISTENT_ROOT_NAME = "/persistent";
 int MAX_PATH_LENGTH = 256;
@@ -253,8 +255,94 @@ int fs_symlink(const char* target, const char* linkpath) {
   return symlink(target, linkpath);
 }
 
+// TODO: Figure out why this doesn't work - maybe not supported by emscripten?
 int fs_link(const char* target, const char* linkpath) {
   return link(target, linkpath);
+}
+
+int fs_mkdir(const char* path, int mode) {
+  return mkdir(path, mode);
+}
+
+typedef struct {
+  DIR* dirp; // Directory pointer
+  int inUse;
+} DirHandle;
+
+// Global array to store open directories
+#define MAX_DIR_HANDLES 128
+static DirHandle dirHandles[MAX_DIR_HANDLES] = {0};
+
+int fs_opendir(const char* path) {
+  DIR* d = opendir(path);
+
+  if (!d) {
+    fprintf(stderr, "[C] Opendir failed for '%s': '%s'\n", path, strerror(errno));
+    return -1;
+  }
+
+  // Find a free slot in global dirHandles array
+  for (int i = 0; i < MAX_DIR_HANDLES; i++) {
+    if (!dirHandles[i].inUse) {
+      dirHandles[i].dirp = d;
+      dirHandles[i].inUse = 1;
+      // 'i' is the 'directory descriptor'
+      return i + 1;
+    }
+  }
+
+  // No free slots
+  closedir(d);
+  fprintf(stderr, "[C] Too many directories open!\n");
+  return -1;
+}
+
+// Read the next entry from an open directory
+int fs_readdir(int dirHandle, char* nameBuf) {
+
+  dirHandle--;
+
+  // handle validatin
+  if (dirHandle < 0 || dirHandle >= MAX_DIR_HANDLES || !dirHandles[dirHandle].inUse) {
+    fprintf(stderr, "[C] fs_readdir: invalid directory handle: %d\n", dirHandle);
+    return -1;
+  }
+
+  DIR* d = dirHandles[dirHandle].dirp;
+  struct dirent* entry = readdir(d);
+  if (!entry) {
+    // End of directory or error
+    return -1;
+  }
+
+  // Copy filename into provided buffer
+  snprintf(nameBuf, 256, "%s", entry->d_name);
+
+  return 0; // success
+}
+
+int fs_closedir(int dirHandle) {
+
+  dirHandle--;
+
+  // handle validatin
+  if (dirHandle < 0 || dirHandle >= MAX_DIR_HANDLES || !dirHandles[dirHandle].inUse) {
+    fprintf(stderr, "[C] fs_closedir: invalid directory handle: %d\n", dirHandle);
+    return -1;
+  }
+
+  if (closedir(dirHandles[dirHandle].dirp) != 0) {
+    fprintf(stderr, "[C] closedir failed: %s\n", strerror(errno));
+    return -1;
+  }
+
+  dirHandles[dirHandle].dirp = NULL;
+  dirHandles[dirHandle].inUse = 0;
+  return 0;
+}
+
+int fs_rmdir(const char* path) {
+  return rmdir(path);
 }
 
 int main() {
