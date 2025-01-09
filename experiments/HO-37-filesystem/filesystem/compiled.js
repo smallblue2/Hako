@@ -4081,6 +4081,18 @@ var ASM_CONSTS = {
         return ret;
       },
   };
+  function ___syscall_chdir(path) {
+  try {
+  
+      path = SYSCALLS.getStr(path);
+      FS.chdir(path);
+      return 0;
+    } catch (e) {
+    if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
+    return -e.errno;
+  }
+  }
+
   function ___syscall_faccessat(dirfd, path, amode, flags) {
   try {
   
@@ -4693,6 +4705,8 @@ function checkIncomingModuleAPI() {
 }
 var wasmImports = {
   /** @export */
+  __syscall_chdir: ___syscall_chdir,
+  /** @export */
   __syscall_faccessat: ___syscall_faccessat,
   /** @export */
   __syscall_fstat64: ___syscall_fstat64,
@@ -4760,6 +4774,7 @@ var _strerror = createExportWrapper('strerror', 1);
 var _fs_readdir = Module['_fs_readdir'] = createExportWrapper('fs_readdir', 2);
 var _fs_closedir = Module['_fs_closedir'] = createExportWrapper('fs_closedir', 1);
 var _fs_rmdir = Module['_fs_rmdir'] = createExportWrapper('fs_rmdir', 1);
+var _fs_chdir = Module['_fs_chdir'] = createExportWrapper('fs_chdir', 1);
 var _main = createExportWrapper('main', 2);
 var _free = Module['_free'] = createExportWrapper('free', 1);
 var _fflush = createExportWrapper('fflush', 1);

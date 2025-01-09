@@ -255,5 +255,10 @@ export function initialiseAPI(Module) {
     "fs_rmdir",
     "number",
     ["string"],
-  )
+  );
+  Filesystem.chdir = Module.cwrap(
+    "fs_chdir",
+    "number",
+    ["string"],
+  );
 }

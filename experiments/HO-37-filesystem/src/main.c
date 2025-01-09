@@ -345,6 +345,10 @@ int fs_rmdir(const char* path) {
   return rmdir(path);
 }
 
+int fs_chdir(const char* path) {
+  return chdir(path);
+}
+
 int main() {
   initialiseFS();
   return 0;
