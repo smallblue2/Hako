@@ -885,8 +885,8 @@ function dbg(...args) {
 // === Body ===
 
 var ASM_CONSTS = {
-  69720: () => { FS.syncfs(true, function(err) { if (err) { console.error("[JS] Error during sync:", err); } else { console.log("[JS] Sync completed succesfully!"); } }); },  
- 69878: ($0) => { let persistentRoot = UTF8ToString($0); let check = FS.analyzePath(persistentRoot, false); if (check.exists) { console.log("[JS]", persistentRoot, "already exists!"); console.log("[JS] Directory info:", check); } else { console.log("[JS] Creating directory:", persistentRoot); FS.mkdir(persistentRoot); } console.log("[JS] Mounting IDBFS at", persistentRoot); try { FS.mount(IDBFS, {autoPersist : true}, persistentRoot); } catch (err) { console.error("[JS] Failed to mount filesystem:", err); } }
+  69720: () => { FS.syncfs( true, function(err) { if (err) { console.error("[JS] Error during sync:", err); } else { console.log("[JS] Sync completed succesfully!"); } }); },  
+ 69879: ($0) => { let persistentRoot = UTF8ToString($0); let check = FS.analyzePath(persistentRoot, false); if (check.exists) { console.log("[JS]", persistentRoot, "already exists!"); console.log("[JS] Directory info:", check); } else { console.log("[JS] Creating directory:", persistentRoot); FS.mkdir(persistentRoot); } console.log("[JS] Mounting IDBFS at", persistentRoot); try { FS.mount(IDBFS, {autoPersist : true}, persistentRoot); } catch (err) { console.error("[JS] Failed to mount filesystem:", err); } }
 };
 
 // end include: preamble.js
@@ -4093,6 +4093,18 @@ var ASM_CONSTS = {
   }
   }
 
+  function ___syscall_chmod(path, mode) {
+  try {
+  
+      path = SYSCALLS.getStr(path);
+      FS.chmod(path, mode);
+      return 0;
+    } catch (e) {
+    if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
+    return -e.errno;
+  }
+  }
+
   function ___syscall_faccessat(dirfd, path, amode, flags) {
   try {
   
@@ -4322,6 +4334,53 @@ var ASM_CONSTS = {
         FS.rmdir(path);
       } else {
         abort('Invalid flags passed to unlinkat');
+      }
+      return 0;
+    } catch (e) {
+    if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
+    return -e.errno;
+  }
+  }
+
+  var readI53FromI64 = (ptr) => {
+      return HEAPU32[((ptr)>>2)] + HEAP32[(((ptr)+(4))>>2)] * 4294967296;
+    };
+  
+  function ___syscall_utimensat(dirfd, path, times, flags) {
+  try {
+  
+      path = SYSCALLS.getStr(path);
+      assert(flags === 0);
+      path = SYSCALLS.calculateAt(dirfd, path, true);
+      var now = Date.now(), atime, mtime;
+      if (!times) {
+        atime = now;
+        mtime = now;
+      } else {
+        var seconds = readI53FromI64(times);
+        var nanoseconds = HEAP32[(((times)+(8))>>2)];
+        if (nanoseconds == 1073741823) {
+          atime = now;
+        } else if (nanoseconds == 1073741822) {
+          atime = null;
+        } else {
+          atime = (seconds*1000) + (nanoseconds/(1000*1000));
+        }
+        times += 16;
+        seconds = readI53FromI64(times);
+        nanoseconds = HEAP32[(((times)+(8))>>2)];
+        if (nanoseconds == 1073741823) {
+          mtime = now;
+        } else if (nanoseconds == 1073741822) {
+          mtime = null;
+        } else {
+          mtime = (seconds*1000) + (nanoseconds/(1000*1000));
+        }
+      }
+      // null here means UTIME_OMIT was passed. If both were set to UTIME_OMIT then
+      // we can skip the call completely.
+      if ((mtime ?? atime) !== null) {
+        FS.utime(path, atime, mtime);
       }
       return 0;
     } catch (e) {
@@ -4679,7 +4738,6 @@ var ASM_CONSTS = {
 
 
 
-
   var FS_createPath = FS.createPath;
 
 
@@ -4707,6 +4765,8 @@ var wasmImports = {
   /** @export */
   __syscall_chdir: ___syscall_chdir,
   /** @export */
+  __syscall_chmod: ___syscall_chmod,
+  /** @export */
   __syscall_faccessat: ___syscall_faccessat,
   /** @export */
   __syscall_fstat64: ___syscall_fstat64,
@@ -4730,6 +4790,8 @@ var wasmImports = {
   __syscall_symlinkat: ___syscall_symlinkat,
   /** @export */
   __syscall_unlinkat: ___syscall_unlinkat,
+  /** @export */
+  __syscall_utimensat: ___syscall_utimensat,
   /** @export */
   _emscripten_memcpy_js: __emscripten_memcpy_js,
   /** @export */
@@ -4775,6 +4837,9 @@ var _fs_readdir = Module['_fs_readdir'] = createExportWrapper('fs_readdir', 2);
 var _fs_closedir = Module['_fs_closedir'] = createExportWrapper('fs_closedir', 1);
 var _fs_rmdir = Module['_fs_rmdir'] = createExportWrapper('fs_rmdir', 1);
 var _fs_chdir = Module['_fs_chdir'] = createExportWrapper('fs_chdir', 1);
+var _fs_chmod = Module['_fs_chmod'] = createExportWrapper('fs_chmod', 2);
+var _fs_utime = Module['_fs_utime'] = createExportWrapper('fs_utime', 3);
+var _fs_cp = Module['_fs_cp'] = createExportWrapper('fs_cp', 2);
 var _main = createExportWrapper('main', 2);
 var _free = Module['_free'] = createExportWrapper('free', 1);
 var _fflush = createExportWrapper('fflush', 1);
@@ -4801,7 +4866,6 @@ Module['ccall'] = ccall;
 Module['cwrap'] = cwrap;
 Module['setValue'] = setValue;
 Module['getValue'] = getValue;
-Module['UTF8Decoder'] = UTF8Decoder;
 Module['UTF8ToString'] = UTF8ToString;
 Module['FS_createPreloadedFile'] = FS_createPreloadedFile;
 Module['FS_unlink'] = FS_unlink;
@@ -4815,7 +4879,6 @@ var missingLibrarySymbols = [
   'writeI53ToI64Signaling',
   'writeI53ToU64Clamped',
   'writeI53ToU64Signaling',
-  'readI53FromI64',
   'readI53FromU64',
   'convertI32PairToI53',
   'convertU32PairToI53',
@@ -4991,6 +5054,7 @@ var unexportedSymbols = [
   'wasmExports',
   'writeStackCookie',
   'checkStackCookie',
+  'readI53FromI64',
   'convertI32PairToI53Checked',
   'ptrToString',
   'zeroMemory',
@@ -5018,6 +5082,7 @@ var unexportedSymbols = [
   'functionsInTableMap',
   'PATH',
   'PATH_FS',
+  'UTF8Decoder',
   'UTF8ArrayToString',
   'stringToUTF8Array',
   'stringToUTF8',

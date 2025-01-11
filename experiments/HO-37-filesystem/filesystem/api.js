@@ -261,4 +261,19 @@ export function initialiseAPI(Module) {
     "number",
     ["string"],
   );
+  Filesystem.chmod = Module.cwrap(
+    "fs_chmod",
+    "number",
+    ["string", "number"],
+  )
+  Filesystem.utime = Module.cwrap(
+    "fs_utime",
+    "number",
+    ["string", "number", "number"],
+  )
+  Filesystem.cp = Module.cwrap(
+    "fs_cp",
+    "number",
+    ["string", "string"],
+  )
 }
