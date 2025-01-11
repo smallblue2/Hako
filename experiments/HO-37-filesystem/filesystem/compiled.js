@@ -4145,6 +4145,27 @@ var ASM_CONSTS = {
   }
   }
 
+  var convertI32PairToI53Checked = (lo, hi) => {
+      assert(lo == (lo >>> 0) || lo == (lo|0)); // lo should either be a i32 or a u32
+      assert(hi === (hi|0));                    // hi should be a i32
+      return ((hi + 0x200000) >>> 0 < 0x400001 - !!lo) ? (lo >>> 0) + hi * 4294967296 : NaN;
+    };
+  function ___syscall_ftruncate64(fd,length_low, length_high) {
+    var length = convertI32PairToI53Checked(length_low, length_high);
+  
+    
+  try {
+  
+      if (isNaN(length)) return 61;
+      FS.ftruncate(fd, length);
+      return 0;
+    } catch (e) {
+    if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
+    return -e.errno;
+  }
+  ;
+  }
+
   var stringToUTF8 = (str, outPtr, maxBytesToWrite) => {
       assert(typeof maxBytesToWrite == 'number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
       return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
@@ -4404,11 +4425,6 @@ var ASM_CONSTS = {
       return yday;
     };
   
-  var convertI32PairToI53Checked = (lo, hi) => {
-      assert(lo == (lo >>> 0) || lo == (lo|0)); // lo should either be a i32 or a u32
-      assert(hi === (hi|0));                    // hi should be a i32
-      return ((hi + 0x200000) >>> 0 < 0x400001 - !!lo) ? (lo >>> 0) + hi * 4294967296 : NaN;
-    };
   function __localtime_js(time_low, time_high,tmPtr) {
     var time = convertI32PairToI53Checked(time_low, time_high);
   
@@ -4771,6 +4787,8 @@ var wasmImports = {
   /** @export */
   __syscall_fstat64: ___syscall_fstat64,
   /** @export */
+  __syscall_ftruncate64: ___syscall_ftruncate64,
+  /** @export */
   __syscall_getdents64: ___syscall_getdents64,
   /** @export */
   __syscall_lstat64: ___syscall_lstat64,
@@ -4840,6 +4858,7 @@ var _fs_chdir = Module['_fs_chdir'] = createExportWrapper('fs_chdir', 1);
 var _fs_chmod = Module['_fs_chmod'] = createExportWrapper('fs_chmod', 2);
 var _fs_utime = Module['_fs_utime'] = createExportWrapper('fs_utime', 3);
 var _fs_cp = Module['_fs_cp'] = createExportWrapper('fs_cp', 2);
+var _fs_ftruncate = Module['_fs_ftruncate'] = createExportWrapper('fs_ftruncate', 2);
 var _main = createExportWrapper('main', 2);
 var _free = Module['_free'] = createExportWrapper('free', 1);
 var _fflush = createExportWrapper('fflush', 1);

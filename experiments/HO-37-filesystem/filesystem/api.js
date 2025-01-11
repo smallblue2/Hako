@@ -276,4 +276,9 @@ export function initialiseAPI(Module) {
     "number",
     ["string", "string"],
   )
+  Filesystem.ftruncate = Module.cwrap(
+    "fs_ftruncate",
+    "number",
+    ["number", "number"]
+  )
 }

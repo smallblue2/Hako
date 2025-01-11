@@ -28,10 +28,10 @@
  *    - Seek [x]
  *  - ADVANCED [DO WE WANT?]
  *    - Symbolic links [x]
- *    - Hard links [?]
- *    - File locking for concurrency
- *    - Copy files
- *    - Truncate file
+ *    - Hard links [don't think is supported by emscripten]
+ *    - File locking for concurrency [not implementing]
+ *    - Copy files [x]
+ *    - Truncate file [x]
  *
  */
 
@@ -411,6 +411,10 @@ out_error:
   errno = saved_errno;
 
   return -1;
+}
+
+int fs_ftruncate(int fd, int length) {
+  return ftruncate(fd, length);
 }
 
 int main() {
