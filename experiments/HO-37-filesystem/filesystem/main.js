@@ -18,6 +18,8 @@ const FilesystemLoaded = new Promise((resolve, reject) => {
     },
   };
   
+  // TODO: Switch to dynamic import
+
   // Start loading the `compiled.js` file
   // Hacky - just add script import to body
   const script = document.createElement('script');
