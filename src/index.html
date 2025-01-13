@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>IDBFS Filesystem Testing</title>
+</head>
+
+<body>
+  <h1>IDBFS Filesystem Test</h1>
+  <p>Experiment with the filesystem API (through the developer console) exposed via compiled 'C' code into WASM.</p>
+  <p>IndexedDB is mounted under <code>/persistent</code> when initialised, and stays persistent past browser sessions.
+  </p>
+  <ul>
+    <li><strong>Initialise the filesystem via <code>Filesystem.initialiseFS();</code> first!</strong></li>
+    console</li>
+  </ul>
+  <!-- Load the filesystem api -->
+  <script type="module" src="filesystem/api/main.js"></script>
+</body>
+
+</html>
