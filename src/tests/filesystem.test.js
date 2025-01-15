@@ -34,6 +34,7 @@ describe("Filesystem tests", () => {
     browser = await puppeteer.launch({
       args: [
         "--incognito",
+        "--no-sandbox" // Needed due to being ran as root in docker container
       ]
     });
   });
