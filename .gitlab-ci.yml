@@ -1,6 +1,21 @@
 default:
   image: emscripten/emsdk:4.0.0
+
+stages:
+  - build
+  - test
   
-test:
+build_filesystem:
+  stage: build
   script:
-    - ls
+    - cd src/filesystem
+    - make build
+    # Confirm our files are there
+    - touch api/compiled.js
+    - touch api/compiled.wasm
+
+test_artefact_persistence:
+  stage: test
+  script:
+    - touch src/filesystem/api/compiled.js
+    - touch src/filesystem/api/compiled.wasm
