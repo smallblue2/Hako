@@ -15,8 +15,8 @@ build_filesystem:
     - test -e api/compiled.wasm
   artifacts:
     paths:
-      - api/compiled.js
-      - api/compiled.wasm
+      - src/filesystem/api/compiled.js
+      - src/filesystem/api/compiled.wasm
     expired_in: 1 week
 
 test_artefact_persistence:
