@@ -86,6 +86,14 @@
     return true; // you can return false to say you can't resize
   }
 
+  function onMaximise() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    root.style.width = width.toString() + "px";
+    root.style.height = height.toString() + "px";
+    fitAddon.fit();
+  }
+
   let master;
   let slave;
 
@@ -111,7 +119,7 @@
   })
 </script>
 
-<Window {layerFromId} {id} {onWindowFocus} {onResize} dataRef={root}>
+<Window title="Terminal" {layerFromId} {id} {onWindowFocus} {onMaximise} {onResize} dataRef={root}>
   {#snippet data()}
     <div bind:this={root} class="contents"></div>
   {/snippet}

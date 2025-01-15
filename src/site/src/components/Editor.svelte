@@ -96,7 +96,7 @@
   }
 </script>
 
-<Window {layerFromId} {id} {onWindowFocus} {onResize} dataRef={root}>
+<Window title="Editor" {layerFromId} {id} {onWindowFocus} {onResize} dataRef={root}>
   {#snippet data()}
     <div bind:this={root} class="editor">
     </div>
@@ -107,6 +107,6 @@
 :global(.cm-editor) {
   width: inherit;
   height: inherit;
-  background-color: slategray;
+  background-color: #fdffed;
 }
 </style>

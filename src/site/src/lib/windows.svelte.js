@@ -1,4 +1,4 @@
-import { mount } from "svelte";
+import { mount, unmount } from "svelte";
 
 let _maxLayer = 1; // initially 1 as we want windows at higher z than default html elements
 
@@ -40,13 +40,24 @@ export function openWindow(component, options) {
   _layerFromId[id] = _maxLayer;
   options.props.layerFromId = _layerFromId;
 
-  _windows.push({ id: id, element: mount(component, options) });
+  _windows.push({ id: id, parent: port, element: mount(component, options) });
+}
+
+export function closeWindow(id) {
+  for (let i = 0; i < _windows.length; i++) {
+    if (_windows[i].id == id) {
+      unmount(_windows[i].element);
+      _windows[i].parent.remove();
+      _windows.splice(i, 1);
+      return;
+    }
+  }
 }
 
 function _onWindowFocus(id, ev) {
-    let maxz = Math.max(..._layerFromId);
-    for (let i = 0; i < _layerFromId.length; i++) {
-      _layerFromId[i] = Math.max(0, _layerFromId[i] - 1);
-    }
-    _layerFromId[id] = maxz;
+  let maxz = Math.max(..._layerFromId);
+  for (let i = 0; i < _layerFromId.length; i++) {
+    _layerFromId[i] = Math.max(0, _layerFromId[i] - 1);
+  }
+  _layerFromId[id] = maxz;
 }

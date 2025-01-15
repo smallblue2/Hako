@@ -1,7 +1,8 @@
 <script>
   import * as lib from "$lib";
+  import * as windows from "$lib/windows.svelte.js";
 
-  let { id, onResize, onWindowFocus, data, dataRef, layerFromId } = $props();
+  let { id, onMaximise, onResize, onWindowFocus, data, dataRef, layerFromId, title } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -18,7 +19,7 @@
     root.style.left = (rect.left + ev.movementX).toString() + "px";
   }
 
-  function onHoldDecorations() {
+  function onHoldDecorations(ev) {
     document.addEventListener("mousemove", onDragWindow);
     document.addEventListener("mouseup", onReleaseDecorations);
     root.style.pointerEvents = "none";
@@ -125,6 +126,13 @@
     }
   }
 
+  /**
+   * @param {MouseEvent} ev
+   */
+  function noProp(ev) {
+    ev.stopPropagation();
+  }
+
   $effect(() => {
     root.style.zIndex = layerFromId[id];
   })
@@ -139,7 +147,16 @@
   onmousedown={onHoldResizeArea}>
 
   <div class="ev-wrapper">
-    <div class="decorations" onmousedown={onHoldDecorations}></div>
+    <div class="decorations" onmousedown={onHoldDecorations}>
+      <div></div>
+      <p class="title">{title}</p>
+      <button class="close-btn" onmousedown={noProp} onclick={() => windows.closeWindow(id)}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>
+      </button>
+      <!-- <button class="maximise-btn" onmousedown={noProp} onclick={() => { -->
+      <!--   onMaximise(); -->
+      <!-- }}></button> -->
+    </div>
     {@render data()}
   </div>
 </div>
@@ -153,10 +170,42 @@
 
 .ev-wrapper {
   margin: 10px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 50px;
 }
 
 .decorations {
-  height: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px;
   background-color: skyblue;
+  border-radius: 0.2rem 0.2rem 0 0;
 }
+
+.close-btn {
+  border: none;
+  margin: 0;
+  padding: 0;
+  width: fit-content;
+  height: fit-content;
+}
+
+.close-btn > svg {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+}
+
+.title {
+  display: block;
+  padding: 0;
+  margin: 0;
+  user-select: none;
+}
+
+/* .maximise-btn { */
+/*   height: 10px; */
+/*   width: 10px; */
+/*   background-color: green; */
+/* } */
 </style>
