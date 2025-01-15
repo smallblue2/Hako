@@ -53,7 +53,7 @@ int MAX_PATH_LENGTH = 256;
 // Explicitly forces a filesystem synchronisation.
 // Likely not needed if the IDBFS filesystem is mounted with `autoPersist`
 // option set to TRUE
-void syncFS() {
+int syncFS() {
   EM_ASM({
     // Force an initial sync - despite `autoPersist` flag
     FS.syncfs(
@@ -66,11 +66,11 @@ void syncFS() {
         });
   });
 
-  return;
+  return 0;
 }
 
 // Mounts filesystem, creating structure if required.
-void initialiseFS() {
+int initialiseFS() {
   printf("[C] Starting up persistent filesystem at '%s'...\n",
          PERSISTENT_ROOT_NAME);
 
@@ -100,7 +100,7 @@ void initialiseFS() {
 
   printf("[C] Finished filesystem initialisation!\n");
 
-  return;
+  return 0;
 }
 
 // Prints the stat of a node at `file_path`

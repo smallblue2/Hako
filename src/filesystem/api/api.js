@@ -9,12 +9,12 @@ export function initialiseAPI(Module) {
   // Cwraps [Function Signatures]
   Filesystem.initialiseFS = Module.cwrap(
     'initialiseFS', // Function name
-    'null', // Return type
+    'number', // Return type
     [], // Argument types
   )
   Filesystem.sync = Module.cwrap(
     'syncFS', // Function name
-    'null', // Return type
+    'number', // Return type
     [], // Argument types
   )
   Filesystem.open = Module.cwrap(
