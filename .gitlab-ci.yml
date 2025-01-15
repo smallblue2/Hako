@@ -30,6 +30,7 @@ test_artefact_persistence:
 test_filesystem:
   stage: test
   script:
+    - lsb_release -a
     - apt-get update
     - apt-get install -y ca-certificates \
       fonts-liberation libasound2 libatk-bridge2.0-0 \
