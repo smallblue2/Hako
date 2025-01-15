@@ -30,6 +30,7 @@ test_artefact_persistence:
 test_filesystem:
   stage: test
   script:
+    - cat /etc/apt/sources.list
     - cat /etc/os-release
     - lsb_release -a
     - apt-get update
