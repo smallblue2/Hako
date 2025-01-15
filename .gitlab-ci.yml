@@ -14,11 +14,11 @@ build_filesystem:
     - test -e api/compiled.js
     - test -e api/compiled.wasm
   # Artifacts are to be kept between jobs
-  #artifacts:
-  #  paths:
-  #    - src/filesystem/api/compiled.js
-  #    - src/filesystem/api/compiled.wasm
-  #  expire_in: 1 week
+  artifacts:
+    paths:
+      - src/filesystem/api/compiled.js
+      - src/filesystem/api/compiled.wasm
+    expire_in: 1 week
 
 test_artefact_persistence:
   stage: test
