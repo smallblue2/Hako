@@ -13,14 +13,16 @@ build_filesystem:
     # Confirm our files are there
     - test -e api/compiled.js
     - test -e api/compiled.wasm
-  artifacts:
-    paths:
-      - src/filesystem/api/compiled.js
-      - src/filesystem/api/compiled.wasm
-    expire_in: 1 week
+  # Artifacts are to be kept between jobs
+  #artifacts:
+  #  paths:
+  #    - src/filesystem/api/compiled.js
+  #    - src/filesystem/api/compiled.wasm
+  #  expire_in: 1 week
 
 test_artefact_persistence:
   stage: test
   script:
+    # Ensure artifacts have persisted
     - test -e src/filesystem/api/compiled.js
     - test -e src/filesystem/api/compiled.wasm
