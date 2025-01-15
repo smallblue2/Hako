@@ -31,7 +31,7 @@ test_filesystem:
   stage: test
   script:
     - apt-get update
-    - apt-get install -y wget chromium
+    - apt-get install -y wget chromium-browser
     - cd src
     - npm install
     - npm run start-server &
