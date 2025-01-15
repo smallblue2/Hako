@@ -17,7 +17,7 @@ build_filesystem:
     paths:
       - src/filesystem/api/compiled.js
       - src/filesystem/api/compiled.wasm
-    expired_in: 1 week
+    expire_in: 1 week
 
 test_artefact_persistence:
   stage: test
