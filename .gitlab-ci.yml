@@ -1,5 +1,5 @@
 default:
-  image: emscripten/emsdk
+  image: emscripten/emsdk:4.0.0
   
 test:
   script:
