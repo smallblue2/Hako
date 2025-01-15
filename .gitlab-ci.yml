@@ -32,8 +32,9 @@ test_filesystem:
   script:
     - cat /etc/apt/sources.list
     - cat /etc/os-release
-    - lsb_release -a
+    - apt-get clean
     - apt-get update
+    - apt-get dist-upgrade -y
     - apt-get install -y ca-certificates \
       fonts-liberation libasound2 libatk-bridge2.0-0 \
       libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 \
