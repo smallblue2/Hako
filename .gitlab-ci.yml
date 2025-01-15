@@ -30,6 +30,8 @@ test_artefact_persistence:
 test_filesystem:
   stage: test
   script:
+    - apt-get update
+    - apt-get install -y wget chromium
     - cd src
     - npm install
     - npm run start-server &
