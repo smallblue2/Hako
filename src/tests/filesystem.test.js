@@ -155,14 +155,14 @@ describe("Filesystem tests", () => {
       let rmdirResp = window.Filesystem.rmdir("persistent/testdir") == 0;
       let confirmDel = window.Filesystem.access("persistent/testdir", window.Filesystem.F_OK) == -1;
       return { mkdirResp, confirmCreat, rmdirResp, confirmDel }
-    })
+    });
 
     assert.ok(mkdirResp, "Failed to create directory to delete");
     assert.ok(confirmCreat, "Failed to confirm the creation of directory to delete");
     assert.ok(rmdirResp, "Failed to remove directory");
     assert.ok(confirmDel, "Directory still exists despite deletion");
 
-  })
+  });
 
   it("Test `opendir`, `readdir` and `closedir`", async () => {
 
@@ -179,5 +179,36 @@ describe("Filesystem tests", () => {
     assert.ok(readRes.length > 0, "Opened directory was empty, expected non-empty");
     assert.ok(closeRes, "Failed to close directory");
     
-  })
+  });
+
+  it("Test `read` and `write`", async () => {
+
+    await initFS(page);
+
+    let { fd, bytesWritten0, readRes0, lseekRes0, bytesWritten1, lseekRes1, readRes1 } = await page.evaluate(async () => {
+      let fd = window.Filesystem.open("persistent/random.txt", Filesystem.O_CREAT | Filesystem.O_RDWR, 0o777);
+      // 4
+      let bytesWritten0 = window.Filesystem.write(fd, "this is a test");
+      // 14
+      let readRes0 = window.Filesystem.read(fd, 14);
+      // Object { data: "", size: 0 }
+      let lseekRes0 = window.Filesystem.lseek(fd, 0, 0) == 0;
+      // 0
+      let bytesWritten1 = window.Filesystem.write(fd, 14);
+      // 2
+      let lseekRes1 = window.Filesystem.lseek(fd, 0, 0) == 0;
+      // 0
+      let readRes1 = window.Filesystem.read(fd, 14)
+      // Object { data: "14is is a test", size: 14 }
+      return { fd, bytesWritten0, readRes0, lseekRes0, bytesWritten1, lseekRes1, readRes1 }
+    })
+
+    assert.ok(fd >= 0, "File couldn't be opened (O_CREAT | O_RDRW)");
+    assert.ok(bytesWritten0 == 14, `Failed to write expected bytes in first write. Expected 14, got ${bytesWritten0}`);
+    assert.ok(readRes0.size == 0, "First read result should have been empty but wasn't");
+    assert.ok(lseekRes0, "Failed first move file pointer to start of file with lseek");
+    assert.ok(bytesWritten1, `Failed to write expected bytes in second write. Expected 2, got ${bytesWritten1}`);
+    assert.ok(lseekRes1, "Failed second move file pointer to start of file with lseek");
+    assert.strictEqual(readRes1.data, "14is is a test");
+  });
 });
