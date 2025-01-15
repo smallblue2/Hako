@@ -11,11 +11,11 @@ build_filesystem:
     - cd src/filesystem
     - make build
     # Confirm our files are there
-    - touch api/compiled.js
-    - touch api/compiled.wasm
+    - test -e api/compiled.js
+    - test -e api/compiled.wasm
 
 test_artefact_persistence:
   stage: test
   script:
-    - touch src/filesystem/api/compiled.js
-    - touch src/filesystem/api/compiled.wasm
+    - test -e src/filesystem/api/compiled.js
+    - test -e src/filesystem/api/compiled.wasm
