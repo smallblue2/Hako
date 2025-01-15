@@ -31,5 +31,8 @@ test_filesystem:
   stage: test
   script:
     - cd src
-    - npm run start-server
-    - npm run filesystem-tests
+    - npm install
+    - npm run start-server &
+    # Wait for the server to start
+    - until curl -s http://localhost:8008 > /dev/null; do echo "Waiting for server..."; sleep 1; done
+    - npm run filesystem-test
