@@ -33,7 +33,7 @@ test_filesystem:
     - cat /etc/apt/sources.list
     - cat /etc/os-release
     - apt-get update
-    - apt-get install -y ca-certificates wget xdg-utils chromium-browser
+    - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1
     - cd src
     - npm install
     - npm run start-server &
