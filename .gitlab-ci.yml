@@ -26,3 +26,10 @@ test_artefact_persistence:
     # Ensure artifacts have persisted
     - test -e src/filesystem/api/compiled.mjs
     - test -e src/filesystem/api/compiled.wasm
+
+test_filesystem:
+  stage: test
+  script:
+    - cd src
+    - npm run start-server
+    - npm run filesystem-tests
