@@ -34,5 +34,5 @@ test_filesystem:
     - npm install
     - npm run start-server &
     # Wait for the server to start
-    - until curl -s http://localhost:8008 > /dev/null; do echo "Waiting for server..."; sleep 1; done
+    - until curl -s http://localhost:8080 > /dev/null; do echo "Waiting for server..."; sleep 1; done
     - npm run filesystem-test
