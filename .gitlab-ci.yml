@@ -7,12 +7,20 @@ stages:
   - validate
   - test
 
-lint_filesystem:
+lint_filesystem_js:
   stage: lint
   script:
     - cd src
     - npm install
     - npm run lint-fs
+
+lint_filesystem_c:
+  stage: lint
+  script:
+    - cd src
+    - emcc -c -o filesystem/out/main.o filesystem/src/main.c -sSTRICT
+    - clang-tidy filesystem/src/main.c --I /emsdk/upstream/emscripten/system/include/
+    - cpp src/filesystem/src/main.c --enable=all --suppress=unmatchedSuppression
 
 lint_tests:
   stage: lint

@@ -54,6 +54,7 @@ int MAX_PATH_LENGTH = 256;
 // Likely not needed if the IDBFS filesystem is mounted with `autoPersist`
 // option set to TRUE
 int syncFS() {
+  #ifdef __EMSCRIPTEN__
   EM_ASM({
     // Force an initial sync - despite `autoPersist` flag
     FS.syncfs(
@@ -65,6 +66,7 @@ int syncFS() {
           }
         });
   });
+  #endif
 
   return 0;
 }
@@ -74,6 +76,7 @@ int initialiseFS() {
   printf("[C] Starting up persistent filesystem at '%s'...\n",
          PERSISTENT_ROOT_NAME);
 
+  #ifdef __EMSCRIPTEN__
   EM_ASM(
       {
         let persistentRoot = UTF8ToString($0);
@@ -95,6 +98,7 @@ int initialiseFS() {
         }
       },
       PERSISTENT_ROOT_NAME);
+  #endif
 
   syncFS(); // Not sure if needed due to autoPersist: true
 
