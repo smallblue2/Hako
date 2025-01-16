@@ -109,13 +109,9 @@ int initialiseFS() {
 
 // Prints the stat of a node at `file_path`
 void printNodeStat(char *file_path) {
-  // Avoid buffer overflows - safer way rather than just printf
-  char full_path[MAX_PATH_LENGTH];
-  snprintf(full_path, sizeof(full_path), "%s", file_path);
-
   struct stat file_stat;
-  if (stat(full_path, &file_stat) == -1) {
-    fprintf(stderr, "[C] Error stat-ing '%s'!\n", full_path);
+  if (stat(file_path, &file_stat) == -1) {
+    fprintf(stderr, "[C] Error stat-ing '%s'!\n", file_path);
     return;
   }
 
@@ -303,16 +299,13 @@ int fs_opendir(const char *path) {
   return -1;
 }
 
-// Read the next entry from an open directory
-int fs_readdir(int dirHandle, char *nameBuf) {
+int fs_readdir(int dirHandle, char *nameBuf, size_t nameBufSize) {
 
   dirHandle--;
 
-  // handle validatin
-  if (dirHandle < 0 || dirHandle >= MAX_DIR_HANDLES ||
-      !dirHandles[dirHandle].inUse) {
-    fprintf(stderr, "[C] fs_readdir: invalid directory handle: %d\n",
-            dirHandle);
+  // Validate handle
+  if (dirHandle < 0 || dirHandle >= MAX_DIR_HANDLES || !dirHandles[dirHandle].inUse) {
+    fprintf(stderr, "[C] fs_readdir: invalid directory handle: %d\n", dirHandle);
     return -1;
   }
 
@@ -323,10 +316,14 @@ int fs_readdir(int dirHandle, char *nameBuf) {
     return -1;
   }
 
-  // Copy filename into provided buffer
-  snprintf(nameBuf, 256, "%s", entry->d_name);
+  // Copy filename into provided buffer safely
+  int result = snprintf(nameBuf, nameBufSize, "%s", entry->d_name);
+  if (result < 0 || (size_t)result >= nameBufSize) {
+    fprintf(stderr, "[C] fs_readdir: filename too long for buffer\n");
+    return -1; // Indicate truncation or error
+  }
 
-  return 0; // success
+  return 0; // Success
 }
 
 int fs_closedir(int dirHandle) {
