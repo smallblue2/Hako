@@ -2,8 +2,24 @@ default:
   image: emscripten/emsdk:4.0.0
 
 stages:
+  - lint
   - build
+  - validate
   - test
+
+lint_filesystem:
+  stage: lint
+  script:
+    - cd src
+    - npm install
+    - npm run lint-fs
+
+lint_tests:
+  stage: lint
+  script:
+    - cd src
+    - npm install
+    - npm run lint-tests
   
 build_filesystem:
   stage: build
@@ -19,6 +35,15 @@ build_filesystem:
       - src/filesystem/api/compiled.mjs
       - src/filesystem/api/compiled.wasm
     expire_in: 1 week
+
+validate_wasm:
+  stage: validate
+  image: debian:latest
+  dependencies:
+    - build_filesystem
+  script:
+    - apt-get update && apt-get install -y wabt
+    - wasm-validate src/filesystem/api/compiled.wasm    
 
 test_artefact_persistence:
   stage: test

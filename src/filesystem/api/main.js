@@ -32,5 +32,4 @@ LoadFilesystem.then((Module) => {
   window.Filesystem = Filesystem;
 }).catch((err) => {
   console.error("Failed to define filesystem API:", err);
-  rejectFilesystemInitialised(err);
 });

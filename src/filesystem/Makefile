@@ -18,4 +18,4 @@ build:
 
 clean:
 	rm $(BUILD_DIR)/*.wasm $(BUILD_DIR)/*.mjs
-	rm $(OUTPUT_DIR)/compiled.wasm $(OUTPUT_DIR)/compiled.mjs
+	rm $(OUTPUT_DIR)/*.wasm $(OUTPUT_DIR)/*.mjs
