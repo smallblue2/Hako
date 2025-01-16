@@ -10,6 +10,9 @@
   let min = 100;
   let resizing = false;
 
+  let maxY = undefined;
+  let maxX = undefined;
+
   /**
    * @param {MouseEvent} ev
    */
@@ -69,34 +72,36 @@
    * @param {MouseEvent} ev
    */
   function onDragResize(ev) {
-    if (onResize(globalSect, ev.movementX, ev.movementY)) {
-      const dataRect = dataRef.getBoundingClientRect(); // we need to look at the child itself (so as to exclude margin etc).
-      const rect = root.getBoundingClientRect();
+    root.style.background = lib.SECTION_BACKGROUND[globalSect];
 
-      let dy = 0;
-      let dx = 0;
+    // if (onResize(globalSect, ev.movementX, ev.movementY)) {
 
-      switch (globalSect) {
-        case lib.TOP_LEFT_CORNER:
-          dy = ev.movementY;
-          dx = ev.movementX;
-        case lib.TOP:
-        case lib.TOP_RIGHT_CORNER:
-          dy = ev.movementY;
-          break;
-        case lib.LEFT:
-        case lib.BOTTOM_LEFT_CORNER:
-          dx = ev.movementX;
-          break;
-      }
+    onResize(globalSect, ev.movementX, ev.movementY);
 
-      if (dataRect.height > min) {
-        root.style.top = (rect.top + dy).toString() + "px";
-      }
-      if (dataRect.width > min) {
-        root.style.left = (rect.left + dx).toString() + "px";
-      }
+    const dataRect = dataRef.getBoundingClientRect(); // we need to look at the child itself (so as to exclude margin etc).
+    const rect = root.getBoundingClientRect();
+
+    let dy = 0;
+    let dx = 0;
+
+    switch (globalSect) {
+      case lib.TOP_LEFT_CORNER:
+        dy = ev.movementY;
+        dx = ev.movementX;
+      case lib.TOP:
+      case lib.TOP_RIGHT_CORNER:
+        dy = ev.movementY;
+        break;
+      case lib.LEFT:
+      case lib.BOTTOM_LEFT_CORNER:
+        dx = ev.movementX;
+        break;
     }
+
+    const posY = Math.min(rect.top + dy, maxY);
+    const posX = Math.min(rect.left + dx, maxX);
+    root.style.top = posY.toString() + "px";
+    root.style.left = posX.toString() + "px";
   }
 
   /**
@@ -106,6 +111,16 @@
     if (ev.target === root) { // make sure hovering child element does not trigger this
       let { offsetX, offsetY } = ev;
       globalSect = getSection(offsetX, offsetY, root.clientWidth, root.clientHeight, 10);
+
+      // Get target minimum x and y for clamping purposes
+      // Basically the issue is that we are clamping the positions and width
+      // based on the child contents div, so we need to calculate the position for
+      // the parent based on that
+      const dataRect = dataRef.getBoundingClientRect();
+      const rootRect = root.getBoundingClientRect();
+      maxX = (dataRect.x + dataRect.width) - min - (dataRect.x - rootRect.x);
+      maxY = (dataRect.y + dataRect.height) - min - (dataRect.y - rootRect.y);
+
       resizing = true;
       document.addEventListener("mousemove", onDragResize);
       document.addEventListener("mouseup", onReleaseResizeArea);
@@ -114,6 +129,7 @@
   }
 
   function onReleaseResizeArea() {
+    root.style.background = "";
     resizing = false;
     document.removeEventListener("mousemove", onDragResize);
     document.removeEventListener("mouseup", onReleaseResizeArea);
@@ -151,7 +167,7 @@
       <div></div>
       <p class="title">{title}</p>
       <button class="close-btn" onmousedown={noProp} onclick={() => windows.closeWindow(id)}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
       </button>
       <!-- <button class="maximise-btn" onmousedown={noProp} onclick={() => { -->
       <!--   onMaximise(); -->
@@ -166,34 +182,44 @@
   position: absolute;
   background-color: rgba(0,0,0,0);
   outline: none;
+	background-repeat: no-repeat;
 }
 
 .ev-wrapper {
-  margin: 10px;
+  margin: 0.5rem;
   box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 50px;
+  outline: silver solid 1px;
 }
 
 .decorations {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 2px;
-  background-color: skyblue;
-  border-radius: 0.2rem 0.2rem 0 0;
+  background-color: #e6f3f7;
+  padding: 0.2rem;
 }
 
 .close-btn {
+  display: block;
   border: none;
   margin: 0;
   padding: 0;
   width: fit-content;
   height: fit-content;
+  padding: 0.11rem;
+  border-radius: 100%;
+  text-decoration: none;
+}
+
+.close-btn:hover {
+  background-color: #d3dbe0;
 }
 
 .close-btn > svg {
   display: block;
   width: 1rem;
   height: 1rem;
+  fill: #636769;
 }
 
 .title {

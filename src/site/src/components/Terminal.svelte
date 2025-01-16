@@ -19,18 +19,6 @@
   let width = 320;
   let height = 260;
 
-  /**
-   * @param {number} n
-   * @param {number} min
-   */
-  function clamp(n, min) {
-    if (n < min) {
-      return min;
-    }
-    return n;
-  }
-
-
   let terminal;
 
   /** @type {FitAddon} */
@@ -76,8 +64,8 @@
         break;
     }
 
-    width = clamp(width + dw, min);
-    height = clamp(height + dh, min);
+    width = lib.clamp(width + dw, min);
+    height = lib.clamp(height + dh, min);
     root.style.width = width.toString() + "px";
     root.style.height = height.toString() + "px";
 

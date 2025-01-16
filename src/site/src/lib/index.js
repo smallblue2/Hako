@@ -9,3 +9,25 @@ export const BOTTOM_LEFT_CORNER = 6;
 export const LEFT = 7;
 
 export const SECTION_CURSORS = ["nwse-resize", "ns-resize", "nesw-resize", "ew-resize", "nwse-resize", "ns-resize", "nesw-resize", "ew-resize"];
+
+export const SECTION_BACKGROUND = [
+  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
+  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
+  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
+  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
+  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
+  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
+  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem"
+];
+
+
+/**
+ * @param {number} n
+ * @param {number} min
+ */
+export function clamp(n, min) {
+  if (n < min) {
+    return min;
+  }
+  return n;
+}

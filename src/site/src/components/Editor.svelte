@@ -37,17 +37,6 @@
   })
 
   /**
-   * @param {number} n
-   * @param {number} min
-   */
-  function clamp(n, min) {
-    if (n < min) {
-      return min;
-    }
-    return n;
-  }
-
-  /**
    * @param {number} sect
    * @param {number} relX
    * @param {number} relY
@@ -87,8 +76,8 @@
         break;
     }
 
-    width = clamp(width + dw, 100);
-    height = clamp(height + dh, 100);
+    width = lib.clamp(width + dw, 100);
+    height = lib.clamp(height + dh, 100);
     root.style.width = width.toString() + "px";
     root.style.height = height.toString() + "px";
 
