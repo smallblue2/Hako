@@ -39,9 +39,10 @@
 #include <emscripten.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
@@ -54,7 +55,7 @@ int MAX_PATH_LENGTH = 256;
 // Likely not needed if the IDBFS filesystem is mounted with `autoPersist`
 // option set to TRUE
 int syncFS() {
-  #ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
   EM_ASM({
     // Force an initial sync - despite `autoPersist` flag
     FS.syncfs(
@@ -66,7 +67,7 @@ int syncFS() {
           }
         });
   });
-  #endif
+#endif
 
   return 0;
 }
@@ -76,7 +77,7 @@ int initialiseFS() {
   printf("[C] Starting up persistent filesystem at '%s'...\n",
          PERSISTENT_ROOT_NAME);
 
-  #ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
   EM_ASM(
       {
         let persistentRoot = UTF8ToString($0);
@@ -98,7 +99,7 @@ int initialiseFS() {
         }
       },
       PERSISTENT_ROOT_NAME);
-  #endif
+#endif
 
   syncFS(); // Not sure if needed due to autoPersist: true
 
@@ -107,12 +108,60 @@ int initialiseFS() {
   return 0;
 }
 
+// Permission types
+#define PERMISSION_READ 1
+#define PERMISSION_WRITE 2
+#define PERMISSION_EXEC 4
+
+bool check_permission(const char *path, int permission) {
+  printf("Checking perms of '%s'\n", path);
+  struct stat file_stat;
+  if (stat(path, &file_stat) < 0) {
+    perror("Failed to stat file");
+    return false;
+  }
+
+  uid_t current_uid = getuid();
+  gid_t current_gid = getgid();
+
+  // Check owner permissions
+  if (current_uid == file_stat.st_uid) {
+    if ((permission & PERMISSION_READ) && !(file_stat.st_mode & S_IRUSR))
+      return false;
+    if ((permission & PERMISSION_WRITE) && !(file_stat.st_mode & S_IWUSR))
+      return false;
+    if ((permission & PERMISSION_EXEC) && !(file_stat.st_mode & S_IXUSR))
+      return false;
+  }
+  // Check group permissions
+  else if (current_gid == file_stat.st_gid) {
+    if ((permission & PERMISSION_READ) && !(file_stat.st_mode & S_IRGRP))
+      return false;
+    if ((permission & PERMISSION_WRITE) && !(file_stat.st_mode & S_IWGRP))
+      return false;
+    if ((permission & PERMISSION_EXEC) && !(file_stat.st_mode & S_IXGRP))
+      return false;
+  }
+  // Check other permissions
+  else {
+    if ((permission & PERMISSION_READ) && !(file_stat.st_mode & S_IROTH))
+      return false;
+    if ((permission & PERMISSION_WRITE) && !(file_stat.st_mode & S_IWOTH))
+      return false;
+    if ((permission & PERMISSION_EXEC) && !(file_stat.st_mode & S_IXOTH))
+      return false;
+  }
+
+  return true;
+}
+
 // Prints the stat of a node at `file_path`
 void printNodeStat(char *file_path, int file_path_length) {
   struct stat file_stat;
   if (stat(file_path, &file_stat) == -1) {
     char temp[512];
-    snprintf(temp, sizeof(temp), "[C] Error stat-ing '%.*s'!\n", file_path_length, file_path);
+    snprintf(temp, sizeof(temp), "[C] Error stat-ing '%.*s'!\n",
+             file_path_length, file_path);
     fputs(temp, stderr);
     return;
   }
@@ -157,6 +206,16 @@ void printNodeStat(char *file_path, int file_path_length) {
 }
 
 int fs_open(const char *pathname, int flags, int mode) {
+  if ((flags & O_RDONLY) && !check_permission(pathname, PERMISSION_READ)) {
+    fprintf(stderr, "Permission denied: Cannot read %s\n", pathname);
+    errno = EACCES;
+    return -1;
+  }
+
+  if ((flags & O_WRONLY) && !check_permission(pathname, PERMISSION_WRITE)) {
+    fprintf(stderr, "Permisison denied: Cannot write to %s\n", pathname);
+  }
+
   return open(pathname, flags, mode);
 }
 
@@ -189,10 +248,6 @@ void fs_read(int fd, ReadResult *rr, int count) {
   return;
 }
 
-int fs_unlink(const char *filename) { return unlink(filename); }
-
-int fs_rename(const char *old, const char *new) { return rename(old, new); }
-
 int fs_access(const char *name, int type) { return access(name, type); }
 
 typedef struct {
@@ -212,7 +267,13 @@ typedef struct { // 48 bytes
   Time ctime; // 24 bytes
 } StatResult;
 
-void fs_stat(const char *name, StatResult *sr) {
+int fs_stat(const char *name, StatResult *sr) {
+  if (!check_permission(name, PERMISSION_EXEC)) {
+    fprintf(stderr, "Permission denied: Cannot stat %s\n", name);
+    errno = EACCES;
+    return -1;
+  }
+
   struct stat fileStat;
   if (stat(name, &fileStat) < 0) {
     perror("Failed to stat file!");
@@ -231,10 +292,16 @@ void fs_stat(const char *name, StatResult *sr) {
   sr->ctime.sec = (int)fileStat.st_ctim.tv_sec;
   sr->ctime.nsec = (int)fileStat.st_ctim.tv_nsec;
 
-  return;
+  return 0;
 }
 
-void fs_lstat(const char *name, StatResult *sr) {
+int fs_lstat(const char *name, StatResult *sr) {
+  if (!check_permission(name, PERMISSION_EXEC)) {
+    fprintf(stderr, "Permission denied: Cannot stat %s\n", name);
+    errno = EACCES;
+    return -1;
+  }
+
   struct stat fileStat;
   if (lstat(name, &fileStat) < 0) {
     perror("Failed to stat file!");
@@ -253,110 +320,42 @@ void fs_lstat(const char *name, StatResult *sr) {
   sr->ctime.sec = (int)fileStat.st_ctim.tv_sec;
   sr->ctime.nsec = (int)fileStat.st_ctim.tv_nsec;
 
-  return;
-}
-
-int fs_symlink(const char *target, const char *linkpath) {
-  return symlink(target, linkpath);
-}
-
-// TODO: Figure out why this doesn't work - maybe not supported by emscripten?
-int fs_link(const char *target, const char *linkpath) {
-  return link(target, linkpath);
-}
-
-int fs_mkdir(const char *path, int mode) { return mkdir(path, mode); }
-
-typedef struct {
-  DIR *dirp; // Directory pointer
-  int inUse;
-} DirHandle;
-
-// Global array to store open directories
-#define MAX_DIR_HANDLES 128
-static DirHandle dirHandles[MAX_DIR_HANDLES] = {0};
-
-int fs_opendir(const char *path) {
-  DIR *d = opendir(path);
-
-  if (!d) {
-    fprintf(stderr, "[C] Opendir failed for '%s': '%s'\n", path,
-            strerror(errno));
-    return -1;
-  }
-
-  // Find a free slot in global dirHandles array
-  for (int i = 0; i < MAX_DIR_HANDLES; i++) {
-    if (!dirHandles[i].inUse) {
-      dirHandles[i].dirp = d;
-      dirHandles[i].inUse = 1;
-      // 'i' is the 'directory descriptor'
-      return i + 1;
-    }
-  }
-
-  // No free slots
-  closedir(d);
-  fprintf(stderr, "[C] Too many directories open!\n");
-  return -1;
-}
-
-int fs_readdir(int dirHandle, char *nameBuf, size_t nameBufSize) {
-
-  dirHandle--;
-
-  // Validate handle
-  if (dirHandle < 0 || dirHandle >= MAX_DIR_HANDLES || !dirHandles[dirHandle].inUse) {
-    fprintf(stderr, "[C] fs_readdir: invalid directory handle: %d\n", dirHandle);
-    return -1;
-  }
-
-  DIR *d = dirHandles[dirHandle].dirp;
-  struct dirent *entry = readdir(d);
-  if (!entry) {
-    // End of directory or error
-    return -1;
-  }
-
-  // Copy filename into provided buffer safely
-  int result = snprintf(nameBuf, nameBufSize, "%s", entry->d_name);
-  if (result < 0 || (size_t)result >= nameBufSize) {
-    fprintf(stderr, "[C] fs_readdir: filename too long for buffer\n");
-    return -1; // Indicate truncation or error
-  }
-
-  return 0; // Success
-}
-
-int fs_closedir(int dirHandle) {
-
-  dirHandle--;
-
-  // handle validatin
-  if (dirHandle < 0 || dirHandle >= MAX_DIR_HANDLES ||
-      !dirHandles[dirHandle].inUse) {
-    fprintf(stderr, "[C] fs_closedir: invalid directory handle: %d\n",
-            dirHandle);
-    return -1;
-  }
-
-  if (closedir(dirHandles[dirHandle].dirp) != 0) {
-    fprintf(stderr, "[C] closedir failed: %s\n", strerror(errno));
-    return -1;
-  }
-
-  dirHandles[dirHandle].dirp = NULL;
-  dirHandles[dirHandle].inUse = 0;
   return 0;
 }
 
-int fs_rmdir(const char *path) { return rmdir(path); }
+int fs_chmod(const char *path, int mode) {
+  struct stat file_stat;
+  if (stat(path, &file_stat) < 0) {
+    perror("Failed to stat file for chmod");
+    return -1;
+  }
 
-int fs_chdir(const char *path) { return chdir(path); }
+  // Check if current user owns the file
+  if (file_stat.st_uid != getuid()) {
+    fprintf(stderr, "Permission denied: Cannot chmod %s\n", path);
+    errno = EPERM;
+    return -1;
+  }
 
-int fs_chmod(const char *path, int mode) { return chmod(path, mode); }
+  return chmod(path, mode);
+}
 
 int fs_utime(const char *path, int atim, int mtim) {
+  struct stat file_stat;
+  if (stat(path, &file_stat) < 0) {
+    perror("Failed to stat file for utime");
+    return -1;
+  }
+
+  // Check if user owns the file or has write permission
+  if (file_stat.st_uid != getuid() &&
+      !check_permission(path, PERMISSION_WRITE)) {
+    fprintf(stderr, "Permission denied: Cannot update timestamps for %s\n",
+            path);
+    errno = EACCES;
+    return -1;
+  }
+
   struct utimbuf new_times;
 
   new_times.actime = atim;
@@ -365,59 +364,23 @@ int fs_utime(const char *path, int atim, int mtim) {
   return utime(path, &new_times);
 }
 
-// FROM stackoverflow: How can I copy a file on Unix using C? [https://stackoverflow.com/questions/2180079/how-can-i-copy-a-file-on-unix-using-c]
-int fs_cp(const char *from, const char *to) {
-  int fd_to, fd_from;
-  char buf[4096];
-  ssize_t nread;
-  int saved_errno;
+int fs_ftruncate(int fd, int length) { return ftruncate(fd, length); }
 
-  fd_from = open(from, O_RDONLY);
-  if (fd_from < 0)
+int fs_chown(const char *path, int owner, int group) {
+  struct stat file_stat;
+  if (stat(path, &file_stat) < 0) {
+    perror("Failed to stat file for chmod");
     return -1;
-
-  fd_to = open(to, O_WRONLY | O_CREAT | O_EXCL, 0666);
-  if (fd_to < 0)
-    goto out_error;
-
-  while (nread = read(fd_from, buf, sizeof buf), nread > 0) {
-    char *out_ptr = buf;
-    ssize_t nwritten;
-
-    do {
-      nwritten = write(fd_to, out_ptr, nread);
-
-      if (nwritten >= 0) {
-        nread -= nwritten;
-        out_ptr += nwritten;
-      } else if (errno != EINTR)
-        goto out_error;
-    } while (nread > 0);
   }
 
-  if (nread == 0) {
-    if (close(fd_to) < 0) {
-      fd_to = -1;
-      goto out_error;
-    }
-    close(fd_from);
-
-    return 0;
+  // Check if current user owns the file
+  if (file_stat.st_uid != getuid()) {
+    fprintf(stderr, "Permission denied: Cannot chown %s\n", path);
+    errno = EPERM;
+    return -1;
   }
 
-out_error:
-  saved_errno = errno;
-
-  close(fd_from);
-  if (fd_to >= 0)
-    close(fd_to);
-  errno = saved_errno;
-
-  return -1;
-}
-
-int fs_ftruncate(int fd, int length) {
-  return ftruncate(fd, length);
+  return chown(path, owner, group);
 }
 
 int main() {

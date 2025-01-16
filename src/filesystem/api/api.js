@@ -3,6 +3,16 @@ export const Filesystem = {};
 export function initialiseAPI(Module) {
   console.log("Initialising API functions");
 
+  let binaryReturnWrap = (fn) => {
+    try {
+      fn()
+      return 0;
+    } catch (err) {
+      console.error(err);
+      return -1;
+    }
+  }
+
   Filesystem._UTF8Encoder = new TextEncoder();
   Filesystem._UTF8Decoder = new TextDecoder("utf-8");
 
@@ -28,9 +38,9 @@ export function initialiseAPI(Module) {
     ['number'], // Argument types
   )
   Filesystem.write = function(fd, content) {
-    
+
     const encodedContent = Filesystem._UTF8Encoder.encode(content);
-    
+
     return Module.ccall(
       'fs_write', // Function name
       'number', // Return type
@@ -42,11 +52,6 @@ export function initialiseAPI(Module) {
     'fs_lseek', // Function name
     'number', // Return type
     ['number', 'number', 'number'], // Argument types
-  )
-  Filesystem.printStat = Module.cwrap(
-    'printNodeStat', // Function name
-    'null', // Return type
-    ['string'] // Argument types
   )
   Filesystem.read = function(fd, amt) {
     const sp = Module.stackSave();
@@ -80,16 +85,8 @@ export function initialiseAPI(Module) {
     }
   };
 
-  Filesystem.unlink = Module.cwrap(
-    "fs_unlink", // Function name
-    "number", // Return type
-    ["string"], // Argument types
-  );
-  Filesystem.rename = Module.cwrap(
-    "fs_rename", // Function name
-    "number", // Return type
-    ["string", "string"], // Argument types
-  )
+  Filesystem.unlink = (path) => binaryReturnWrap(() => Module.FS.unlink(path));
+  Filesystem.rename = (oldPath, newPath) => binaryReturnWrap(() => Module.FS.rename(oldPath, newPath));
   Filesystem.access = Module.cwrap(
     "fs_access", // Function name
     "number", // Return type
@@ -108,12 +105,17 @@ export function initialiseAPI(Module) {
     }
 
     // Call the wasm procedure
-    Module.ccall(
+    let exitCode = Module.ccall(
       "fs_stat",
-      null,
+      "number",
       ["string", "number"],
       [name, statResultPtr],
     );
+
+    if (exitCode < 0) {
+      console.error("Couldn't stat file");
+      return null;
+    }
 
     // Extract fields from StatResult struct
     const size = Module.getValue(statResultPtr, "i32");
@@ -160,12 +162,17 @@ export function initialiseAPI(Module) {
     }
 
     // Call the wasm procedure
-    Module.ccall(
+    let exitCode = Module.ccall(
       "fs_lstat",
-      null,
+      "number",
       ["string", "number"],
       [name, statResultPtr],
     );
+
+    if (exitCode < 0) {
+      console.error("Couldn't lstat link");
+      return null;
+    }
 
     // Extract fields from StatResult struct
     const size = Module.getValue(statResultPtr, "i32");
@@ -199,68 +206,18 @@ export function initialiseAPI(Module) {
       ctime: { sec: ctimeSec, nsec: ctimeNSec },
     }
   };
-  Filesystem.symlink = Module.cwrap(
-    "fs_symlink",
-    "number",
-    ["string", "string"],
-  );
-  Filesystem.link = Module.cwrap(
-    "fs_link",
-    "number",
-    ["string", "string"],
-  );
-  Filesystem.mkdir = Module.cwrap(
-    "fs_mkdir",
-    "number",
-    ["string", "number"],
-  );
-  Filesystem.opendir = Module.cwrap(
-    "fs_opendir",
-    "number",
-    ["string"],
-  );
-  Filesystem.closedir = Module.cwrap(
-    "fs_closedir",
-    "number",
-    ["number"],
-  );
-  Filesystem.readdir = function(dd) {
-    const nameBufSize = 256;
-    const nameBufPtr = Module._malloc(nameBufSize);
-
-    let entries = [];
-
+  Filesystem.symlink = (oldPath, newPath) => binaryReturnWrap(() => Module.FS.symlink(oldPath, newPath));
+  Filesystem.mkdir = (path) => binaryReturnWrap(() => Module.FS.mkdir(path));
+  Filesystem.readdir = (path) => {
     try {
-      while (true) {
-        const result = Module.ccall(
-          "fs_readdir",
-          "number",
-          ["number", "number", "number"],
-          [dd, nameBufPtr, nameBufSize]);
-        if (result < 0) {
-          // No more entries or error
-          break;
-        }
-
-        entries.push(Module.UTF8ToString(nameBufPtr));
-      }
-    } finally {
-      // Free buffer
-      Module._free(nameBufPtr);
+      return Module.FS.readdir(path);
+    } catch (err) {
+      console.error(err);
+      return null;
     }
-
-    return entries;
   };
-  Filesystem.rmdir = Module.cwrap(
-    "fs_rmdir",
-    "number",
-    ["string"],
-  );
-  Filesystem.chdir = Module.cwrap(
-    "fs_chdir",
-    "number",
-    ["string"],
-  );
+  Filesystem.rmdir = (path) => binaryReturnWrap(() => Module.FS.rmdir(path));
+  Filesystem.chdir = (path) => binaryReturnWrap(() => Module.FS.chdir(path));
   Filesystem.chmod = Module.cwrap(
     "fs_chmod",
     "number",
@@ -271,14 +228,14 @@ export function initialiseAPI(Module) {
     "number",
     ["string", "number", "number"],
   )
-  Filesystem.cp = Module.cwrap(
-    "fs_cp",
-    "number",
-    ["string", "string"],
-  )
   Filesystem.ftruncate = Module.cwrap(
     "fs_ftruncate",
     "number",
     ["number", "number"]
   )
+  Filesystem.chown = Module.cwrap(
+    "fs_chown",
+    "number",
+    ["string", "number", "number"],
+  );
 }

@@ -179,20 +179,16 @@ describe("Filesystem tests", () => {
 
   });
 
-  it("Test `opendir`, `readdir` and `closedir`", async () => {
+  it("Test `readdir`", async () => {
 
     await initFS(page);
 
-    let { dd, readRes, closeRes } = await page.evaluate(async () => {
-      let dd = window.Filesystem.opendir(".");
-      let readRes = window.Filesystem.readdir(dd);
-      let closeRes = window.Filesystem.closedir(dd) == 0;
-      return { dd, readRes, closeRes }
+    let readRes = await page.evaluate(async () => {
+      let readRes = window.Filesystem.readdir("persistent");
+      return readRes
     });
 
-    assert.ok(dd >= 0, "Invalid directory descriptor when opening");
     assert.ok(readRes.length > 0, "Opened directory was empty, expected non-empty");
-    assert.ok(closeRes, "Failed to close directory");
 
   });
 
@@ -336,40 +332,6 @@ describe("Filesystem tests", () => {
       `Modification time (mtime) was not updated correctly. Expected ${statBefore.mtime.sec + 2000
       }, got ${statAfter.mtime.sec}`
     );
-  });
-
-  it("Test `cp`", async () => {
-    await initFS(page);
-
-    let { createRes, writeRes, cpRes, srcStat, destStat, destContents } = await page.evaluate(async () => {
-      // Create a source file
-      let fd = window.Filesystem.open("persistent/source.txt", window.Filesystem.O_CREAT | window.Filesystem.O_WRONLY, 0o777);
-      let writeRes = window.Filesystem.write(fd, "This is a test file.");
-      let createRes = window.Filesystem.close(fd) == 0;
-
-      // Copy the file
-      let cpRes = window.Filesystem.cp("persistent/source.txt", "persistent/destination.txt") == 0;
-
-      // Stat both files
-      let srcStat = window.Filesystem.stat("persistent/source.txt");
-      let destStat = window.Filesystem.stat("persistent/destination.txt");
-
-      // Read destination file contents
-      let fdDest = window.Filesystem.open("persistent/destination.txt", window.Filesystem.O_RDONLY, 0);
-      let destContents = window.Filesystem.read(fdDest, destStat.size).data;
-      window.Filesystem.close(fdDest);
-
-      return { createRes, writeRes, cpRes, srcStat, destStat, destContents };
-    });
-
-    assert.ok(createRes, "Failed to create source file");
-    assert.ok(writeRes > 0, "Failed to write to source file");
-    assert.ok(cpRes, "Failed to copy file using `cp`");
-
-    assert.strictEqual(srcStat.size, destStat.size, "Source and destination sizes do not match");
-
-    // Verify file contents
-    assert.strictEqual(destContents, "This is a test file.", "Destination file contents do not match source file contents");
   });
 
   it("Test `ftruncate`", async () => {

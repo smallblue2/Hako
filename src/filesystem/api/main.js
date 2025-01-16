@@ -30,6 +30,7 @@ LoadFilesystem.then((Module) => {
   // Attach to the global scope
   window.isFilesystemInitialised = true;
   window.Filesystem = Filesystem;
+  window._FSM = Module;
 }).catch((err) => {
   console.error("Failed to define filesystem API:", err);
 });
