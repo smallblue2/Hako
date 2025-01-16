@@ -1,0 +1,112 @@
+91 warnings generated.
+Suppressed 91 warnings (91 with check filters).
+src/main.c:38:0: information: Include file: <dirent.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <dirent.h>
+^
+src/main.c:39:0: information: Include file: <emscripten.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <emscripten.h>
+^
+src/main.c:40:0: information: Include file: <errno.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <errno.h>
+^
+src/main.c:41:0: information: Include file: <fcntl.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <fcntl.h>
+^
+src/main.c:42:0: information: Include file: <stdio.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <stdio.h>
+^
+src/main.c:43:0: information: Include file: <stdlib.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <stdlib.h>
+^
+src/main.c:44:0: information: Include file: <string.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <string.h>
+^
+src/main.c:45:0: information: Include file: <sys/stat.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <sys/stat.h>
+^
+src/main.c:46:0: information: Include file: <time.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <time.h>
+^
+src/main.c:47:0: information: Include file: <unistd.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <unistd.h>
+^
+src/main.c:48:0: information: Include file: <utime.h> not found. Please note: Cppcheck does not need standard library headers to get proper results. [missingIncludeSystem]
+#include <utime.h>
+^
+src/main.c:315:18: style: Variable 'entry' can be declared as pointer to const [constVariablePointer]
+  struct dirent *entry = readdir(d);
+                 ^
+src/main.c:95:28: style: Label 'autoPersist' is not used. There is #if in function body so the label might be used in code that is removed by the preprocessor. [unusedLabelConfiguration]
+          FS.mount(IDBFS, {autoPersist : true}, persistentRoot);
+                           ^
+src/main.c:111:0: style: The function 'printNodeStat' is never used. [unusedFunction]
+void printNodeStat(char *file_path, int file_path_length) {
+^
+src/main.c:159:0: style: The function 'fs_open' is never used. [unusedFunction]
+int fs_open(const char *pathname, int flags, int mode) {
+^
+src/main.c:163:0: style: The function 'fs_close' is never used. [unusedFunction]
+int fs_close(int fd) { return close(fd); }
+^
+src/main.c:165:0: style: The function 'fs_write' is never used. [unusedFunction]
+int fs_write(int fd, void *buf, int count) { return write(fd, buf, count); }
+^
+src/main.c:167:0: style: The function 'fs_lseek' is never used. [unusedFunction]
+int fs_lseek(int fd, int offset, int whence) {
+^
+src/main.c:176:0: style: The function 'fs_read' is never used. [unusedFunction]
+void fs_read(int fd, ReadResult *rr, int count) {
+^
+src/main.c:192:0: style: The function 'fs_unlink' is never used. [unusedFunction]
+int fs_unlink(const char *filename) { return unlink(filename); }
+^
+src/main.c:194:0: style: The function 'fs_rename' is never used. [unusedFunction]
+int fs_rename(const char *old, const char *new) { return rename(old, new); }
+^
+src/main.c:196:0: style: The function 'fs_access' is never used. [unusedFunction]
+int fs_access(const char *name, int type) { return access(name, type); }
+^
+src/main.c:215:0: style: The function 'fs_stat' is never used. [unusedFunction]
+void fs_stat(const char *name, StatResult *sr) {
+^
+src/main.c:237:0: style: The function 'fs_lstat' is never used. [unusedFunction]
+void fs_lstat(const char *name, StatResult *sr) {
+^
+src/main.c:259:0: style: The function 'fs_symlink' is never used. [unusedFunction]
+int fs_symlink(const char *target, const char *linkpath) {
+^
+src/main.c:264:0: style: The function 'fs_link' is never used. [unusedFunction]
+int fs_link(const char *target, const char *linkpath) {
+^
+src/main.c:268:0: style: The function 'fs_mkdir' is never used. [unusedFunction]
+int fs_mkdir(const char *path, int mode) { return mkdir(path, mode); }
+^
+src/main.c:279:0: style: The function 'fs_opendir' is never used. [unusedFunction]
+int fs_opendir(const char *path) {
+^
+src/main.c:304:0: style: The function 'fs_readdir' is never used. [unusedFunction]
+int fs_readdir(int dirHandle, char *nameBuf, size_t nameBufSize) {
+^
+src/main.c:331:0: style: The function 'fs_closedir' is never used. [unusedFunction]
+int fs_closedir(int dirHandle) {
+^
+src/main.c:353:0: style: The function 'fs_rmdir' is never used. [unusedFunction]
+int fs_rmdir(const char *path) { return rmdir(path); }
+^
+src/main.c:355:0: style: The function 'fs_chdir' is never used. [unusedFunction]
+int fs_chdir(const char *path) { return chdir(path); }
+^
+src/main.c:357:0: style: The function 'fs_chmod' is never used. [unusedFunction]
+int fs_chmod(const char *path, int mode) { return chmod(path, mode); }
+^
+src/main.c:359:0: style: The function 'fs_utime' is never used. [unusedFunction]
+int fs_utime(const char *path, int atim, int mtim) {
+^
+src/main.c:369:0: style: The function 'fs_cp' is never used. [unusedFunction]
+int fs_cp(const char *from, const char *to) {
+^
+src/main.c:419:0: style: The function 'fs_ftruncate' is never used. [unusedFunction]
+int fs_ftruncate(int fd, int length) {
+^
+nofile:0:0: information: Active checkers: 108/836 (use --checkers-report=<filename> to see details) [checkersReport]
+

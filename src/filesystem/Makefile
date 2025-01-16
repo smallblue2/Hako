@@ -19,7 +19,7 @@ build:
 lint:
 	emcc -c -o out/main.o src/main.c -sSTRICT
 	clang-tidy src/main.c -- -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
-	cppcheck src/main.c --enable=all --suppress=unmatchedSuppression
+	cppcheck src/main.c --enable=all --suppress=unmatchedSuppression --suppress=unusedFunction -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
 
 
 clean:

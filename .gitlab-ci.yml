@@ -17,11 +17,9 @@ lint_filesystem_js:
 lint_filesystem_c:
   stage: lint
   script:
-    - cd src
+    - cd src/filesystem
     - apt-get update && apt-get -y install clang-tidy cppcheck
-    - emcc -c -o filesystem/out/main.o filesystem/src/main.c -sSTRICT
-    - clang-tidy filesystem/src/main.c -- -I/emsdk/upstream/emscripten/cache/sysroot/include
-    - cppcheck src/filesystem/src/main.c --enable=all --suppress=unmatchedSuppression
+    - make lint
 
 lint_tests:
   stage: lint

@@ -108,10 +108,12 @@ int initialiseFS() {
 }
 
 // Prints the stat of a node at `file_path`
-void printNodeStat(char *file_path) {
+void printNodeStat(char *file_path, int file_path_length) {
   struct stat file_stat;
   if (stat(file_path, &file_stat) == -1) {
-    fprintf(stderr, "[C] Error stat-ing '%s'!\n", file_path);
+    char temp[512];
+    snprintf(temp, sizeof(temp), "[C] Error stat-ing '%.*s'!\n", file_path_length, file_path);
+    fputs(temp, stderr);
     return;
   }
 
