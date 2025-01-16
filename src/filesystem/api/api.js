@@ -235,8 +235,8 @@ export function initialiseAPI(Module) {
         const result = Module.ccall(
           "fs_readdir",
           "number",
-          ["number", "number"],
-          [dd, nameBufPtr]);
+          ["number", "number", "number"],
+          [dd, nameBufPtr, nameBufSize]);
         if (result < 0) {
           // No more entries or error
           break;

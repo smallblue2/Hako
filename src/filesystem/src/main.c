@@ -54,6 +54,7 @@ int MAX_PATH_LENGTH = 256;
 // Likely not needed if the IDBFS filesystem is mounted with `autoPersist`
 // option set to TRUE
 int syncFS() {
+  #ifdef __EMSCRIPTEN__
   EM_ASM({
     // Force an initial sync - despite `autoPersist` flag
     FS.syncfs(
@@ -65,6 +66,7 @@ int syncFS() {
           }
         });
   });
+  #endif
 
   return 0;
 }
@@ -74,6 +76,7 @@ int initialiseFS() {
   printf("[C] Starting up persistent filesystem at '%s'...\n",
          PERSISTENT_ROOT_NAME);
 
+  #ifdef __EMSCRIPTEN__
   EM_ASM(
       {
         let persistentRoot = UTF8ToString($0);
@@ -95,6 +98,7 @@ int initialiseFS() {
         }
       },
       PERSISTENT_ROOT_NAME);
+  #endif
 
   syncFS(); // Not sure if needed due to autoPersist: true
 
@@ -104,22 +108,20 @@ int initialiseFS() {
 }
 
 // Prints the stat of a node at `file_path`
-void printNodeStat(char *file_path) {
-  // Avoid buffer overflows - safer way rather than just printf
-  char full_path[MAX_PATH_LENGTH];
-  snprintf(full_path, sizeof(full_path), "%s", file_path);
-
+void printNodeStat(char *file_path, int file_path_length) {
   struct stat file_stat;
-  if (stat(full_path, &file_stat) == -1) {
-    fprintf(stderr, "[C] Error stat-ing '%s'!\n", full_path);
+  if (stat(file_path, &file_stat) == -1) {
+    char temp[512];
+    snprintf(temp, sizeof(temp), "[C] Error stat-ing '%.*s'!\n", file_path_length, file_path);
+    fputs(temp, stderr);
     return;
   }
 
   // File information
   printf("File: %s\n", file_path);
-  printf("Size: %ld bytes\n", file_stat.st_size);
-  printf("Blocks: %ld\n", file_stat.st_blocks);
-  printf("IO Block: %ld bytes\n", file_stat.st_blksize);
+  printf("Size: %lld bytes\n", file_stat.st_size);
+  printf("Blocks: %d\n", file_stat.st_blocks);
+  printf("IO Block: %d bytes\n", file_stat.st_blksize);
   printf("Device: %ldh/%ldd\n", (long)file_stat.st_dev, (long)file_stat.st_dev);
   printf("Inode: %ld\n", (long)file_stat.st_ino);
   printf("Links: %ld\n", (long)file_stat.st_nlink);
@@ -299,16 +301,13 @@ int fs_opendir(const char *path) {
   return -1;
 }
 
-// Read the next entry from an open directory
-int fs_readdir(int dirHandle, char *nameBuf) {
+int fs_readdir(int dirHandle, char *nameBuf, size_t nameBufSize) {
 
   dirHandle--;
 
-  // handle validatin
-  if (dirHandle < 0 || dirHandle >= MAX_DIR_HANDLES ||
-      !dirHandles[dirHandle].inUse) {
-    fprintf(stderr, "[C] fs_readdir: invalid directory handle: %d\n",
-            dirHandle);
+  // Validate handle
+  if (dirHandle < 0 || dirHandle >= MAX_DIR_HANDLES || !dirHandles[dirHandle].inUse) {
+    fprintf(stderr, "[C] fs_readdir: invalid directory handle: %d\n", dirHandle);
     return -1;
   }
 
@@ -319,10 +318,14 @@ int fs_readdir(int dirHandle, char *nameBuf) {
     return -1;
   }
 
-  // Copy filename into provided buffer
-  snprintf(nameBuf, 256, "%s", entry->d_name);
+  // Copy filename into provided buffer safely
+  int result = snprintf(nameBuf, nameBufSize, "%s", entry->d_name);
+  if (result < 0 || (size_t)result >= nameBufSize) {
+    fprintf(stderr, "[C] fs_readdir: filename too long for buffer\n");
+    return -1; // Indicate truncation or error
+  }
 
-  return 0; // success
+  return 0; // Success
 }
 
 int fs_closedir(int dirHandle) {

@@ -2,8 +2,31 @@ default:
   image: emscripten/emsdk:4.0.0
 
 stages:
+  - lint
   - build
+  - validate
   - test
+
+lint_filesystem_js:
+  stage: lint
+  script:
+    - cd src
+    - npm install
+    - npm run lint-fs
+
+lint_filesystem_c:
+  stage: lint
+  script:
+    - cd src/filesystem
+    - apt-get update && apt-get -y install clang-tidy cppcheck
+    - make lint
+
+lint_tests:
+  stage: lint
+  script:
+    - cd src
+    - npm install
+    - npm run lint-tests
   
 build_filesystem:
   stage: build
@@ -20,12 +43,22 @@ build_filesystem:
       - src/filesystem/api/compiled.wasm
     expire_in: 1 week
 
-test_artefact_persistence:
-  stage: test
+validate_artefact_persistence:
+  stage: validate
+  dependencies:
+    - build_filesystem
   script:
     # Ensure artifacts have persisted
     - test -e src/filesystem/api/compiled.mjs
     - test -e src/filesystem/api/compiled.wasm
+
+validate_wasm:
+  stage: validate
+  dependencies:
+    - build_filesystem
+  script:
+    - apt-get update && apt-get install -y wabt
+    - wasm-validate src/filesystem/api/compiled.wasm    
 
 test_filesystem:
   stage: test

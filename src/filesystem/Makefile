@@ -16,6 +16,12 @@ build:
   	-s EXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue,stackAlloc,stackSave,stackRestore,UTF8ToString
 	cp $(BUILD_DIR)/compiled.* $(OUTPUT_DIR)/.
 
+lint:
+	emcc -c -o out/main.o src/main.c -sSTRICT
+	clang-tidy src/main.c -- -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
+	cppcheck src/main.c --enable=all --suppress=unmatchedSuppression --suppress=unusedFunction -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
+
+
 clean:
 	rm $(BUILD_DIR)/*.wasm $(BUILD_DIR)/*.mjs
-	rm $(OUTPUT_DIR)/compiled.wasm $(OUTPUT_DIR)/compiled.mjs
+	rm $(OUTPUT_DIR)/*.wasm $(OUTPUT_DIR)/*.mjs

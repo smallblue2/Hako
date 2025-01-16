@@ -201,7 +201,7 @@ describe("Filesystem tests", () => {
     await initFS(page);
 
     let { fd, bytesWritten0, readRes0, lseekRes0, bytesWritten1, lseekRes1, readRes1 } = await page.evaluate(async () => {
-      let fd = window.Filesystem.open("persistent/random.txt", Filesystem.O_CREAT | Filesystem.O_RDWR, 0o777);
+      let fd = window.Filesystem.open("persistent/random.txt", window.Filesystem.O_CREAT | window.Filesystem.O_RDWR, 0o777);
       // 4
       let bytesWritten0 = window.Filesystem.write(fd, "this is a test");
       // 14
@@ -232,7 +232,7 @@ describe("Filesystem tests", () => {
     await initFS(page);
 
     let { fd, closeRes, unlinkRes, confirmDel } = await page.evaluate(async () => {
-      let fd = window.Filesystem.open("persistent/deleteme", Filesystem.O_CREAT, 0o777);
+      let fd = window.Filesystem.open("persistent/deleteme", window.Filesystem.O_CREAT, 0o777);
       let closeRes = window.Filesystem.close(fd) == 0;
       let unlinkRes = window.Filesystem.unlink("persistent/deleteme") == 0;
       let confirmDel = window.Filesystem.access("persistent/deleteme", window.Filesystem.F_OK) == -1;
@@ -251,7 +251,7 @@ describe("Filesystem tests", () => {
     await initFS(page);
 
     let { fd, closeRes, renameRes, checkOldGone, checkNewExists } = await page.evaluate(async () => {
-      let fd = window.Filesystem.open("persistent/renameme", Filesystem.O_CREAT, 0o777);
+      let fd = window.Filesystem.open("persistent/renameme", window.Filesystem.O_CREAT, 0o777);
       let closeRes = window.Filesystem.close(fd) == 0;
       let renameRes = window.Filesystem.rename("persistent/renameme", "persistent/moved") == 0;
       let checkOldGone = window.Filesystem.access("persistent/renameme", window.Filesystem.F_OK) == -1;
