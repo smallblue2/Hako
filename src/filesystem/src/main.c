@@ -121,9 +121,9 @@ void printNodeStat(char *file_path) {
 
   // File information
   printf("File: %s\n", file_path);
-  printf("Size: %ld bytes\n", file_stat.st_size);
-  printf("Blocks: %ld\n", file_stat.st_blocks);
-  printf("IO Block: %ld bytes\n", file_stat.st_blksize);
+  printf("Size: %lld bytes\n", file_stat.st_size);
+  printf("Blocks: %d\n", file_stat.st_blocks);
+  printf("IO Block: %d bytes\n", file_stat.st_blksize);
   printf("Device: %ldh/%ldd\n", (long)file_stat.st_dev, (long)file_stat.st_dev);
   printf("Inode: %ld\n", (long)file_stat.st_ino);
   printf("Links: %ld\n", (long)file_stat.st_nlink);
