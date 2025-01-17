@@ -511,7 +511,7 @@ describe("Filesystem tests", () => {
       let readdirNoExec;
       try {
         readdirNoExec = window.Filesystem.readdir("persistent/dirnoexec");
-      } catch (err) {
+      } catch {
         // If it fails, store null or something
         readdirNoExec = null;
       }
@@ -522,7 +522,7 @@ describe("Filesystem tests", () => {
       let readdirWithExec;
       try {
         readdirWithExec = window.Filesystem.readdir("persistent/dirnoexec");
-      } catch (err) {
+      } catch {
         readdirWithExec = null;
       }
 
