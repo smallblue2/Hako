@@ -12,7 +12,7 @@ build:
   	src/main.c \
   	-o $(BUILD_DIR)/compiled.mjs \
   	-s FORCE_FILESYSTEM \
-  	-s EXPORTED_FUNCTIONS=_syncFS,_initialiseFS,_fs_open,_fs_close,_fs_write,_fs_read,_fs_lseek,_fs_access,_printNodeStat,_fs_stat,_malloc,_free,_fs_lstat,_fs_chmod,_fs_utime,_fs_ftruncate,_fs_chown \
+  	-s EXPORTED_FUNCTIONS=_syncFS,_initialiseFS,_fs_close,_fs_write,_fs_read,_fs_lseek,_fs_access,_fs_stat,_malloc,_free,_fs_lstat,_fs_chmod,_fs_utime,_fs_ftruncate,_fs_chown \
   	-s EXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue,stackAlloc,stackSave,stackRestore,UTF8ToString,FS
 	cp $(BUILD_DIR)/compiled.* $(OUTPUT_DIR)/.
 
