@@ -27,11 +27,19 @@ export function initialiseAPI(Module) {
     'number', // Return type
     [], // Argument types
   )
-  Filesystem.open = Module.cwrap(
-    'fs_open', // Function name
-    'number', // Return type
-    ['string', 'number', 'number'], // Argument types
-  )
+  Filesystem.open = (path, flags, mode) => {
+    try {
+      let res = Module.FS.open(path, flags, mode);
+      if (res.error) {
+        console.error("Failed to open file");
+        return -1;
+      }
+      return res.fd;
+    } catch (err) {
+      console.error(err)
+      return -1;
+    }
+  }
   Filesystem.close = Module.cwrap(
     'fs_close', // Function name
     'number', // Return type
@@ -98,7 +106,7 @@ export function initialiseAPI(Module) {
     const sp = Module.stackSave();
 
     // Allocate memory on heap for StatResult struct
-    const statResultPtr = Module._malloc(48); // 48 bytes
+    const statResultPtr = Module._malloc(56); // 48 bytes
     if (!statResultPtr) {
       console.error("Faild to stat node!");
       return;
@@ -124,13 +132,15 @@ export function initialiseAPI(Module) {
     const ino = Module.getValue(statResultPtr + 12, "i32");
     const nlink = Module.getValue(statResultPtr + 16, "i32");
     const mode = Module.getValue(statResultPtr + 20, "i32");
+    const uid = Module.getValue(statResultPtr + 24, "i32");
+    const gid = Module.getValue(statResultPtr + 28, "i32");
 
-    const atimeSec = Module.getValue(statResultPtr + 24, "i32");
-    const atimeNSec = Module.getValue(statResultPtr + 28, "i32");
-    const mtimeSec = Module.getValue(statResultPtr + 32, "i32");
-    const mtimeNSec = Module.getValue(statResultPtr + 36, "i32");
-    const ctimeSec = Module.getValue(statResultPtr + 40, "i32");
-    const ctimeNSec = Module.getValue(statResultPtr + 42, "i32");
+    const atimeSec = Module.getValue(statResultPtr + 32, "i32");
+    const atimeNSec = Module.getValue(statResultPtr + 36, "i32");
+    const mtimeSec = Module.getValue(statResultPtr + 40, "i32");
+    const mtimeNSec = Module.getValue(statResultPtr + 44, "i32");
+    const ctimeSec = Module.getValue(statResultPtr + 48, "i32");
+    const ctimeNSec = Module.getValue(statResultPtr + 52, "i32");
 
     // Free the heap memory
     Module._free(statResultPtr);
@@ -144,6 +154,8 @@ export function initialiseAPI(Module) {
       ino: ino,
       nlink: nlink,
       mode: mode,
+      uid: uid,
+      gid: gid,
       atime: { sec: atimeSec, nsec: atimeNSec },
       mtime: { sec: mtimeSec, nsec: mtimeNSec },
       ctime: { sec: ctimeSec, nsec: ctimeNSec },
@@ -181,13 +193,15 @@ export function initialiseAPI(Module) {
     const ino = Module.getValue(statResultPtr + 12, "i32");
     const nlink = Module.getValue(statResultPtr + 16, "i32");
     const mode = Module.getValue(statResultPtr + 20, "i32");
+    const uid = Module.getValue(statResultPtr + 24, "i32");
+    const gid = Module.getValue(statResultPtr + 28, "i32");
 
-    const atimeSec = Module.getValue(statResultPtr + 24, "i32");
-    const atimeNSec = Module.getValue(statResultPtr + 28, "i32");
-    const mtimeSec = Module.getValue(statResultPtr + 32, "i32");
-    const mtimeNSec = Module.getValue(statResultPtr + 36, "i32");
-    const ctimeSec = Module.getValue(statResultPtr + 40, "i32");
-    const ctimeNSec = Module.getValue(statResultPtr + 42, "i32");
+    const atimeSec = Module.getValue(statResultPtr + 32, "i32");
+    const atimeNSec = Module.getValue(statResultPtr + 36, "i32");
+    const mtimeSec = Module.getValue(statResultPtr + 40, "i32");
+    const mtimeNSec = Module.getValue(statResultPtr + 44, "i32");
+    const ctimeSec = Module.getValue(statResultPtr + 48, "i32");
+    const ctimeNSec = Module.getValue(statResultPtr + 52, "i32");
 
     // Free the heap memory
     Module._free(statResultPtr);
@@ -201,6 +215,8 @@ export function initialiseAPI(Module) {
       ino: ino,
       nlink: nlink,
       mode: mode,
+      uid: uid,
+      gid: gid,
       atime: { sec: atimeSec, nsec: atimeNSec },
       mtime: { sec: mtimeSec, nsec: mtimeNSec },
       ctime: { sec: ctimeSec, nsec: ctimeNSec },

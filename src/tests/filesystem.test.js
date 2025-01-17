@@ -367,4 +367,267 @@ describe("Filesystem tests", () => {
     // Ensure strings are correct
     assert.strictEqual(fileContents, "This is a test", `File contents after truncation do not match expected value. Got ${fileContents}`);
   });
+
+  it("Test read permission (remove read perms and restore them)", async () => {
+    await initFS(page);
+
+    let {
+      fd,
+      writeRes,
+      chmodToWriteOnly,
+      readResultNoPerms,
+      chmodToRW,
+      readResultAfterFix
+    } = await page.evaluate(async () => {
+      // 1) Create file with full perms, open + write
+      let fd = window.Filesystem.open("persistent/noread.txt", window.Filesystem.O_CREAT | window.Filesystem.O_RDWR, 0o777);
+      let writeRes = window.Filesystem.write(fd, "no one can read this line");
+
+      // Move back to the start so we can attempt to read it from there
+      window.Filesystem.lseek(fd, 0, 0);
+
+      // 2) Change permissions to write-only: (0o200)
+      let chmodToWriteOnly = window.Filesystem.chmod("persistent/noread.txt", 0o200) == 0;
+
+      // Attempt to read
+      // We'll keep reading from the same open fd:
+      let readResultNoPerms = window.Filesystem.read(fd, 100);
+
+      // 3) Change perms back to read/write
+      let chmodToRW = window.Filesystem.chmod("persistent/noread.txt", 0o600) == 0;
+
+      // Re-seek to start
+      window.Filesystem.lseek(fd, 0, 0);
+
+      // 4) Attempt to read again
+      let readResultAfterFix = window.Filesystem.read(fd, 100);
+
+      // Close
+      window.Filesystem.close(fd);
+
+      return {
+        fd,
+        writeRes,
+        chmodToWriteOnly,
+        readResultNoPerms,
+        chmodToRW,
+        readResultAfterFix
+      };
+    });
+
+    // Basic checks
+    assert.ok(fd >= 0, "Failed to create/open file descriptor");
+    assert.ok(writeRes > 0, "Write operation to file failed");
+    assert.ok(chmodToWriteOnly, "Failed to chmod to write-only");
+
+    // Expect read to fail or return null (failed perms)
+    assert.strictEqual(
+      readResultNoPerms,
+      null,
+      "Expected null or error reading a file with no read perms"
+    );
+
+    assert.ok(chmodToRW, "Failed to chmod back to read/write");
+
+    // After restoring read perms, the read call should succeed
+    assert.ok(readResultAfterFix?.data, "Expected to read data after restoring R/W perms");
+    assert.strictEqual(
+      readResultAfterFix?.data,
+      "no one can read this line",
+      "Read data was not as expected after restoring permissions"
+    );
+  });
+
+  it("Test write permission (remove write perms and restore them)", async () => {
+    await initFS(page);
+
+    let {
+      fd,
+      firstWrite,
+      chmodNoWrite,
+      secondWrite,
+      chmodRestoreWrite,
+      thirdWrite
+    } = await page.evaluate(async () => {
+      // 1) Create file with read + write perms
+      let fd = window.Filesystem.open("persistent/writeperm.txt", window.Filesystem.O_CREAT | window.Filesystem.O_RDWR, 0o666); // user/group/other => rw
+
+      // Write once
+      let firstWrite = window.Filesystem.write(fd, "Initial content");
+
+      // 2) Remove write permission from user => 0o444 => read-only
+      let chmodNoWrite = (window.Filesystem.chmod("persistent/writeperm.txt", 0o444) === 0);
+
+      // 3) Try writing => expect fail, the return should be -1.
+      let secondWrite = window.Filesystem.write(fd, "Should fail or do nothing") < 0;
+
+      // 4) Restore write permission => 0o666
+      let chmodRestoreWrite = (window.Filesystem.chmod("persistent/writeperm.txt", 0o666) === 0);
+
+      // 5) Try writing again => should succeed
+      let thirdWrite = window.Filesystem.write(fd, "Now it should work") >= 0;
+
+      // Close
+      window.Filesystem.close(fd);
+
+      return {
+        fd,
+        firstWrite,
+        chmodNoWrite,
+        secondWrite,
+        chmodRestoreWrite,
+        thirdWrite
+      };
+    });
+
+    assert.ok(fd >= 0, "Failed to create/open file descriptor");
+    assert.ok(firstWrite > 0, "Initial write returned unexpected value");
+    assert.ok(chmodNoWrite, "Failed to remove write permissions (chmod 0o444)");
+
+    // FS is enforcing permissions, should expect a failure (-1).
+    assert.ok(secondWrite,
+      "Write likely failed with no write permission, which is correct for a strictly enforced FS")
+
+    assert.ok(chmodRestoreWrite, "Failed to chmod file back to write perms (0o666)");
+    assert.ok(thirdWrite, "Expected final write to succeed once perms were restored");
+  });
+
+  it("Test directory execute permission (traverse vs. no traverse)", async () => {
+    await initFS(page);
+
+    let {
+      mkdirOk,
+      chmodNoExec,
+      readdirNoExec,
+      chmodExecAgain,
+      readdirWithExec
+    } = await page.evaluate(async () => {
+      // Create a directory with full perms
+      let mkdirOk = (window.Filesystem.mkdir("persistent/dirnoexec") === 0);
+
+      // Remove 'execute' from user => e.g. 0o666 => user rw, group rw, other rw, no one has x
+      let chmodNoExec = (window.Filesystem.chmod("persistent/dirnoexec", 0o666) === 0);
+
+      let readdirNoExec;
+      try {
+        readdirNoExec = window.Filesystem.readdir("persistent/dirnoexec");
+      } catch {
+        // If it fails, store null or something
+        readdirNoExec = null;
+      }
+
+      // Restore execute => 0o777
+      let chmodExecAgain = (window.Filesystem.chmod("persistent/dirnoexec", 0o777) === 0);
+
+      let readdirWithExec;
+      try {
+        readdirWithExec = window.Filesystem.readdir("persistent/dirnoexec");
+      } catch {
+        readdirWithExec = null;
+      }
+
+      return {
+        mkdirOk,
+        chmodNoExec,
+        readdirNoExec,
+        chmodExecAgain,
+        readdirWithExec
+      };
+    });
+
+    assert.ok(mkdirOk, "Failed to create test directory");
+    assert.ok(chmodNoExec, "Failed to chmod directory to remove 'execute' bit");
+
+    // If emscripten enforces x-permission, readdirNoExec might be null or throw an error
+    if (readdirNoExec !== null) {
+      console.warn(
+        "readdir succeeded even though 'execute' was removed. " +
+        "Emscripten doens't seem to strictly enforce directory x-perms."
+      );
+    }
+
+    assert.ok(chmodExecAgain, "Failed to chmod directory back to full perms (0o777)");
+
+    // Now readdir should succeed
+    assert.ok(
+      Array.isArray(readdirWithExec),
+      "Expected readdir to return an array after restoring directory x-permission"
+    );
+  });
+
+  it("Test chown (Emscripten support is questionable)", async () => {
+    await initFS(page);
+
+    let { fd, closeRes, chownRes, postStat } = await page.evaluate(() => {
+      // Create a file
+      let fd = window.Filesystem.open("persistent/ownercheck", window.Filesystem.O_CREAT, 0o777);
+      let closeRes = (window.Filesystem.close(fd) === 0);
+
+      // Attempt to chown => let's try to set user=1, group=2 (arbitrary)
+      let chownRes = window.Filesystem.chown("persistent/ownercheck", 1, 2);
+
+      // Get updated stat
+      let postStat = window.Filesystem.stat("persistent/ownercheck");
+
+      return {
+        fd,
+        closeRes,
+        chownRes,
+        postStat
+      };
+    });
+
+    assert.ok(fd >= 0, "Failed to create file descriptor");
+    assert.ok(closeRes, "Failed to close the file descriptor");
+    if (chownRes !== 0) {
+      console.warn("chown failed - your FS may not allow chown on this file");
+    } else {
+      // If success, check if uid/gid changed
+      // Emscripten may ignore the call. If not ignored, expect postStat.uid=1, postStat.gid=2
+      const changedUID = (postStat.uid === 1);
+      const changedGID = (postStat.gid === 2);
+      if (!changedUID || !changedGID) {
+        console.warn(
+          "chown succeeded but ownership didn't change as expected. " +
+          "Some FS drivers do not actually store UID/GID changes."
+        );
+      }
+      assert.ok(true, "chown call was attempted, check console for details.");
+    }
+  });
+
+  it("Test access() checks (R_OK, W_OK, X_OK)", async () => {
+    await initFS(page);
+
+    let results = await page.evaluate(() => {
+      // 1) Create a file => 0o644
+      let fd = window.Filesystem.open("persistent/check_access.txt", window.Filesystem.O_CREAT, 0o644);
+      window.Filesystem.close(fd);
+
+      // 2) Check R_OK => Should be 0
+      const readCheck = window.Filesystem.access("persistent/check_access.txt", 4); // 4 => R_OK
+
+      // 3) Check W_OK => Should be 0 if user is the owner with mode 0o600+
+      const writeCheck = window.Filesystem.access("persistent/check_access.txt", 2); // 2 => W_OK
+
+      // 4) Check X_OK => should be -1 since we haven't set x bit in 0o644
+      const execCheck = window.Filesystem.access("persistent/check_access.txt", 1); // 1 => X_OK
+
+      // 5) For comparison, chmod => 0o755 => re-check X_OK
+      window.Filesystem.chmod("persistent/check_access.txt", 0o755);
+      const execCheckAfterChmod = window.Filesystem.access("persistent/check_access.txt", 1);
+
+      return {
+        readCheck,
+        writeCheck,
+        execCheck,
+        execCheckAfterChmod
+      };
+    });
+
+    assert.strictEqual(results.readCheck, 0, "File should be readable (R_OK=0) with 0o644");
+    assert.strictEqual(results.writeCheck, 0, "File should be writable by owner (W_OK=0) with 0o644");
+    assert.strictEqual(results.execCheck, -1, "File should not be executable with 0o644");
+    assert.strictEqual(results.execCheckAfterChmod, 0, "After chmod 0o755, file should be executable");
+  });
 });

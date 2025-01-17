@@ -113,115 +113,58 @@ int initialiseFS() {
 #define PERMISSION_WRITE 2
 #define PERMISSION_EXEC 4
 
-bool check_permission(const char *path, int permission) {
-  printf("Checking perms of '%s'\n", path);
-  struct stat file_stat;
-  if (stat(path, &file_stat) < 0) {
-    perror("Failed to stat file");
-    return false;
-  }
-
+bool check_permission(struct stat node_stat, int permission) {
   uid_t current_uid = getuid();
   gid_t current_gid = getgid();
 
   // Check owner permissions
-  if (current_uid == file_stat.st_uid) {
-    if ((permission & PERMISSION_READ) && !(file_stat.st_mode & S_IRUSR))
+  if (current_uid == node_stat.st_uid) {
+    if ((permission & PERMISSION_READ) && !(node_stat.st_mode & S_IRUSR))
       return false;
-    if ((permission & PERMISSION_WRITE) && !(file_stat.st_mode & S_IWUSR))
+    if ((permission & PERMISSION_WRITE) && !(node_stat.st_mode & S_IWUSR))
       return false;
-    if ((permission & PERMISSION_EXEC) && !(file_stat.st_mode & S_IXUSR))
+    if ((permission & PERMISSION_EXEC) && !(node_stat.st_mode & S_IXUSR))
       return false;
   }
   // Check group permissions
-  else if (current_gid == file_stat.st_gid) {
-    if ((permission & PERMISSION_READ) && !(file_stat.st_mode & S_IRGRP))
+  else if (current_gid == node_stat.st_gid) {
+    if ((permission & PERMISSION_READ) && !(node_stat.st_mode & S_IRGRP))
       return false;
-    if ((permission & PERMISSION_WRITE) && !(file_stat.st_mode & S_IWGRP))
+    if ((permission & PERMISSION_WRITE) && !(node_stat.st_mode & S_IWGRP))
       return false;
-    if ((permission & PERMISSION_EXEC) && !(file_stat.st_mode & S_IXGRP))
+    if ((permission & PERMISSION_EXEC) && !(node_stat.st_mode & S_IXGRP))
       return false;
   }
   // Check other permissions
   else {
-    if ((permission & PERMISSION_READ) && !(file_stat.st_mode & S_IROTH))
+    if ((permission & PERMISSION_READ) && !(node_stat.st_mode & S_IROTH))
       return false;
-    if ((permission & PERMISSION_WRITE) && !(file_stat.st_mode & S_IWOTH))
+    if ((permission & PERMISSION_WRITE) && !(node_stat.st_mode & S_IWOTH))
       return false;
-    if ((permission & PERMISSION_EXEC) && !(file_stat.st_mode & S_IXOTH))
+    if ((permission & PERMISSION_EXEC) && !(node_stat.st_mode & S_IXOTH))
       return false;
   }
 
   return true;
 }
 
-// Prints the stat of a node at `file_path`
-void printNodeStat(char *file_path, int file_path_length) {
-  struct stat file_stat;
-  if (stat(file_path, &file_stat) == -1) {
-    char temp[512];
-    snprintf(temp, sizeof(temp), "[C] Error stat-ing '%.*s'!\n",
-             file_path_length, file_path);
-    fputs(temp, stderr);
-    return;
-  }
+int fs_close(int fd) { return close(fd); }
 
-  // File information
-  printf("File: %s\n", file_path);
-  printf("Size: %lld bytes\n", file_stat.st_size);
-  printf("Blocks: %d\n", file_stat.st_blocks);
-  printf("IO Block: %d bytes\n", file_stat.st_blksize);
-  printf("Device: %ldh/%ldd\n", (long)file_stat.st_dev, (long)file_stat.st_dev);
-  printf("Inode: %ld\n", (long)file_stat.st_ino);
-  printf("Links: %ld\n", (long)file_stat.st_nlink);
-
-  // File type
-  printf("File type: ");
-  if (S_ISREG(file_stat.st_mode))
-    printf("regular file\n");
-  else if (S_ISDIR(file_stat.st_mode))
-    printf("directory\n");
-  else if (S_ISLNK(file_stat.st_mode))
-    printf("symbolic link\n");
-  else if (S_ISCHR(file_stat.st_mode))
-    printf("character device\n");
-  else if (S_ISBLK(file_stat.st_mode))
-    printf("block device\n");
-  else if (S_ISFIFO(file_stat.st_mode))
-    printf("FIFO/pipe\n");
-  else if (S_ISSOCK(file_stat.st_mode))
-    printf("socket\n");
-  else
-    printf("unknown\n");
-
-  // Permissions
-  printf("Access: %o\n", file_stat.st_mode & 0777);
-
-  // Timestamps
-  printf("Last access: %s", ctime(&file_stat.st_atime));
-  printf("Last modification: %s", ctime(&file_stat.st_mtime));
-  printf("Last status change: %s", ctime(&file_stat.st_ctime));
-
-  return;
-}
-
-int fs_open(const char *pathname, int flags, int mode) {
-  if ((flags & O_RDONLY) && !check_permission(pathname, PERMISSION_READ)) {
-    fprintf(stderr, "Permission denied: Cannot read %s\n", pathname);
-    errno = EACCES;
+int fs_write(int fd, void *buf, int count) {
+  struct stat fd_stat;
+  if (fstat(fd, &fd_stat) < 0) {
+    fprintf(stderr,
+            "Failed to stat file descriptor '%d' for permission check\n", fd);
     return -1;
   }
 
-  if ((flags & O_WRONLY) && !check_permission(pathname, PERMISSION_WRITE)) {
-    fprintf(stderr, "Permisison denied: Cannot write to %s\n", pathname);
+  if (!check_permission(fd_stat, PERMISSION_WRITE)) {
+    fprintf(stderr, "Permission denied: Cannot write to file descriptor %d\n",
+            fd);
+    return -1;
   }
-
-  return open(pathname, flags, mode);
+  return write(fd, buf, count);
 }
-
-int fs_close(int fd) { return close(fd); }
-
-int fs_write(int fd, void *buf, int count) { return write(fd, buf, count); }
 
 int fs_lseek(int fd, int offset, int whence) {
   return lseek(fd, offset, whence);
@@ -233,6 +176,22 @@ typedef struct {
 } ReadResult;
 
 void fs_read(int fd, ReadResult *rr, int count) {
+
+  rr->size = -1;
+  rr->data = NULL;
+
+  struct stat fd_stat;
+  if (fstat(fd, &fd_stat) < 0) {
+    fprintf(stderr,
+            "Failed to stat file descriptor '%d' for permission check\n", fd);
+    return;
+  }
+
+  if (!check_permission(fd_stat, PERMISSION_READ)) {
+    fprintf(stderr, "Permission denied: Cannot read from file descriptor %d\n",
+            fd);
+    return;
+  }
   // Create buffer
   unsigned char *buffer = (unsigned char *)malloc(count);
   if (!buffer) {
@@ -261,64 +220,72 @@ typedef struct { // 48 bytes
   int blocksize;
   int ino;
   int nlink;
-  int mode; // 24 bytes
+  int mode;
+  int uid;
+  int gid; // 32 byes
   Time atime;
   Time mtime;
   Time ctime; // 24 bytes
 } StatResult;
 
 int fs_stat(const char *name, StatResult *sr) {
-  if (!check_permission(name, PERMISSION_EXEC)) {
+  struct stat file_stat;
+  if (stat(name, &file_stat) < 0) {
+    fprintf(stderr, "Failed to stat file %s for permission check.", name);
+    return -1;
+  }
+
+  if (!check_permission(file_stat, PERMISSION_EXEC)) {
     fprintf(stderr, "Permission denied: Cannot stat %s\n", name);
     errno = EACCES;
     return -1;
   }
 
-  struct stat fileStat;
-  if (stat(name, &fileStat) < 0) {
-    perror("Failed to stat file!");
-  }
-
-  sr->size = fileStat.st_size;
-  sr->blocks = fileStat.st_blocks;
-  sr->blocksize = fileStat.st_blksize;
-  sr->ino = fileStat.st_ino;
-  sr->nlink = fileStat.st_nlink;
-  sr->mode = fileStat.st_mode;
-  sr->atime.sec = (int)fileStat.st_atim.tv_sec;
-  sr->atime.nsec = (int)fileStat.st_atim.tv_nsec;
-  sr->mtime.sec = (int)fileStat.st_mtim.tv_sec;
-  sr->mtime.nsec = (int)fileStat.st_mtim.tv_nsec;
-  sr->ctime.sec = (int)fileStat.st_ctim.tv_sec;
-  sr->ctime.nsec = (int)fileStat.st_ctim.tv_nsec;
+  sr->size = file_stat.st_size;
+  sr->blocks = file_stat.st_blocks;
+  sr->blocksize = file_stat.st_blksize;
+  sr->ino = file_stat.st_ino;
+  sr->nlink = file_stat.st_nlink;
+  sr->mode = file_stat.st_mode;
+  sr->uid = file_stat.st_uid;
+  sr->gid = file_stat.st_gid;
+  sr->atime.sec = (int)file_stat.st_atim.tv_sec;
+  sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
+  sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
+  sr->mtime.nsec = (int)file_stat.st_mtim.tv_nsec;
+  sr->ctime.sec = (int)file_stat.st_ctim.tv_sec;
+  sr->ctime.nsec = (int)file_stat.st_ctim.tv_nsec;
 
   return 0;
 }
 
 int fs_lstat(const char *name, StatResult *sr) {
-  if (!check_permission(name, PERMISSION_EXEC)) {
+  struct stat file_stat;
+  if (stat(name, &file_stat) < 0) {
+    fprintf(stderr, "Failed to stat file %s for permission check.", name);
+    return -1;
+  }
+
+  if (!check_permission(file_stat, PERMISSION_EXEC)) {
     fprintf(stderr, "Permission denied: Cannot stat %s\n", name);
     errno = EACCES;
     return -1;
   }
 
-  struct stat fileStat;
-  if (lstat(name, &fileStat) < 0) {
-    perror("Failed to stat file!");
-  }
-
-  sr->size = fileStat.st_size;
-  sr->blocks = fileStat.st_blocks;
-  sr->blocksize = fileStat.st_blksize;
-  sr->ino = fileStat.st_ino;
-  sr->nlink = fileStat.st_nlink;
-  sr->mode = fileStat.st_mode;
-  sr->atime.sec = (int)fileStat.st_atim.tv_sec;
-  sr->atime.nsec = (int)fileStat.st_atim.tv_nsec;
-  sr->mtime.sec = (int)fileStat.st_mtim.tv_sec;
-  sr->mtime.nsec = (int)fileStat.st_mtim.tv_nsec;
-  sr->ctime.sec = (int)fileStat.st_ctim.tv_sec;
-  sr->ctime.nsec = (int)fileStat.st_ctim.tv_nsec;
+  sr->size = file_stat.st_size;
+  sr->blocks = file_stat.st_blocks;
+  sr->blocksize = file_stat.st_blksize;
+  sr->ino = file_stat.st_ino;
+  sr->nlink = file_stat.st_nlink;
+  sr->mode = file_stat.st_mode;
+  sr->uid = file_stat.st_uid;
+  sr->gid = file_stat.st_gid;
+  sr->atime.sec = (int)file_stat.st_atim.tv_sec;
+  sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
+  sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
+  sr->mtime.nsec = (int)file_stat.st_mtim.tv_nsec;
+  sr->ctime.sec = (int)file_stat.st_ctim.tv_sec;
+  sr->ctime.nsec = (int)file_stat.st_ctim.tv_nsec;
 
   return 0;
 }
@@ -349,7 +316,7 @@ int fs_utime(const char *path, int atim, int mtim) {
 
   // Check if user owns the file or has write permission
   if (file_stat.st_uid != getuid() &&
-      !check_permission(path, PERMISSION_WRITE)) {
+      !check_permission(file_stat, PERMISSION_WRITE)) {
     fprintf(stderr, "Permission denied: Cannot update timestamps for %s\n",
             path);
     errno = EACCES;
@@ -364,7 +331,22 @@ int fs_utime(const char *path, int atim, int mtim) {
   return utime(path, &new_times);
 }
 
-int fs_ftruncate(int fd, int length) { return ftruncate(fd, length); }
+int fs_ftruncate(int fd, int length) {
+  struct stat fd_stat;
+  if (fstat(fd, &fd_stat) < 0) {
+    fprintf(stderr,
+            "Failed to stat file descriptor '%d' for permission check\n", fd);
+    return -1;
+  }
+
+  if (!check_permission(fd_stat, PERMISSION_WRITE)) {
+    fprintf(stderr, "Permission denied: Cannot truncate file descriptor %d\n",
+            fd);
+    return -1;
+  }
+
+  return ftruncate(fd, length);
+}
 
 int fs_chown(const char *path, int owner, int group) {
   struct stat file_stat;
