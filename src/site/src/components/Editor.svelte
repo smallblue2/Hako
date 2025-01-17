@@ -98,4 +98,7 @@
   height: inherit;
   background-color: #fdffed;
 }
+:global(.cm-editor.cm-focused) {
+  outline: none;
+}
 </style>

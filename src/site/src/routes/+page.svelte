@@ -5,35 +5,13 @@
   import * as lib from "$lib/windows.svelte.js";
 
   $effect(() => lib.setRootSfc(document.body));
-
-  //
-  // let layerFromId = $state([
-  //   0,
-  //   1,
-  //   2,
-  //   3,
-  // ]);
-  //
-  // /** @type {any[]} */
-  // let windows = $state([
-  //   { id: 0, component: Editor, props: { layerFromId: layerFromId, } },
-  //   { id: 1, component: Terminal, props: { layerFromId: layerFromId, wasmModule: "/lua.mjs?url" } },
-  //   { id: 2, component: Terminal, props: { layerFromId: layerFromId, wasmModule: "/lua.mjs?url" } },
-  //   { id: 3, component: Editor, props: { layerFromId: layerFromId } }
-  // ]);
-  //
-  // function onWindowFocus(id, ev) {
-  //   let maxz = Math.max(...layerFromId);
-  //   for (let i = 0; i < layerFromId.length; i++) {
-  //     layerFromId[i] = Math.max(0, layerFromId[i] - 1);
-  //   }
-  //   layerFromId[id] = maxz;
-  // }
 </script>
 
 <!-- {#each windows as { id, component: Component, props }} -->
 <!--   <Component {onWindowFocus} {id} {...props}></Component> -->
 <!-- {/each} -->
+
+<div id="event-overlay"></div>
 
 <button onclick={() => {
   lib.openWindow(Terminal, { props: { wasmModule: "/lua.mjs?url" }});
@@ -50,5 +28,16 @@
   position: fixed;
   top: 0; right: 0; bottom: 0; left: 0;
   overflow: hidden;
+}
+
+:global(#event-overlay) {
+  /* background: rgba(0,0,0,0.7); */
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+  z-index: 1000;
 }
 </style>

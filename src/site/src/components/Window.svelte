@@ -25,13 +25,16 @@
   function onHoldDecorations(ev) {
     document.addEventListener("mousemove", onDragWindow);
     document.addEventListener("mouseup", onReleaseDecorations);
-    root.style.pointerEvents = "none";
+    console.log(ev.pointerId);
+    let overlay = document.getElementById("event-overlay");
+    overlay.style.display = "block";
   }
 
   function onReleaseDecorations() {
     document.removeEventListener("mousemove", onDragWindow);
     document.removeEventListener("mouseup", onReleaseDecorations);
-    root.style.pointerEvents = "all";
+    let overlay = document.getElementById("event-overlay");
+    overlay.style.display = "none";
   }
 
   /**
@@ -61,7 +64,7 @@
     if (ev.target === root && !resizing) { // make sure hovering child element does not trigger this
       let { offsetX, offsetY } = ev;
       const sect = getSection(offsetX, offsetY, root.clientWidth, root.clientHeight, 10);
-      document.body.style.cursor = lib.SECTION_CURSORS[sect];
+      document.documentElement.style.cursor = lib.SECTION_CURSORS[sect];
     }
   }
 
@@ -72,8 +75,6 @@
    * @param {MouseEvent} ev
    */
   function onDragResize(ev) {
-    root.style.background = lib.SECTION_BACKGROUND[globalSect];
-
     // if (onResize(globalSect, ev.movementX, ev.movementY)) {
 
     onResize(globalSect, ev.movementX, ev.movementY);
@@ -107,10 +108,12 @@
   /**
    * @param {MouseEvent} ev
    */
-  function onHoldResizeArea(ev) {
+  async function onHoldResizeArea(ev) {
     if (ev.target === root) { // make sure hovering child element does not trigger this
       let { offsetX, offsetY } = ev;
       globalSect = getSection(offsetX, offsetY, root.clientWidth, root.clientHeight, 10);
+
+      root.classList.toggle(lib.SECTION_STYLE[globalSect]);
 
       // Get target minimum x and y for clamping purposes
       // Basically the issue is that we are clamping the positions and width
@@ -124,21 +127,28 @@
       resizing = true;
       document.addEventListener("mousemove", onDragResize);
       document.addEventListener("mouseup", onReleaseResizeArea);
-      root.style.pointerEvents = "none";
+
+      let overlay = document.getElementById("event-overlay");
+      overlay.style.display = "block";
+      overlay.style.cursor = lib.SECTION_CURSORS[globalSect];
     }
   }
 
   function onReleaseResizeArea() {
-    root.style.background = "";
+    let overlay = document.getElementById("event-overlay");
+    overlay.style.display = "none";
+    root.classList.toggle(lib.SECTION_STYLE[globalSect]);
     resizing = false;
     document.removeEventListener("mousemove", onDragResize);
     document.removeEventListener("mouseup", onReleaseResizeArea);
-    root.style.pointerEvents = "all";
+    onExitResizeArea();
   }
 
   function onExitResizeArea() {
     if (!resizing) {
-      document.body.style.cursor = "revert";
+      document.documentElement.style.cursor = "revert";
+      let overlay = document.getElementById("event-overlay");
+      overlay.style.cursor = "auto";
     }
   }
 
@@ -183,12 +193,13 @@
   background-color: rgba(0,0,0,0);
   outline: none;
 	background-repeat: no-repeat;
+  border-radius: 0.3rem;
 }
 
 .ev-wrapper {
-  margin: 0.5rem;
+  margin: var(--resize-area);
   box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 50px;
-  outline: silver solid 1px;
+  outline: silver solid var(--window-outline-area);
 }
 
 .decorations {

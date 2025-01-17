@@ -10,16 +10,16 @@ export const LEFT = 7;
 
 export const SECTION_CURSORS = ["nwse-resize", "ns-resize", "nesw-resize", "ew-resize", "nwse-resize", "ns-resize", "nesw-resize", "ew-resize"];
 
-export const SECTION_BACKGROUND = [
-  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
-  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
-  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
-  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
-  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
-  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem",
-  "linear-gradient(#ccc, #ccc) bottom left / 100% 0.5rem"
+export const SECTION_STYLE = [
+  "resize-border-top-left",
+  "resize-border-top",
+  "resize-border-top-right",
+  "resize-border-right",
+  "resize-border-bottom-right",
+  "resize-border-bottom",
+  "resize-border-bottom-left",
+  "resize-border-left",
 ];
-
 
 /**
  * @param {number} n

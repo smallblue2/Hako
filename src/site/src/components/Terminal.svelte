@@ -115,8 +115,12 @@
 
 <style>
 .contents {
-  background-color: red;
+  background-color: black;
   width: 320px;
   height: 260px;
+}
+
+:global(.xterm-viewport) {
+  scrollbar-width: none;
 }
 </style>
