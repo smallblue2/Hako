@@ -2,12 +2,20 @@
  * This file is used primarily for any global styles of the application
  */
 
-:root {
+html {
   --resize-area: 0.5rem;
   --window-outline-area: 1px;
 
-  --resize-border: rgba(226, 232, 240, 1); /* tailwind slate 200 */
+  /* --resize-border: rgba(226, 232, 240, 1); /* tailwind slate 200 */
+  --resize-border: color-mix(in srgb, var(--md-sys-color-outline) 30%, transparent);
   --resize-gradient: linear-gradient(var(--resize-border), var(--resize-border));
+
+  --window-outline: var(--md-sys-color-outline);
+  --window-decorations: var(--md-sys-color-surface);
+
+  background-image: url("/background.svg?url");
+  background-repeat: no-repeat;
+  background-size: 100%;
 }
 
 .resize-border-top-left {

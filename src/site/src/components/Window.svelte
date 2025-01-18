@@ -1,11 +1,17 @@
 <script>
   import * as lib from "$lib";
   import * as windows from "$lib/windows.svelte.js";
+    import { onMount } from "svelte";
 
   let { id, onMaximise, onResize, onWindowFocus, data, dataRef, layerFromId, title } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
+
+  /** @type {HTMLDivElement | undefined} */
+  let evWrap = $state();
+
+  let visibleAreaOff = undefined; // The size of the resize areas margin
 
   let min = 100;
   let resizing = false;
@@ -18,14 +24,13 @@
    */
   function onDragWindow(ev) {
     const rect = root.getBoundingClientRect();
-    root.style.top = (rect.top + ev.movementY).toString() + "px";
-    root.style.left = (rect.left + ev.movementX).toString() + "px";
+    root.style.top = Math.max(-visibleAreaOff, rect.top + ev.movementY).toString() + "px";
+    root.style.left = Math.max(-visibleAreaOff, rect.left + ev.movementX).toString() + "px";
   }
 
   function onHoldDecorations(ev) {
     document.addEventListener("mousemove", onDragWindow);
     document.addEventListener("mouseup", onReleaseDecorations);
-    console.log(ev.pointerId);
     let overlay = document.getElementById("event-overlay");
     overlay.style.display = "block";
   }
@@ -99,8 +104,8 @@
         break;
     }
 
-    const posY = Math.min(rect.top + dy, maxY);
-    const posX = Math.min(rect.left + dx, maxX);
+    const posY = Math.max(-visibleAreaOff, Math.min(rect.top + dy, maxY));
+    const posX = Math.max(-visibleAreaOff, Math.min(rect.left + dx, maxX));
     root.style.top = posY.toString() + "px";
     root.style.left = posX.toString() + "px";
   }
@@ -162,6 +167,10 @@
   $effect(() => {
     root.style.zIndex = layerFromId[id];
   })
+
+  onMount(() => {
+    visibleAreaOff = parseInt(window.getComputedStyle(evWrap).margin, 10);
+  })
 </script>
 
 <!-- svelte-ignore a11y_mouse_events_have_key_events -->
@@ -172,12 +181,12 @@
   onmouseout={onExitResizeArea}
   onmousedown={onHoldResizeArea}>
 
-  <div class="ev-wrapper">
+  <div bind:this={evWrap} class="ev-wrapper">
     <div class="decorations" onmousedown={onHoldDecorations}>
       <div></div>
       <p class="title">{title}</p>
       <button class="close-btn" onmousedown={noProp} onclick={() => windows.closeWindow(id)}>
-        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
       </button>
       <!-- <button class="maximise-btn" onmousedown={noProp} onclick={() => { -->
       <!--   onMaximise(); -->
@@ -199,14 +208,14 @@
 .ev-wrapper {
   margin: var(--resize-area);
   box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 50px;
-  outline: silver solid var(--window-outline-area);
+  outline: var(--window-outline) solid var(--window-outline-area);
 }
 
 .decorations {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #e6f3f7;
+  background-color: var(--window-decorations);
   padding: 0.2rem;
 }
 
@@ -220,17 +229,22 @@
   padding: 0.11rem;
   border-radius: 100%;
   text-decoration: none;
+  background-color: var(--md-sys-color-error);
 }
 
 .close-btn:hover {
-  background-color: #d3dbe0;
+  background-color: var(--md-sys-color-on-error-container);
+}
+
+.close-btn:hover > svg {
+  fill: var(--md-sys-color-on-error);
 }
 
 .close-btn > svg {
   display: block;
   width: 1rem;
   height: 1rem;
-  fill: #636769;
+  fill: var(--md-sys-color-error-container);
 }
 
 .title {
