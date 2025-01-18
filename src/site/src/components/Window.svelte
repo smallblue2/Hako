@@ -183,11 +183,19 @@
 
   <div bind:this={evWrap} class="ev-wrapper">
     <div class="decorations" onmousedown={onHoldDecorations}>
-      <div></div>
+      <!-- <div></div> -->
       <p class="title">{title}</p>
-      <button class="close-btn" onmousedown={noProp} onclick={() => windows.closeWindow(id)}>
-        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
-      </button>
+      <div class="btns">
+        <button title="Hide" class="btn">
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M217-86v-126h526v126H217Z"/></svg>
+        </button>
+        <button title="Maximize" class="btn">
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
+        </button>
+        <button title="Close" class="btn" onmousedown={noProp} onclick={() => windows.closeWindow(id)}>
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+        </button>
+      </div>
       <!-- <button class="maximise-btn" onmousedown={noProp} onclick={() => { -->
       <!--   onMaximise(); -->
       <!-- }}></button> -->
@@ -219,7 +227,12 @@
   padding: 0.2rem;
 }
 
-.close-btn {
+.btns {
+  display: flex;
+  align-items: center;
+}
+
+.btn {
   display: block;
   border: none;
   margin: 0;
@@ -229,22 +242,22 @@
   padding: 0.11rem;
   border-radius: 100%;
   text-decoration: none;
-  background-color: var(--md-sys-color-error);
+  background-color: var(--window-btn);
 }
 
-.close-btn:hover {
-  background-color: var(--md-sys-color-on-error-container);
+.btn:hover {
+  background-color: var(--window-btn-hover);
 }
 
-.close-btn:hover > svg {
-  fill: var(--md-sys-color-on-error);
+.btn:hover {
+  background-color: var(--window-btn-hover);
 }
 
-.close-btn > svg {
+.btn > svg {
   display: block;
   width: 1rem;
   height: 1rem;
-  fill: var(--md-sys-color-error-container);
+  fill: var(--window-btn-fill);
 }
 
 .title {
@@ -252,6 +265,7 @@
   padding: 0;
   margin: 0;
   user-select: none;
+  color: var(--window-title-fg);
 }
 
 /* .maximise-btn { */

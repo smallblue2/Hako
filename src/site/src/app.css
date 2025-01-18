@@ -13,6 +13,12 @@ html {
   --window-outline: var(--md-sys-color-outline);
   --window-decorations: var(--md-sys-color-surface);
 
+  --window-btn: var(--md-sys-color-surface);
+  --window-btn-hover: var(--md-sys-color-surface-dim);
+  --window-btn-fill: var(--md-sys-color-inverse-surface);
+
+  --window-title-fg: var(--md-sys-color-on-surface);
+
   background-image: url("/background.svg?url");
   background-repeat: no-repeat;
   background-size: 100%;

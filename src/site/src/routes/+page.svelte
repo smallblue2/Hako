@@ -1,6 +1,7 @@
 <script>
   import Terminal from "../components/Terminal.svelte";
   import Editor from "../components/Editor.svelte";
+  import TaskBar from "../components/TaskBar.svelte";
 
   import * as lib from "$lib/windows.svelte.js";
 
@@ -12,6 +13,7 @@
 <!-- {/each} -->
 
 <div id="event-overlay"></div>
+<TaskBar classList={["fixed-bottom"]}></TaskBar>
 
 <button onclick={() => {
   lib.openWindow(Terminal, { props: { wasmModule: "/lua.mjs?url" }});
@@ -19,7 +21,6 @@
 <button onclick={() => {
   lib.openWindow(Editor);
 }}>Create Editor</button>
-
 
 <style>
 :global(body) {
@@ -39,5 +40,12 @@
   left: 0;
   display: none;
   z-index: 1000;
+}
+
+:global(.fixed-bottom) {
+  overflow: hidden;
+  position: fixed;
+  right: 0;
+  height: 100%;
 }
 </style>
