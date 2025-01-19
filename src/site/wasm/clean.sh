@@ -1,0 +1,34 @@
+#!/bin/sh
+
+rm -f ../static/lua.wasm
+rm -f lua-5.4.7/src/lapi.o
+rm -f lua-5.4.7/src/lauxlib.o
+rm -f lua-5.4.7/src/lbaselib.o
+rm -f lua-5.4.7/src/lcode.o
+rm -f lua-5.4.7/src/lcorolib.o
+rm -f lua-5.4.7/src/lctype.o
+rm -f lua-5.4.7/src/ldblib.o
+rm -f lua-5.4.7/src/ldebug.o
+rm -f lua-5.4.7/src/ldo.o
+rm -f lua-5.4.7/src/ldump.o
+rm -f lua-5.4.7/src/lfunc.o
+rm -f lua-5.4.7/src/lgc.o
+rm -f lua-5.4.7/src/liblua.a
+rm -f lua-5.4.7/src/linit.o
+rm -f lua-5.4.7/src/liolib.o
+rm -f lua-5.4.7/src/llex.o
+rm -f lua-5.4.7/src/lmathlib.o
+rm -f lua-5.4.7/src/lmem.o
+rm -f lua-5.4.7/src/loadlib.o
+rm -f lua-5.4.7/src/lobject.o
+rm -f lua-5.4.7/src/lopcodes.o
+rm -f lua-5.4.7/src/loslib.o
+rm -f lua-5.4.7/src/lparser.o
+rm -f lua-5.4.7/src/lstate.o
+rm -f lua-5.4.7/src/lstring.o
+rm -f lua-5.4.7/src/lstrlib.o
+rm -f lua-5.4.7/src/ltable.o
+rm -f lua-5.4.7/src/ltablib.o
+rm -f lua-5.4.7/src/ltm.o
+rm -f lua-5.4.7/src/lua.o
+rm -f lua-5.4.7/src/lua.wasm

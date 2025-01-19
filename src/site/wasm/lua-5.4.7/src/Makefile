@@ -61,7 +61,7 @@ $(LUA_A): $(BASE_O)
 	$(RANLIB) $@
 
 $(LUA_T): $(LUA_O) $(LUA_A)
-	$(CC) --post-js=../../post.js --pre-js=../../pre.js -s PROXY_TO_PTHREAD -s ASSERTIONS=2 -s EXPORT_ES6 -s ENVIRONMENT=web,worker --js-library=../../../node_modules/xterm-pty/emscripten-pty.js -o $@ $(LDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
+	$(CC) --post-js=../../post.js --pre-js=../../pre.js -s PROXY_TO_PTHREAD -s ASSERTIONS=2 -s EXPORT_ES6 -s ENVIRONMENT=web,worker --js-library=../../emscripten-pty.js -o $@ $(LDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
 
 $(LUAC_T): $(LUAC_O) $(LUA_A)
 	$(CC) -o $@ $(LDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS)
