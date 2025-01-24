@@ -1,0 +1,19 @@
+
+== Usage
+
+You can just copy this template and modify as you wish. After running the initial setup:
+
+[source,shell]
+----
+meson setup --cross-file ./emscripten.ini build
+----
+
+You can build the project with:
+
+[source,shell]
+----
+meson setup --cross-file ./emscripten.ini build --reconfigure # if any changes to meson.build
+ninja -C build
+----
+
+This will build a .js and .wasm file, the .js file is a esm module which you can use to load the program.
