@@ -1,7 +1,7 @@
 <script>
   import * as lib from "$lib";
   import * as windows from "$lib/windows.svelte.js";
-    import { onMount } from "svelte";
+  import { onMount } from "svelte";
 
   let { id, onMaximise, onResize, onWindowFocus, data, dataRef, layerFromId, title } = $props();
 
@@ -175,7 +175,7 @@
 
 <!-- svelte-ignore a11y_mouse_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={root} class="window" tabindex="-1" onfocusin={(ev) => onWindowFocus(id, ev)}
+<div id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={(ev) => onWindowFocus(id, ev)}
 
   onmousemove={onMoveResizeArea}
   onmouseout={onExitResizeArea}
@@ -186,7 +186,9 @@
       <!-- <div></div> -->
       <p class="title">{title}</p>
       <div class="btns">
-        <button title="Hide" class="btn">
+        <button title="Hide" class="btn" onmousedown={noProp} onclick={() => {
+          root.style.display = "none";
+        }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M217-86v-126h526v126H217Z"/></svg>
         </button>
         <button title="Maximize" class="btn">
@@ -196,9 +198,6 @@
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
         </button>
       </div>
-      <!-- <button class="maximise-btn" onmousedown={noProp} onclick={() => { -->
-      <!--   onMaximise(); -->
-      <!-- }}></button> -->
     </div>
     {@render data()}
   </div>
@@ -267,10 +266,4 @@
   user-select: none;
   color: var(--window-title-fg);
 }
-
-/* .maximise-btn { */
-/*   height: 10px; */
-/*   width: 10px; */
-/*   background-color: green; */
-/* } */
 </style>

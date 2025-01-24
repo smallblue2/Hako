@@ -6,7 +6,7 @@ let _maxLayer = 1; // initially 1 as we want windows at higher z than default ht
 const _layerFromId = $state([]);
 
 /** @type {any[]} */
-const _windows = [];
+export const _windows = $state([]);
 
 /** @type {HTMLElement | null} */
 let rootSfc = null
@@ -40,16 +40,24 @@ export function openWindow(component, options) {
   _layerFromId[id] = _maxLayer;
   options.props.layerFromId = _layerFromId;
 
-  _windows.push({ id: id, parent: port, element: mount(component, options) });
+  _windows.push({ id: id, parent: port, component: mount(component, options) });
 }
 
 export function closeWindow(id) {
   for (let i = 0; i < _windows.length; i++) {
     if (_windows[i].id == id) {
-      unmount(_windows[i].element);
+      unmount(_windows[i].component);
       _windows[i].parent.remove();
       _windows.splice(i, 1);
       return;
+    }
+  }
+}
+
+export function getWindowByID(id) {
+  for (let i = 0; i < _windows.length; i++) {
+    if (_windows[i].id == id) {
+      return _windows[i];
     }
   }
 }

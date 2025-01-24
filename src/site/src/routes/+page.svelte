@@ -5,22 +5,23 @@
 
   import * as lib from "$lib/windows.svelte.js";
 
-  $effect(() => lib.setRootSfc(document.body));
+  let root = $state();
+
+  $effect(() => lib.setRootSfc(root));
 </script>
 
-<!-- {#each windows as { id, component: Component, props }} -->
-<!--   <Component {onWindowFocus} {id} {...props}></Component> -->
-<!-- {/each} -->
-
+<div bind:this={root}></div>
 <div id="event-overlay"></div>
-<TaskBar classList={["fixed-bottom"]}></TaskBar>
 
 <button onclick={() => {
   lib.openWindow(Terminal, { props: { wasmModule: "/lua.mjs?url" }});
+  lib.openWindow(Terminal, { props: { wasmModule: "/lsc.js?url" }});
 }}>Create Terminal</button>
 <button onclick={() => {
   lib.openWindow(Editor);
 }}>Create Editor</button>
+
+<TaskBar classList={["fixed-right"]}></TaskBar>
 
 <style>
 :global(body) {
@@ -42,7 +43,7 @@
   z-index: 1000;
 }
 
-:global(.fixed-bottom) {
+:global(.fixed-right) {
   overflow: hidden;
   position: fixed;
   right: 0;

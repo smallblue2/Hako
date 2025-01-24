@@ -1,11 +1,21 @@
 <script>
   let { classList } = $props();
   let classes = classList.join(" ");
+
+  import { _windows, getWindowByID } from "$lib/windows.svelte.js";
+  import PlaceHolderIcon from "../../static/placeholder.svg?raw";
 </script>
 
 <div class={`${classes} wrapper`}>
   <div class="tasks">
-    <embed class="placeholder" src="/placeholder.svg?url">
+    {#each _windows as win}
+      <button class="placeholder" onclick={() => {
+        const el = document.getElementById(`window-${win.id}`);
+        el.style.display = "block";
+      }}>
+        {@html PlaceHolderIcon}
+      </button>
+    {/each}
   </div>
 </div>
 
@@ -22,10 +32,10 @@
     flex-direction: column;
     justify-content: center;
     height: 60%;
-    background-color:color-mix(in srgb, var(--md-sys-color-secondary-container) 90%, transparent);
+    background-color: color-mix(in srgb, var(--md-sys-color-secondary-container) 90%, transparent);
   }
-
-  .placeholder {
+ 
+  :global(.placeholder > svg) {
     width: 2.7rem;
     height: 2.7rem;
   }
