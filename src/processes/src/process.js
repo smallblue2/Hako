@@ -1,16 +1,20 @@
+// Handle the initial message to set up the worker environment
 self.onmessage = (e) => {
-  // Receive dedicated channels
+  // Extract the channels and serialised function
   const { stdin, stdout, stderr, func } = e.data;
 
+  // Dynamically reconstruct the provided function
+  // WARNING: Using `new Function` is inherently risky as it can execute arbitrary code.
+  // TODO: Sanitise `func` or ensure it comes from a trusted origin?
   self.func = new Function("e", `return (${func})(e)`);
 
-  // Define how to handle stdin
+  // Setup the stdin handler to process incoming messages
   stdin.onmessage = (e) => {
     try {
-      // Return the output of the func
+      // Execute the provided function and send the result to stdout
       stdout.postMessage(self.func(e));
-      // On error, send it to the stderr channel
     } catch (error) {
+      // Send any errors that occur to the stderr channel
       stderr.postMessage(`Error: ${error.message}`);
     }
   }
