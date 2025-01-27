@@ -1,7 +1,5 @@
 import { ProcessStates, ProcessOperations } from "./common.js";
 
-console.log("AHHHHHH I'M ALIVE!!!");
-
 // Change the process state
 self.changeState = (newState) => {
   self.postMessage({ op: ProcessOperations.CHANGE_STATE, state: newState });
@@ -27,11 +25,16 @@ self.onmessage = (e) => {
   // Setup the stdin handler to process incoming messages
   stdin.onmessage = (e) => {
     try {
+      // Notify to the process manager that we're running
+      self.changeState(ProcessStates.RUNNING);
       // Execute the provided function and send the result to stdout
       stdout.postMessage(self.func(e));
     } catch (error) {
       // Send any errors that occur to the stderr channel
       stderr.postMessage(`Error: ${error.message}`);
+    } finally {
+      // Notify to the process manager that we're running
+      self.changeState(ProcessStates.SLEEPING);
     }
   }
 

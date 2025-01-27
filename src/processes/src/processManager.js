@@ -1,138 +1,119 @@
-import { ProcessStates, ProcessOperations } from "./common.js";
+import { ProcessOperations } from "./common.js";
+import ProcessTable from "./processTable.js";
 
+// The max number of PIDs available to our system
+const MAX_PID = 128;
+
+/**
+ * The ProcessManager class is responsible for high-level management
+ * of worker-based processes. It coordinates the creation of new
+ * processes via a ProcessTable, sets up message handling, and
+ * provides helper methods like listing processes or retrieving a
+ * particular process by PID.
+ */
 export default class ProcessManager {
-  // Private field containing an array of processes
-  #processes
+  /**
+   * @private
+   * @type {ProcessTable}
+   */
+  #processesTable
 
+  /**
+   * Creates a new ProcessManager instance with a maximum PID capacity.
+   */
   constructor() {
-    // List of active processes managed by this process manager
-    this.#processes = [];
+    /**
+     * The ProcessTable instance that stores all process data.
+     * @private
+     */
+    this.#processesTable = new ProcessTable(MAX_PID);
   }
 
-   /**
-     * Creates a new process wrapper around a Web Worker.
-     * 
-     * @param {string} processScript - The path to the Web Worker script.
-     * @param {function} func - A JavaScript function that will be dynamically sent to the worker.
-     *                          The function must handle a MessageChannel event as its only argument.
-     *                          By default, the function computes Fibonacci numbers as a demo.
-     * @returns {Object} An object representing the created process, containing:
-     *                   - `worker`: The Web Worker instance.
-     *                   - `stdin`: A MessagePort for sending input to the worker.
-     *                   - `stdout`: A MessagePort for receiving standard output from the worker.
-     *                   - `stderr`: A MessagePort for receiving error output from the worker.
-     */
-  createProcess(processScript = "processes/src/process.js", func = exampleFunction) {
-    // TODO: Possibly refactor processes into a class for better design
+  /**
+   * Creates a new process (a Web Worker) and returns its PID.
+   *
+   * @param {string} [processScript="processes/src/process.js"] - The path to the worker script.
+   * @param {function} [processFunction=exampleFunction] - The function to be executed by the worker.
+   *   This function is stringified and passed to the worker, so it should be a pure function that
+   *   can run independently of external scope.
+   * @returns {number} - The newly allocated PID.
+   *
+   * @throws {Error} If the process table is full and cannot allocate another PID.
+   */
+  createProcess(processScript = "processes/src/process.js", processFunction = exampleFunction) {
+    // Allocate space in the process table and retrieve references to the worker and channels
+    let { pid, _, stdout, stderr, worker, start } = this.#processesTable.allocateProcess(
+      { processScript, processFunction }, // Defined behaviour for web-worker
+    );
 
-    // ============= Initialise Process ============= 
-
-    // Create MessageChannels for inter-process communication
-    const stdinChannel = new MessageChannel();
-    const stdoutChannel = new MessageChannel();
-    const stderrChannel = new MessageChannel();
-
-    // Create process object
-    const process = {
-      worker: null,
-      stdin: stdinChannel.port2,
-      stdout: stdoutChannel.port2,
-      stderr: stderrChannel.port2,
-      time: Date.now(),
-      state: ProcessStates.STARTING,
-    };
-
-    // Instantiate the worker with the provided script
-    const worker = new Worker(processScript, { type: "module" });
-    
-    // ============= Define process/manager communication ============= 
-
-    // Onmessage used for the process communicating with the manager
-    worker.onmessage = (e) => this.#handleSignalFromProcess(e, process);
-
-    // Onerror just lists errors
+    // Set up communication from the Worker back to this manager
+    // `#handleSignalFromProcess()` will interpret messages from the process
+    // like 'CHANGE_STATE'.
+    worker.onmessage = (e) => this.#handleSignalFromProcess(e, pid);
+    // Log any worker error events to the console
     worker.onerror = (e) => console.error(`[PROC_MAN] ERROR: Process reporting error: ${e.data}`);
 
-    // Attach the worker to the process object
-    process.worker = worker;
+    // TEMP: Attach simple console logging to the worker's stdout/stderr
+    stdout.onmessage = (e) => console.log(`[WORKER STDOUT]: ${e.data}`);
+    stderr.onmessage = (e) => console.error(`[WORKER STDERR]: ${e.data}`);
 
-    // ============= Define channel/stream handlers ============= 
+    // Actually start the Worker via closure
+    start();
 
-    // TEMP: stdout and stderr handlers: log to the console
-    stdoutChannel.port2.onmessage = (e) => {
-      console.log(`[WORKER STDOUT]: ${e.data}`)
-    }
-    stderrChannel.port2.onmessage = (e) => {
-      console.error(`[WORKER STDERR]: ${e.data}`)
-    }
-
-    // ============= Start Worker ============= 
-
-    // Send dedicated ports and function to the worker
-    worker.postMessage(
-      {
-        stdin: stdinChannel.port1,
-        stdout: stdoutChannel.port1,
-        stderr: stderrChannel.port1,
-        func: func.toString()
-      },
-      [stdinChannel.port1, stdoutChannel.port1, stderrChannel.port1],
-    )
-
-    // ============= Save and Return Process ============= 
-
-    // Push the process to the manager's queue/state
-    this.#processes.push(process)
-
-    // Return the recently pushed process
-    return process;
+    // Return the PID for external reference
+    return pid;
   }
 
+  /**
+   * Retrieves the process object for a given PID.
+   *
+   * @param {number} pid - The PID of the process to retrieve.
+   * @returns {Object|null} - The process object, or null if the PID is invalid or free.
+   */
+  getProcess(pid) {
+    return this.#processesTable.getProcess(pid);
+  }
+
+  /**
+   * Lists all active processes by printing them to the console.
+   */
   listProcesses() {
-    if (this.#processes.length > 0) {
-      this.#processes.forEach((process, index) => {
-        console.log(this.#processToString(process, index));
-      });
-    } else {
-      console.log("No Active Processes");
-    }
+    this.#processesTable.displayTable();
   }
 
-  #handleSignalFromProcess(e, process) {
-      const operation = e.data.op;
-      switch (operation) {
-        case ProcessOperations.CHANGE_STATE:
-          if ("state" in e.data) {
-            let newState = e.data.state;
-            console.log(`[PROC_MAN] Changing process state to "${newState}"`);
-            process.state = newState;
-          } else {
-            console.error(`[PROC_MAN] ERROR: State undefined for process state change: ${e.data}`);
-          }
-          break;
-      }
-  }
-  
-  #processToString(process, pid) {
-    return `Process {
-        PID: ${pid},
-        Created at: ${new Date(process.time).toISOString()},
-        Time alive: ${(Date.now() - process.time)} ms,
-        State: ${process.state},
-      }`
+  /**
+   * Handles signals (messages) from a worker. Currently interprets
+   * the 'CHANGE_STATE' operation and updates the process state in
+   * the process table.
+   *
+   * @private
+   * @param {MessageEvent} e - The message event from the Worker.
+   * @param {number} pid - The PID of the Worker that sent this message.
+   */
+  #handleSignalFromProcess(e, pid) {
+    const operation = e.data.op;
+    switch (operation) {
+      case ProcessOperations.CHANGE_STATE:
+        if ("state" in e.data) {
+          let newState = e.data.state;
+          console.log(`[PROC_MAN] Changing process state to "${newState}"`);
+          this.#processesTable.changeProcessState(pid, newState);
+        } else {
+          console.error(`[PROC_MAN] ERROR: State undefined for process state change: ${e.data}`);
+        }
+        break;
+      default:
+        console.warn(`[PROC_MAN] Unknown operation: ${operation}`);
+    }
   }
 }
 
-
-
 /**
- * Example function to demonstrate process functionality.
- * 
- * This function calculates the Fibonacci number for a given input
- * using a recursive approach with memoization. It handles a 
- * MessageChannel event object as its argument.
- * 
- * @param {MessageEvent} e - The event containing input data.
+ * Example function to demonstrate worker process functionality.
+ * This function calculates a Fibonacci number for a given numeric input.
+ * It is passed to the worker as a string, then reconstituted via `new Function()`.
+ *
+ * @param {MessageEvent} e - The message event containing the user input for Fibonacci.
  * @returns {string} A string representing the Fibonacci result.
  * @throws {Error} If the input is not a valid number.
  */
@@ -142,7 +123,7 @@ function exampleFunction(e) {
   if (isNaN(input)) {
     throw new Error("Invalid input: not a number");
   }
-  
+
   const memo = {};
 
   function helper(n) {
