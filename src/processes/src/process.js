@@ -1,5 +1,21 @@
+import { ProcessStates, ProcessOperations } from "./common.js";
+
+console.log("AHHHHHH I'M ALIVE!!!");
+
+// Change the process state
+self.changeState = (newState) => {
+  self.postMessage({ op: ProcessOperations.CHANGE_STATE, state: newState });
+}
+
+// Signify that we're initially awaiting input
+// -> Initial input from `process manager`
+self.changeState(ProcessStates.SLEEPING);
+
 // Handle the initial message to set up the worker environment
 self.onmessage = (e) => {
+  // Notify to the process manager that we're running
+  self.changeState(ProcessStates.RUNNING);
+
   // Extract the channels and serialised function
   const { stdin, stdout, stderr, func } = e.data;
 
@@ -18,4 +34,7 @@ self.onmessage = (e) => {
       stderr.postMessage(`Error: ${error.message}`);
     }
   }
+
+  // Signify that we're finished
+  self.changeState(ProcessStates.SLEEPING);
 }
