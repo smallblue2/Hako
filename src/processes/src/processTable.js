@@ -185,6 +185,5 @@ export default class ProcessTable {
         State: ${process.state},
       }`
   }
-
 }
 
