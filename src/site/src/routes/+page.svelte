@@ -10,20 +10,25 @@
   $effect(() => lib.setRootSfc(root));
 </script>
 
-<div bind:this={root}></div>
+<div id="root" bind:this={root}>
+  <button onclick={() => {
+    // lib.openWindow(Terminal, { props: { wasmModule: "/lua.mjs?url" }});
+    lib.openWindow(Terminal, { props: { wasmModule: "/main.js?url" }});
+  }}>Create Terminal</button>
+  <button onclick={() => {
+    lib.openWindow(Editor);
+  }}>Create Editor</button>
+</div>
 <div id="event-overlay"></div>
 
-<button onclick={() => {
-  lib.openWindow(Terminal, { props: { wasmModule: "/lua.mjs?url" }});
-  lib.openWindow(Terminal, { props: { wasmModule: "/lsc.js?url" }});
-}}>Create Terminal</button>
-<button onclick={() => {
-  lib.openWindow(Editor);
-}}>Create Editor</button>
 
 <TaskBar classList={["fixed-right"]}></TaskBar>
 
 <style>
+:global(html) {
+  height: 100%;
+}
+
 :global(body) {
   margin: 0;
   padding: 0;
@@ -41,6 +46,12 @@
   left: 0;
   display: none;
   z-index: 1000;
+}
+
+:global(#root) {
+  position: fixed;
+  width: 100%;
+  height: 100%;
 }
 
 :global(.fixed-right) {

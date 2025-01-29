@@ -3,7 +3,7 @@
   import * as windows from "$lib/windows.svelte.js";
   import { onMount } from "svelte";
 
-  let { id, onMaximise, onResize, onWindowFocus, data, dataRef, layerFromId, title } = $props();
+  let { id, onMaximize, onResize, data, dataRef, layerFromId, title } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -175,7 +175,7 @@
 
 <!-- svelte-ignore a11y_mouse_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={(ev) => onWindowFocus(id, ev)}
+<div id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={() => windows.focusWindow(id)}
 
   onmousemove={onMoveResizeArea}
   onmouseout={onExitResizeArea}
@@ -191,7 +191,18 @@
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M217-86v-126h526v126H217Z"/></svg>
         </button>
-        <button title="Maximize" class="btn">
+        <button title="Maximize" class="btn" onmousedown={noProp} onclick={() => {
+          // root.style.position = "fixed";
+          root.style.position = "fixed";
+          root.style.top = "0";
+          root.style.left = "0";
+          root.style.display = "grid";
+          root.style.width = "100%";
+          root.style.height = "100%";
+          // root.style.width = "100%";
+          // evWrap.style.width = "100%";
+          onMaximize();
+        }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
         </button>
         <button title="Close" class="btn" onmousedown={noProp} onclick={() => windows.closeWindow(id)}>

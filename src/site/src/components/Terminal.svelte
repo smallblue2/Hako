@@ -7,9 +7,9 @@
 
   import { FitAddon } from "@xterm/addon-fit";
 
-  import { openpty } from "xterm-pty";
+  import { openpty } from "$lib/vendor/xterm-pty/out";
 
-  let { id, onWindowFocus, wasmModule, layerFromId } = $props();
+  let { id, wasmModule, layerFromId } = $props();
 
   let min = 100;
 
@@ -74,21 +74,13 @@
     return true; // you can return false to say you can't resize
   }
 
-  function onMaximise() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    root.style.width = width.toString() + "px";
-    root.style.height = height.toString() + "px";
-    fitAddon.fit();
-  }
-
   let master;
   let slave;
 
   $effect(async () => {
     let { default: initEmscripten } = await import(wasmModule);
 
-    terminal = new Terminal();
+    terminal = new Terminal({ fontFamily: "JetBrainsMono-Regular" });
     terminal.open(root);
 
     const pty = openpty();
@@ -107,7 +99,11 @@
   })
 </script>
 
-<Window title="Terminal" {layerFromId} {id} {onWindowFocus} {onMaximise} {onResize} dataRef={root}>
+<Window title="Terminal" {layerFromId} {id} onMaximize={() => {
+  // root.style.width = "100%";
+  // root.style.height = "100%";
+  // fitAddon.fit();
+}} {onResize} dataRef={root}>
   {#snippet data()}
     <div bind:this={root} class="contents"></div>
   {/snippet}
@@ -118,6 +114,7 @@
   background-color: black;
   width: 320px;
   height: 260px;
+  box-sizing: border-box;
 }
 
 :global(.xterm-viewport) {

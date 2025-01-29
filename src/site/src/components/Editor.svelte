@@ -6,7 +6,7 @@
   import { EditorState } from "@codemirror/state";
   import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 
-  let { id, onWindowFocus, layerFromId } = $props();
+  let { id, maximizeArea, layerFromId } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -85,7 +85,7 @@
   }
 </script>
 
-<Window title="Editor" {layerFromId} {id} {onWindowFocus} {onResize} dataRef={root}>
+<Window title="Editor" {layerFromId} {id} {onResize} dataRef={root}>
   {#snippet data()}
     <div bind:this={root} class="editor">
     </div>

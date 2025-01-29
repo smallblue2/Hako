@@ -3,7 +3,7 @@
   let classes = classList.join(" ");
 
   import { _windows, getWindowByID } from "$lib/windows.svelte.js";
-  import PlaceHolderIcon from "../../static/placeholder.svg?raw";
+  import PlaceHolderIcon from "/src/placeholder.svg?raw";
 </script>
 
 <div class={`${classes} wrapper`}>

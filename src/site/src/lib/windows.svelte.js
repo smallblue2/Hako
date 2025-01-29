@@ -13,9 +13,7 @@ let rootSfc = null
 
 let _IDCounter = 0;
 function _newWID() {
-  const r = _IDCounter;
-  _IDCounter++;
-  return r;
+  return _IDCounter++;
 }
 
 export function setRootSfc(el) {
@@ -27,11 +25,8 @@ export function openWindow(component, options) {
   if (options === undefined || options === null) {
     options = { props: {} };
   }
-  const port = document.createElement("div");
-  rootSfc.appendChild(port);
 
-  options.target = port;
-  options.props.onWindowFocus = _onWindowFocus;
+  options.target = rootSfc;
 
   const id = _newWID();
   options.props.id = id;
@@ -40,14 +35,15 @@ export function openWindow(component, options) {
   _layerFromId[id] = _maxLayer;
   options.props.layerFromId = _layerFromId;
 
-  _windows.push({ id: id, parent: port, component: mount(component, options) });
+  // Object.freeze is used here to prevent some odd behaviour
+  // with svelte mangling the component, making it unmountable
+  _windows.push(Object.freeze({ id: id, component: mount(component, options)}));
 }
 
 export function closeWindow(id) {
   for (let i = 0; i < _windows.length; i++) {
     if (_windows[i].id == id) {
-      unmount(_windows[i].component);
-      _windows[i].parent.remove();
+      unmount(_windows[i].component, { outro: false });
       _windows.splice(i, 1);
       return;
     }
@@ -62,7 +58,7 @@ export function getWindowByID(id) {
   }
 }
 
-function _onWindowFocus(id, ev) {
+export function focusWindow(id) {
   let maxz = Math.max(..._layerFromId);
   for (let i = 0; i < _layerFromId.length; i++) {
     _layerFromId[i] = Math.max(0, _layerFromId[i] - 1);
