@@ -1,6 +1,6 @@
 import { mount, unmount } from "svelte";
 
-let _maxLayer = 1; // initially 1 as we want windows at higher z than default html elements
+let _topLayer = 2; // initially 1 as we want windows at higher z than default html elements
 
 /** @type {number[]} */
 const _layerFromId = $state([]);
@@ -31,8 +31,8 @@ export function openWindow(component, options) {
   const id = _newWID();
   options.props.id = id;
 
-  _maxLayer++;
-  _layerFromId[id] = _maxLayer;
+  _topLayer++;
+  _layerFromId[id] = _topLayer;
   options.props.layerFromId = _layerFromId;
 
   // Object.freeze is used here to prevent some odd behaviour

@@ -38,7 +38,6 @@
 }
 
 :global(#event-overlay) {
-  /* background: rgba(0,0,0,0.7); */
   width: 100%;
   height: 100%;
   position: absolute;
@@ -52,6 +51,7 @@
   position: fixed;
   width: 100%;
   height: 100%;
+  z-index: -2;
 }
 
 :global(.fixed-right) {

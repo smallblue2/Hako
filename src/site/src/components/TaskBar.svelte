@@ -2,7 +2,7 @@
   let { classList } = $props();
   let classes = classList.join(" ");
 
-  import { _windows, getWindowByID } from "$lib/windows.svelte.js";
+  import { _windows } from "$lib/windows.svelte.js";
   import PlaceHolderIcon from "/src/placeholder.svg?raw";
 </script>
 
@@ -10,7 +10,7 @@
   <div class="tasks">
     {#each _windows as win}
       <button class="placeholder" onclick={() => {
-        const el = document.getElementById(`window-${win.id}`);
+        const el = document.getElementById(`window-${win.id}`)
         el.style.display = "block";
       }}>
         {@html PlaceHolderIcon}
@@ -24,7 +24,6 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    z-index: 999;
   }
 
   .tasks {

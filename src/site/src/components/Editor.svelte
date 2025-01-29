@@ -6,13 +6,24 @@
   import { EditorState } from "@codemirror/state";
   import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 
-  let { id, maximizeArea, layerFromId } = $props();
+  let { id, layerFromId } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
 
   let width = 320;
   let height = 260;
+
+  let maximized = $state(false);
+
+  $effect(() => {
+    if (maximized) {
+      root.classList.add("window-root-maximized");
+    } else {
+      root.classList.remove("window-root-maximized");
+    }
+  });
+
 
   $effect(() => {
     let startState = EditorState.create({
@@ -85,7 +96,7 @@
   }
 </script>
 
-<Window title="Editor" {layerFromId} {id} {onResize} dataRef={root}>
+<Window title="Editor" bind:maximized {layerFromId} {id} {onResize} dataRef={root}>
   {#snippet data()}
     <div bind:this={root} class="editor">
     </div>

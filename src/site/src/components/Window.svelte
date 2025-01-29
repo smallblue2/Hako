@@ -3,7 +3,7 @@
   import * as windows from "$lib/windows.svelte.js";
   import { onMount } from "svelte";
 
-  let { id, onMaximize, onResize, data, dataRef, layerFromId, title } = $props();
+  let { id, maximized = $bindable(), onResize, data, dataRef, layerFromId, title } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -11,7 +11,8 @@
   /** @type {HTMLDivElement | undefined} */
   let evWrap = $state();
 
-  let visibleAreaOff = undefined; // The size of the resize areas margin
+  /** @type {number} */
+  let visibleAreaOff = 0; // The size of the resize areas margin
 
   let min = 100;
   let resizing = false;
@@ -28,11 +29,13 @@
     root.style.left = Math.max(-visibleAreaOff, rect.left + ev.movementX).toString() + "px";
   }
 
-  function onHoldDecorations(ev) {
-    document.addEventListener("mousemove", onDragWindow);
-    document.addEventListener("mouseup", onReleaseDecorations);
-    let overlay = document.getElementById("event-overlay");
-    overlay.style.display = "block";
+  function onHoldDecorations() {
+    if (!maximized) {
+      document.addEventListener("mousemove", onDragWindow);
+      document.addEventListener("mouseup", onReleaseDecorations);
+      let overlay = document.getElementById("event-overlay");
+      overlay.style.display = "block";
+    }
   }
 
   function onReleaseDecorations() {
@@ -114,7 +117,7 @@
    * @param {MouseEvent} ev
    */
   async function onHoldResizeArea(ev) {
-    if (ev.target === root) { // make sure hovering child element does not trigger this
+    if (ev.target === root && !maximized) { // make sure hovering child element does not trigger this
       let { offsetX, offsetY } = ev;
       globalSect = getSection(offsetX, offsetY, root.clientWidth, root.clientHeight, 10);
 
@@ -192,16 +195,8 @@
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M217-86v-126h526v126H217Z"/></svg>
         </button>
         <button title="Maximize" class="btn" onmousedown={noProp} onclick={() => {
-          // root.style.position = "fixed";
-          root.style.position = "fixed";
-          root.style.top = "0";
-          root.style.left = "0";
-          root.style.display = "grid";
-          root.style.width = "100%";
-          root.style.height = "100%";
-          // root.style.width = "100%";
-          // evWrap.style.width = "100%";
-          onMaximize();
+          root.classList.toggle("window-maximized");
+          maximized ^= true;
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
         </button>
@@ -223,10 +218,22 @@
   border-radius: 0.3rem;
 }
 
+:global(.window-maximized) {
+  display: grid;
+  position: fixed;
+  top: 0px !important;
+  left: 0px !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .ev-wrapper {
+  display: flex;
+  flex-direction: column;
   margin: var(--resize-area);
   box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 50px;
   outline: var(--window-outline) solid var(--window-outline-area);
+  overflow: hidden;
 }
 
 .decorations {

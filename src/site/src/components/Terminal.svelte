@@ -8,6 +8,7 @@
   import { FitAddon } from "@xterm/addon-fit";
 
   import { openpty } from "$lib/vendor/xterm-pty/out";
+  import { onMount } from "svelte";
 
   let { id, wasmModule, layerFromId } = $props();
 
@@ -77,6 +78,19 @@
   let master;
   let slave;
 
+  let maximized = $state(false);
+
+  $effect(() => {
+    if (maximized) {
+      root.classList.add("window-root-maximized");
+    } else {
+      root.classList.remove("window-root-maximized");
+    }
+    if (fitAddon !== undefined) {
+      fitAddon.fit();
+    }
+  });
+
   $effect(async () => {
     let { default: initEmscripten } = await import(wasmModule);
 
@@ -97,13 +111,17 @@
       pty: slave
     });
   })
+
+  onMount(() => {
+    window.addEventListener("resize", () => {
+      if (maximized) {
+        fitAddon.fit();
+      }
+    })
+  })
 </script>
 
-<Window title="Terminal" {layerFromId} {id} onMaximize={() => {
-  // root.style.width = "100%";
-  // root.style.height = "100%";
-  // fitAddon.fit();
-}} {onResize} dataRef={root}>
+<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root}>
   {#snippet data()}
     <div bind:this={root} class="contents"></div>
   {/snippet}
@@ -114,7 +132,11 @@
   background-color: black;
   width: 320px;
   height: 260px;
-  box-sizing: border-box;
+}
+
+:global(.window-root-maximized) {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 :global(.xterm-viewport) {
