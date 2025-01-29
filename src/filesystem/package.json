@@ -14,8 +14,8 @@
     "start-server": "http-server . -p 8080",
     "test-full": "npm-run-all --parallel start-server test-only",
     "test-only": "mocha tests/*.test.js",
-    "format": "eslint -c ../eslint.config.mjs --fix api/*js tests/*js",
-    "lint": "eslint -c ../eslint.config.mjs api/*js tests/*js"
+    "format": "eslint --fix api/*js tests/*js",
+    "lint": "eslint api/*js tests/*js"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
