@@ -1,0 +1,84 @@
+@layer base {
+  @font-face {
+    font-family: "JetBrainsMono-Regular";
+    src: url("/font/JetBrainsMono-Regular.woff2") format("woff2");
+  }
+}
+
+html {
+  --resize-area: 0.5rem;
+  --window-outline-area: 1px;
+
+  /* --resize-border: rgba(226, 232, 240, 1); /* tailwind slate 200 */
+  --resize-border: color-mix(in srgb, var(--md-sys-color-outline) 30%, transparent);
+  --resize-gradient: linear-gradient(var(--resize-border), var(--resize-border));
+
+  --window-outline: var(--md-sys-color-outline);
+  --window-decorations: var(--md-sys-color-surface);
+
+  --window-btn: var(--md-sys-color-surface);
+  --window-btn-hover: var(--md-sys-color-surface-dim);
+  --window-btn-fill: var(--md-sys-color-inverse-surface);
+
+  --window-title-fg: var(--md-sys-color-on-surface);
+
+  background-image: url("/background.svg?url");
+  background-repeat: no-repeat;
+  background-size: 100%;
+}
+
+.resize-border-top-left {
+  background: var(--resize-gradient), var(--resize-gradient);
+  background-size: calc(100% - var(--resize-area) + var(--window-outline-area)) var(--resize-area), var(--resize-area) calc(100% - var(--resize-area) + var(--window-outline-area));
+  background-position: top left, top left;
+  background-repeat: no-repeat;
+}
+
+.resize-border-top {
+  background: var(--resize-gradient);
+  background-size: calc(100% - 2 * var(--resize-area) + 2 * var(--window-outline-area)) var(--resize-area);
+  background-position: top;
+  background-repeat: no-repeat;
+}
+
+.resize-border-top-right {
+  background: var(--resize-gradient), var(--resize-gradient);
+  background-size: calc(100% - var(--resize-area) + var(--window-outline-area)) var(--resize-area), var(--resize-area) calc(100% - var(--resize-area) + var(--window-outline-area));
+  background-position: top right, top right;
+  background-repeat: no-repeat;
+}
+
+.resize-border-right {
+  background: var(--resize-gradient);
+  background-size: var(--resize-area) calc(100% - 2 * var(--resize-area) + 2 * var(--window-outline-area));
+  background-position: right;
+  background-repeat: no-repeat;
+}
+
+.resize-border-bottom-right {
+  background: var(--resize-gradient), var(--resize-gradient);
+  background-size: calc(100% - var(--resize-area) + var(--window-outline-area)) var(--resize-area), var(--resize-area) calc(100% - var(--resize-area) + var(--window-outline-area));
+  background-position: bottom right, bottom right;
+  background-repeat: no-repeat;
+}
+
+.resize-border-bottom {
+  background: var(--resize-gradient);
+  background-size: calc(100% - 2 * var(--resize-area) + 2 * var(--window-outline-area)) var(--resize-area);
+  background-position: bottom;
+  background-repeat: no-repeat;
+}
+
+.resize-border-bottom-left {
+  background: var(--resize-gradient), var(--resize-gradient);
+  background-size: calc(100% - var(--resize-area) + var(--window-outline-area)) var(--resize-area), var(--resize-area) calc(100% - var(--resize-area) + var(--window-outline-area));
+  background-position: bottom left, bottom left;
+  background-repeat: no-repeat;
+}
+
+.resize-border-left {
+  background: var(--resize-gradient);
+  background-size: var(--resize-area) calc(100% - 2 * var(--resize-area) + 2 * var(--window-outline-area));
+  background-position: left;
+  background-repeat: no-repeat;
+}
