@@ -10,9 +10,9 @@ stages:
 lint_filesystem_js:
   stage: lint
   script:
-    - cd src
+    - cd src/filesystem
     - npm install
-    - npm run lint-fs
+    - npm run lint
 
 lint_filesystem_c:
   stage: lint
@@ -24,7 +24,7 @@ lint_filesystem_c:
 lint_tests:
   stage: lint
   script:
-    - cd src
+    - cd src/filesystem
     - npm install
     - npm run lint-tests
   
@@ -67,9 +67,9 @@ test_filesystem:
     - cat /etc/os-release
     - apt-get update
     - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1
-    - cd src
+    - cd src/filesystem
     - npm install
     - npm run start-server &
     # Wait for the server to start
     - until curl -s http://localhost:8080 > /dev/null; do echo "Waiting for server..."; sleep 1; done
-    - npm run filesystem-test
+    - npm run test

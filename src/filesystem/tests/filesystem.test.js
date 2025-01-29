@@ -1,12 +1,12 @@
-const puppeteer = require('puppeteer');
-const assert = require('assert');
+import puppeteer from 'puppeteer';
+import assert from 'node:assert';
 
 // Function asynchronously blocks on a function that returns a condition (conditionFn)
 // or until the timeout is up.
 //
 // This is for waiting on a global variable to be set to true, suggesting we can begin
 // testing the filesystem.
-async function waitForCondition(conditionFn, interval = 100, timeout = 5000) {
+async function waitForCondition(conditionFn, interval = 5, timeout = 10000) {
   const start = Date.now();
   return new Promise((resolve, reject) => {
     const timer = setInterval(async () => {

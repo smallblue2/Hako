@@ -1,0 +1,29 @@
+{
+  "name": "filesystem",
+  "version": "0.1.0",
+  "description": "A Linux influenced persistent filesystem in the browser powered by IndexedDB",
+  "keywords": [
+    "filesystem",
+    "indexeddb"
+  ],
+  "license": "ISC",
+  "author": "niall.ryan62@mail.dcu.ie",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start-server": "http-server . -p 8080",
+    "test-full": "npm-run-all --parallel start-server test-only",
+    "test-only": "mocha tests/*.test.js",
+    "format": "eslint -c ../eslint.config.mjs --fix api/*js tests/*js",
+    "lint": "eslint -c ../eslint.config.mjs api/*js tests/*js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "globals": "^15.14.0",
+    "http-server": "^14.1.1",
+    "mocha": "^11.0.1",
+    "npm-run-all": "^4.1.5",
+    "puppeteer": "^24.1.0"
+  }
+}

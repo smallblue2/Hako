@@ -1,0 +1,24 @@
+{
+  "name": "processes",
+  "version": "0.1.0",
+  "description": "A linux inspired process proxy system wrapped over WebWorkers",
+  "keywords": [
+    "process",
+    "webworker"
+  ],
+  "license": "ISC",
+  "author": "niall.ryan62@mail.dcu.ie",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-server": "http-server . -p 8081",
+    "format": "eslint -c ../eslint.config.mjs --fix src/*js",
+    "lint": "eslint -c ../eslint.config.mjs src/*js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "http-server": "^14.1.1"
+  }
+}
