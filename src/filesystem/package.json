@@ -12,8 +12,8 @@
   "main": "index.js",
   "scripts": {
     "start-server": "http-server . -p 8080",
-    "test-full": "npm-run-all --parallel start-server test-only",
-    "test-only": "mocha tests/*.test.js",
+    "test-with-server": "npm-run-all --parallel start-server test-only",
+    "test": "mocha tests/*.test.js",
     "format": "eslint --fix api/*js tests/*js",
     "lint": "eslint api/*js ",
     "lint-tests": "eslint tests/*js"
