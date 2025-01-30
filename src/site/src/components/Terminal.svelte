@@ -7,7 +7,7 @@
 
   import { FitAddon } from "@xterm/addon-fit";
 
-  import { openpty } from "$lib/vendor/xterm-pty/out";
+  import { openpty } from "xterm-pty";
   import { onMount } from "svelte";
 
   let { id, wasmModule, layerFromId } = $props();

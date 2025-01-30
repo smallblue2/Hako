@@ -1,3 +1,0 @@
-[submodule "src/site/src/lib/vendor/xterm-pty"]
-	path = src/site/src/lib/vendor/xterm-pty
-	url = https://github.com/leath-dub/xterm-pty
