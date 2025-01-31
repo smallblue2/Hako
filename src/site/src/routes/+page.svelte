@@ -18,11 +18,9 @@
   <button onclick={() => {
     lib.openWindow(Editor);
   }}>Create Editor</button>
+  <TaskBar classList={["fixed-right"]}></TaskBar>
 </div>
 <div id="event-overlay"></div>
-
-
-<TaskBar classList={["fixed-right"]}></TaskBar>
 
 <style>
 :global(html) {
