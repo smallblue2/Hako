@@ -1,0 +1,32 @@
+FROM docker.io/emscripten/emsdk
+
+WORKDIR /
+
+# Update repositories
+RUN apt-get update
+RUN apt-get -y full-upgrade
+
+RUN apt-get -y install build-essential meson ninja-build nginx
+RUN sh -c 'curl -fsSL https://deno.land/install.sh | sh'
+ENV PATH="${PATH}:/root/.deno/bin/"
+
+RUN mkdir build
+COPY runtime build/runtime
+COPY site build/site
+COPY nginx.conf /etc/nginx/sites-available/hako
+RUN ln -sf /etc/nginx/sites-available/hako /etc/nginx/sites-enabled/default
+
+# Build wasm
+WORKDIR build/runtime 
+RUN meson setup --cross-file emscripten.ini build
+RUN ninja -C build
+
+RUN cp build/main.js ../site/static
+RUN cp build/main.wasm ../site/static
+WORKDIR ../site
+RUN deno install
+RUN deno run build
+RUN cp -r build/* /var/www/html
+
+EXPOSE 80/tcp
+ENTRYPOINT ["bash"]
