@@ -29,4 +29,4 @@ RUN deno run build
 RUN cp -r build/* /var/www/html
 
 EXPOSE 80/tcp
-ENTRYPOINT ["bash"]
+CMD ["nginx", "-g", "daemon off;"]
