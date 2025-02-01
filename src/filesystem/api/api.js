@@ -1,9 +1,30 @@
-import { O_CREAT, O_RDONLY, O_WRONLY, errnoToString } from './definitions.js';
+import { O_CREAT, O_RDONLY, O_WRONLY, O_RDWR, errnoToString } from './definitions.js';
 
 export const Filesystem = {};
 
 export function initialiseAPI(Module) {
   console.log("Initialising filesystem API");
+
+  function callWithErrno(fnName, returnType, argTypes = [], args = []) {
+    let sp = Module.stackSave();
+
+    let errorPointer = Module.stackAlloc(4);
+
+    let returnVal = Module.ccall(
+      fnName,
+      returnType,
+      [...argTypes, "number"],
+      [...args, errorPointer]
+    );
+
+    console.log(`${fnName} = ${returnVal}`);
+
+    let errno = Module.getValue(errorPointer, 'i32');
+
+    Module.stackRestore(sp);
+
+    return { returnVal, errno };
+  }
 
   Filesystem._UTF8Encoder = new TextEncoder();
   Filesystem._UTF8Decoder = new TextDecoder("utf-8");
@@ -20,6 +41,7 @@ export function initialiseAPI(Module) {
     [], // Argument types
   )
   Filesystem.open = (path, flags) => {
+
     let errorStr = null;
 
     // Flags can be any combination of 'r, w or c' for READ, WRITE and CREATE
@@ -30,69 +52,122 @@ export function initialiseAPI(Module) {
     let read = flags.includes("r");
     let write = flags.includes("w");
     let create = flags.includes("c");
-    if (!((read || write || create) & isValid)) {
+    if (!((read || write || create) && isValid)) {
       errorStr = "Invalid flags provided"; // Custom API error
-      return { fd: -1, error: errorStr };
+      return { error: errorStr, fd: -1, };
     }
 
     // Construct C flag
-    let cFlag;
-    if (read) cFlag = O_RDONLY;
-    if (write) cFlag = cFlag | O_WRONLY;
-    if (create) cFlag = cFlag | O_CREAT;
+    let cFlag = 0;
+    if (read && write) cFlag |= O_RDWR;
+    else if (read) cFlag |= O_RDONLY;
+    else if (write) cFlag |= O_WRONLY;
 
-    // Save current stack pointer
-    const sp = Module.stackSave();
+    if (create) cFlag |= O_CREAT;
 
-    // Allocate memory on heap for Error pointer (4 bytes for pointer)
-    const errorPointer = Module.stackAlloc(4);
+    console.log(`Flags: ${cFlag.toString(8)}`)
 
-    console.log(`Calling : (${path}, ${cFlag}, ${errorPointer})!`);
-    let fd = Module.ccall(
+    let { returnVal: fd, errno } = callWithErrno(
       "file__open",
-      "number", // file descriptor
-      ["string", "number", "number"],
-      [path, cFlag, errorPointer]
-    );
-    console.log("Finished!");
-
-    // Get value at pointer
-    const errno = Module.getValue(errorPointer, "i32");
-
-    // Load previous stack state, cleanup
-    Module.stackRestore(sp);
+      "number",
+      ["string", "number"],
+      [path, cFlag] // errno Will be attached
+    )
 
     // Extract error string from errno
     if (errno != 0) {
       errorStr = errnoToString(errno);
     }
 
-    return { fd, error: errorStr };
+    return { error: errorStr, fd };
   }
   Filesystem.close = (fd) => {
     let errorStr = null;
 
-    let sp = Module.stackSave();
-
-    // Allocate memory on heap for Error pointer (4 bytes for pointer)
-    const errorPointer = Module.stackAlloc(4);
-
-    Module.ccall(
+    let { _, errno } = callWithErrno(
       "file__close",
       null,
-      ["number", "number"],
-      [fd, errorPointer]
+      ["number"],
+      [fd]
     );
 
-    // cleanup
-    Module.stackRestore(sp);
-
-    let errno = Module.getValue(errorPointer, "i32");
     if (errno != 0) {
       errorStr = errnoToString(errno);
     }
 
     return { error: errorStr };
   }
-  console.log("Finished initialising filesystem API")
+  Filesystem.write = (fd, content) => {
+    let errorStr = null;
+
+    let { _, errno } = callWithErrno(
+      "file__write",
+      null,
+      ["number", "string"],
+      [fd, content]
+    );
+
+    if (errno != 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    return { error: errorStr };
+  }
+  Filesystem.read = (fd, amt) => {
+    let errorStr = null;
+
+    let sp = Module.stackSave();
+
+    let readResultPtr = Module.stackAlloc(8);
+
+    let { _, errno } = callWithErrno(
+      "file__read",
+      null,
+      ["number", "number", "number"],
+      [fd, amt, readResultPtr]
+    );
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    let dataPtr = Module.getValue(readResultPtr, 'i32');
+    let size = Module.getValue(readResultPtr + 4, 'i32');
+
+
+    try {
+      // If it suceeded its read
+      if (size >= 0) {
+        const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, size);
+        const copy = new Uint8Array(dataView);
+        return {
+          error: errorStr,
+          data: Filesystem._UTF8Decoder.decode(copy),
+          size: size
+        }
+      } else {
+        return {
+          error: errorStr
+        }
+      }
+    } finally {
+      // Free the string buffer from C (if it isn't null)
+      if (dataPtr) {
+        Module._free(dataPtr);
+      }
+      Module.stackRestore(sp);
+    }
+  }
+  Filesystem.test = () => {
+    let { error: err0, fd: fd0 } = Filesystem.open("/persistent/test.txt", "cw");
+    console.log(`err0: ${err0}, fd0: ${fd0}`);
+    Filesystem.write(fd0, "PLEASE");
+    Filesystem.close(fd0);
+    let { error: err1, fd: fd1 } = Filesystem.open("/persistent/test.txt", "rw");
+    console.log(`err1: ${err1}, fd1: ${fd1}`);
+    console.log(Filesystem.read(fd1, 6));
+    Filesystem.close(fd1);
+  }
+  console.log("Finished initialising filesystem API");
+
 };

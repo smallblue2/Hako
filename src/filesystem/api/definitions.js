@@ -39,8 +39,14 @@ export const F_OK	= 0;		/* Test for existence.  */
 
 export function errnoToString(errno) {
    switch (errno) {
+      case 2:
+         return "No such file or directory!";
+      case 8:
+         return "Exec format error!";
+      case 31:
+         return "Too many links";
       case 44:
-         return "File doesn't exist!";
+         return "Channel number out of range!";
       default:
          return `Unkown error: ${errno}`;
    }

@@ -1,4 +1,5 @@
 #include "main.h"
+#include <emscripten.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -7,25 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <emscripten.h>
-
-int Entry__name() { return offsetof(Entry, name); }
-int Entry__len() { return offsetof(Entry, len); }
-int Entry__dirp() { return offsetof(Entry, dirp); }
-
-int Read_Result__data() { return offsetof(Read_Result, data); }
-int Read_Result__size() { return offsetof(Read_Result, size); }
-
-// Creates a null-terminated string
-char *stoz(String str) { // Has to be freed!
-  int len = strlen(str.data);
-  char *res = calloc(len + 1, sizeof(char));
-  if (res == NULL) {
-    return NULL;
-  }
-  memcpy(res, str.data, len);
-  return res;
-}
 
 // Explicitly forces a filesystem synchronisation.
 // Likely not needed if the IDBFS filesystem is mounted with `autoPersist`
@@ -82,7 +64,8 @@ void file__initialiseFS() {
   return;
 }
 
-int file__open(char *path, int flags, Error *err) {
+int file__open(const char *path, int flags, Error *err) {
+  fprintf(stdout, "Flags: %o\n", flags);
   int fd = open(path, flags);
 
   if (fd < 0) {
@@ -104,57 +87,46 @@ void file__close(int fd, Error *err) {
   return;
 }
 
-void file__write(int fd, char *content, Error *err) {
+void file__write(int fd, const char *content, Error *err) {
   int contentLength = strlen(content);
   int written = write(fd, content, contentLength);
   if (written < 0) {
     *err = errno;
+    return;
   }
   *err = 0;
   return;
 }
 
 // Reads up to `amt`, returning whatever it was able to read
-String file__read(int fd, int amt, Error *err) {
-  String out;
-  out.data = NULL;
-  out.len = -1;
+void file__read(int fd, int amt, ReadResult *rr, Error *err) {
+  rr->size = -1;
+  rr->data = NULL;
 
   char *buf = calloc(amt, sizeof(char));
   if (!buf) {
     *err = errno;
-    return out;
+    return;
   }
 
   int amount_read = read(fd, buf, amt);
   if (amount_read < 0) {
     *err = errno;
-    return out;
+    return;
   }
 
-  out.data = malloc(amount_read);
-  if (!out.data) {
-    *err = errno;
-    return out;
-  }
-
-  // Copy buffer to our String struct
-  memcpy(out.data, buf, amt);
-  // Free our buffer
-  free(buf);
-
-  // Set length of output string
-  out.len = amount_read;
+  // WARNING: MUST free in WASM!
+  rr->data = buf;
+  rr->size = amount_read;
 
   *err = 0;
-  return out;
+  return;
 }
 
 // Reads the entirety of a files contents
-String file__read_all(int fd, Error *err) {
-  String out;
-  out.data = NULL;
-  out.len = -1;
+void file__read_all(int fd, ReadResult *rr, Error *err) {
+  rr->data = NULL;
+  rr->size = -1;
 
   ssize_t buf_size = BUFSIZ;
   // Allocate buffer on heap
@@ -186,7 +158,7 @@ String file__read_all(int fd, Error *err) {
         // realloc failed
         *err = errno;
         free(buf);
-        return out;
+        return;
       }
       // Save the resized buffer as our new buffer
       buf = blk;
@@ -203,30 +175,30 @@ String file__read_all(int fd, Error *err) {
     // If it is not EOF
     *err = errno;
     free(buf);
-    return out;
+    return;
   }
 
   // NOTE: could technically reallocate here down to the exact size needed
   // but that can also be done by the caller if it is an issue
 
   // Calculate the total number of bytes read
-  out.len = (ptr - buf);
+  rr->size = (ptr - buf);
 
-  // Allocate enough space for the files contents into our string struct
-  out.data = malloc(out.len * sizeof(char));
-  if (!out.data) {
+  // Allocate enough space for the files contents into our ReadResult struct
+  rr->data = malloc(rr->size * sizeof(char));
+  if (!rr->data) {
     *err = errno;
     free(buf);
-    return out;
+    return;
   }
 
   // copy the buffer into our String output struct
-  memcpy(out.data, buf, out.len);
+  memcpy(rr->data, buf, rr->size);
 
   // free the buffer
   free(buf);
 
   // No error
   *err = 0;
-  return out;
+  return;
 }
