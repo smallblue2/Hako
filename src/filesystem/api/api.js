@@ -1,257 +1,98 @@
+import { O_CREAT, O_RDONLY, O_WRONLY, errnoToString } from './definitions.js';
+
 export const Filesystem = {};
 
 export function initialiseAPI(Module) {
-  console.log("Initialising API functions");
-
-  let binaryReturnWrap = (fn) => {
-    try {
-      fn()
-      return 0;
-    } catch (err) {
-      console.error(err);
-      return -1;
-    }
-  }
+  console.log("Initialising filesystem API");
 
   Filesystem._UTF8Encoder = new TextEncoder();
   Filesystem._UTF8Decoder = new TextDecoder("utf-8");
 
   // Cwraps [Function Signatures]
   Filesystem.initialiseFS = Module.cwrap(
-    'initialiseFS', // Function name
-    'number', // Return type
+    'file__initialiseFS', // Function name
+    null, // Return type
     [], // Argument types
   )
   Filesystem.sync = Module.cwrap(
-    'syncFS', // Function name
-    'number', // Return type
+    'file__syncFS', // Function name
+    null, // Return type
     [], // Argument types
   )
-  Filesystem.open = (path, flags, mode) => {
-    try {
-      let res = Module.FS.open(path, flags, mode);
-      if (res.error) {
-        console.error("Failed to open file");
-        return -1;
-      }
-      return res.fd;
-    } catch (err) {
-      console.error(err)
-      return -1;
+  Filesystem.open = (path, flags) => {
+    let errorStr = null;
+
+    // Flags can be any combination of 'r, w or c' for READ, WRITE and CREATE
+    const flagsRegex = /^(?!.*([rwc]).*\1)[rwc]{1,3}$/;
+
+    // Validate flags
+    let isValid = flagsRegex.test(flags);
+    let read = flags.includes("r");
+    let write = flags.includes("w");
+    let create = flags.includes("c");
+    if (!((read || write || create) & isValid)) {
+      errorStr = "Invalid flags provided"; // Custom API error
+      return { fd: -1, error: errorStr };
     }
-  }
-  Filesystem.close = Module.cwrap(
-    'fs_close', // Function name
-    'number', // Return type
-    ['number'], // Argument types
-  )
-  Filesystem.write = function(fd, content) {
 
-    const encodedContent = Filesystem._UTF8Encoder.encode(content);
+    // Construct C flag
+    let cFlag;
+    if (read) cFlag = O_RDONLY;
+    if (write) cFlag = cFlag | O_WRONLY;
+    if (create) cFlag = cFlag | O_CREAT;
 
-    return Module.ccall(
-      'fs_write', // Function name
-      'number', // Return type
-      ['number', 'array', 'number'], // Argument types
-      [fd, encodedContent, encodedContent.length]
-    );
-  }
-  Filesystem.lseek = Module.cwrap(
-    'fs_lseek', // Function name
-    'number', // Return type
-    ['number', 'number', 'number'], // Argument types
-  )
-  Filesystem.read = function(fd, amt) {
-    const sp = Module.stackSave();
-    const resultStructPtr = Module.stackAlloc(8);
-
-    // Declare "dataPtr" & "size" so they're always in scope
-    let dataPtr = 0;
-    let size = 0;
-
-    try {
-      Module.ccall('fs_read', null, ['number', 'number', 'number'], [fd, resultStructPtr, amt]);
-
-      dataPtr = Module.getValue(resultStructPtr, 'i32');
-      size = Module.getValue(resultStructPtr + 4, 'i32');
-
-      if (size >= 0) {
-        const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, size);
-        const copy = new Uint8Array(dataView);
-        return { data: Filesystem._UTF8Decoder.decode(copy), size: size };
-      } else {
-        console.error("read returned error:", size);
-        return null;
-      }
-
-    } finally {
-      // Only free if dataPtr != 0 (or if size > 0, if that is your logic):
-      if (dataPtr) {
-        Module._free(dataPtr);
-      }
-      Module.stackRestore(sp);
-    }
-  };
-
-  Filesystem.unlink = (path) => binaryReturnWrap(() => Module.FS.unlink(path));
-  Filesystem.rename = (oldPath, newPath) => binaryReturnWrap(() => Module.FS.rename(oldPath, newPath));
-  Filesystem.access = Module.cwrap(
-    "fs_access", // Function name
-    "number", // Return type
-    ["string", "number"], // Argument types
-  )
-  Filesystem.stat = function(name) {
-
-    // Save the current stack pointer
+    // Save current stack pointer
     const sp = Module.stackSave();
 
-    // Allocate memory on heap for StatResult struct
-    const statResultPtr = Module._malloc(56); // 48 bytes
-    if (!statResultPtr) {
-      console.error("Faild to stat node!");
-      return;
-    }
+    // Allocate memory on heap for Error pointer (4 bytes for pointer)
+    const errorPointer = Module.stackAlloc(4);
 
-    // Call the wasm procedure
-    let exitCode = Module.ccall(
-      "fs_stat",
-      "number",
-      ["string", "number"],
-      [name, statResultPtr],
+    console.log(`Calling : (${path}, ${cFlag}, ${errorPointer})!`);
+    let fd = Module.ccall(
+      "file__open",
+      "number", // file descriptor
+      ["string", "number", "number"],
+      [path, cFlag, errorPointer]
     );
+    console.log("Finished!");
 
-    if (exitCode < 0) {
-      console.error("Couldn't stat file");
-      return null;
-    }
+    // Get value at pointer
+    const errno = Module.getValue(errorPointer, "i32");
 
-    // Extract fields from StatResult struct
-    const size = Module.getValue(statResultPtr, "i32");
-    const blocks = Module.getValue(statResultPtr + 4, "i32");
-    const blocksize = Module.getValue(statResultPtr + 8, "i32");
-    const ino = Module.getValue(statResultPtr + 12, "i32");
-    const nlink = Module.getValue(statResultPtr + 16, "i32");
-    const mode = Module.getValue(statResultPtr + 20, "i32");
-    const uid = Module.getValue(statResultPtr + 24, "i32");
-    const gid = Module.getValue(statResultPtr + 28, "i32");
-
-    const atimeSec = Module.getValue(statResultPtr + 32, "i32");
-    const atimeNSec = Module.getValue(statResultPtr + 36, "i32");
-    const mtimeSec = Module.getValue(statResultPtr + 40, "i32");
-    const mtimeNSec = Module.getValue(statResultPtr + 44, "i32");
-    const ctimeSec = Module.getValue(statResultPtr + 48, "i32");
-    const ctimeNSec = Module.getValue(statResultPtr + 52, "i32");
-
-    // Free the heap memory
-    Module._free(statResultPtr);
-    // Clean up stack
+    // Load previous stack state, cleanup
     Module.stackRestore(sp);
 
-    return {
-      size: size,
-      blocks: blocks,
-      blocksize: blocksize,
-      ino: ino,
-      nlink: nlink,
-      mode: mode,
-      uid: uid,
-      gid: gid,
-      atime: { sec: atimeSec, nsec: atimeNSec },
-      mtime: { sec: mtimeSec, nsec: mtimeNSec },
-      ctime: { sec: ctimeSec, nsec: ctimeNSec },
+    // Extract error string from errno
+    if (errno != 0) {
+      errorStr = errnoToString(errno);
     }
+
+    return { fd, error: errorStr };
   }
-  Filesystem.lstat = function(name) {
+  Filesystem.close = (fd) => {
+    let errorStr = null;
 
-    // Save the current stack pointer
-    const sp = Module.stackSave();
+    let sp = Module.stackSave();
 
-    // Allocate memory on heap for StatResult struct
-    const statResultPtr = Module._malloc(48); // 48 bytes
-    if (!statResultPtr) {
-      console.error("Faild to stat node!");
-      return;
-    }
+    // Allocate memory on heap for Error pointer (4 bytes for pointer)
+    const errorPointer = Module.stackAlloc(4);
 
-    // Call the wasm procedure
-    let exitCode = Module.ccall(
-      "fs_lstat",
-      "number",
-      ["string", "number"],
-      [name, statResultPtr],
+    Module.ccall(
+      "file__close",
+      null,
+      ["number", "number"],
+      [fd, errorPointer]
     );
 
-    if (exitCode < 0) {
-      console.error("Couldn't lstat link");
-      return null;
-    }
-
-    // Extract fields from StatResult struct
-    const size = Module.getValue(statResultPtr, "i32");
-    const blocks = Module.getValue(statResultPtr + 4, "i32");
-    const blocksize = Module.getValue(statResultPtr + 8, "i32");
-    const ino = Module.getValue(statResultPtr + 12, "i32");
-    const nlink = Module.getValue(statResultPtr + 16, "i32");
-    const mode = Module.getValue(statResultPtr + 20, "i32");
-    const uid = Module.getValue(statResultPtr + 24, "i32");
-    const gid = Module.getValue(statResultPtr + 28, "i32");
-
-    const atimeSec = Module.getValue(statResultPtr + 32, "i32");
-    const atimeNSec = Module.getValue(statResultPtr + 36, "i32");
-    const mtimeSec = Module.getValue(statResultPtr + 40, "i32");
-    const mtimeNSec = Module.getValue(statResultPtr + 44, "i32");
-    const ctimeSec = Module.getValue(statResultPtr + 48, "i32");
-    const ctimeNSec = Module.getValue(statResultPtr + 52, "i32");
-
-    // Free the heap memory
-    Module._free(statResultPtr);
-    // Clean up stack
+    // cleanup
     Module.stackRestore(sp);
 
-    return {
-      size: size,
-      blocks: blocks,
-      blocksize: blocksize,
-      ino: ino,
-      nlink: nlink,
-      mode: mode,
-      uid: uid,
-      gid: gid,
-      atime: { sec: atimeSec, nsec: atimeNSec },
-      mtime: { sec: mtimeSec, nsec: mtimeNSec },
-      ctime: { sec: ctimeSec, nsec: ctimeNSec },
+    let errno = Module.getValue(errorPointer, "i32");
+    if (errno != 0) {
+      errorStr = errnoToString(errno);
     }
-  };
-  Filesystem.symlink = (oldPath, newPath) => binaryReturnWrap(() => Module.FS.symlink(oldPath, newPath));
-  Filesystem.mkdir = (path) => binaryReturnWrap(() => Module.FS.mkdir(path));
-  Filesystem.readdir = (path) => {
-    try {
-      return Module.FS.readdir(path);
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  };
-  Filesystem.rmdir = (path) => binaryReturnWrap(() => Module.FS.rmdir(path));
-  Filesystem.chdir = (path) => binaryReturnWrap(() => Module.FS.chdir(path));
-  Filesystem.chmod = Module.cwrap(
-    "fs_chmod",
-    "number",
-    ["string", "number"],
-  )
-  Filesystem.utime = Module.cwrap(
-    "fs_utime",
-    "number",
-    ["string", "number", "number"],
-  )
-  Filesystem.ftruncate = Module.cwrap(
-    "fs_ftruncate",
-    "number",
-    ["number", "number"]
-  )
-  Filesystem.chown = Module.cwrap(
-    "fs_chown",
-    "number",
-    ["string", "number", "number"],
-  );
-}
+
+    return { error: errorStr };
+  }
+  console.log("Finished initialising filesystem API")
+};
