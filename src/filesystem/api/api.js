@@ -84,7 +84,7 @@ export function initialiseAPI(Module) {
   Filesystem.close = (fd) => {
     let errorStr = null;
 
-    let { _, errno } = callWithErrno(
+    let { errno } = callWithErrno(
       "file__close",
       null,
       ["number"],
@@ -100,7 +100,7 @@ export function initialiseAPI(Module) {
   Filesystem.write = (fd, content) => {
     let errorStr = null;
 
-    let { _, errno } = callWithErrno(
+    let { errno } = callWithErrno(
       "file__write",
       null,
       ["number", "string"],
@@ -120,7 +120,7 @@ export function initialiseAPI(Module) {
 
     let readResultPtr = Module.stackAlloc(8);
 
-    let { _, errno } = callWithErrno(
+    let { errno } = callWithErrno(
       "file__read",
       null,
       ["number", "number", "number"],
@@ -158,6 +158,82 @@ export function initialiseAPI(Module) {
       Module.stackRestore(sp);
     }
   }
+  Filesystem.readAll = (fd) => {
+    let errorStr = null;
+
+    let sp = Module.stackSave();
+
+    let readResultPtr = Module.stackAlloc(8);
+
+    let { errno } = callWithErrno(
+      "file__read_all",
+      null,
+      ["number", "number"],
+      [fd, readResultPtr],
+    )
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    let dataPtr = Module.getValue(readResultPtr, 'i32');
+    let size = Module.getValue(readResultPtr + 4, 'i32');
+
+    try {
+      // If it suceeded its read
+      if (size >= 0) {
+        const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, size);
+        const copy = new Uint8Array(dataView);
+        return {
+          error: errorStr,
+          data: Filesystem._UTF8Decoder.decode(copy),
+          size: size
+        }
+      } else {
+        return {
+          error: errorStr
+        }
+      }
+    } finally {
+      // Free the string buffer from C (if it isn't null)
+      if (dataPtr) {
+        Module._free(dataPtr);
+      }
+      Module.stackRestore(sp);
+    }
+  }
+  Filesystem.shift = (fd, amt) => {
+    let errorStr = null;
+
+    let { errno } = callWithErrno(
+      "file__shift",
+      null,
+      ["number", "number"],
+      [fd, amt]
+    );
+
+    if (errno < 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    return { error: errorStr };
+  }
+  Filesystem.goto = (fd, pos) => {
+    let errorStr = null;
+
+    let { errno } = callWithErrno(
+      "file__goto",
+      null,
+      ["number", "number"],
+      [fd, pos]
+    );
+
+    if (errno < 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    return { error: errorStr }
+  };
   Filesystem.test = () => {
     let { error: err0, fd: fd0 } = Filesystem.open("/persistent/test.txt", "cw");
     console.log(`err0: ${err0}, fd0: ${fd0}`);

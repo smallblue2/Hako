@@ -202,3 +202,25 @@ void file__read_all(int fd, ReadResult *rr, Error *err) {
   *err = 0;
   return;
 }
+
+// Shifts the file offset by 'amt'
+void file__shift(int fd, int amt, Error *err) {
+  int moved_bytes = lseek(fd, amt, SEEK_CUR);
+  if (moved_bytes < 0) {
+    *err = errno;
+    return;
+  }
+
+  return;
+}
+
+// Places the file offset to `pos`
+void file__goto(int fd, int pos, Error *err) {
+  int moved_bytes = lseek(fd, pos, SEEK_SET);
+  if (moved_bytes < 0) {
+    *err = errno;
+    return;
+  }
+
+  return;
+}
