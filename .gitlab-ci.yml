@@ -55,9 +55,7 @@ build_site:
   stage: build
   script:
     - cd src/
-    - docker build -f Containerfile -t image:$CI_COMMIT_REF_NAME .
-    - docker run -d --rm --name $CI_COMMIT_REF_NAME-instance image:$CI_COMMIT_REF_NAME
-    - docker cp $CI_COMMIT_REF_NAME-instance:/site/build/ site/build 
+    - docker build -f Containerfile -t image:$CI_COMMIT_REF_NAME . -v $PWD/site:/site:rwx
   artifacts:
     paths:
       - src/site/build
