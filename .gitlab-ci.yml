@@ -57,7 +57,7 @@ build_site:
     - cd src/
     - docker build -f Containerfile -t image:$CI_COMMIT_REF_NAME .
     - docker run -d --rm --name $CI_COMMIT_REF_NAME-instance image:$CI_COMMIT_REF_NAME
-    - docker cp $CI_COMMIT_REF_NAME-instance:/site/build/ src/site/build 
+    - docker cp $CI_COMMIT_REF_NAME-instance:/site/build/ site/build 
   artifacts:
     paths:
       - src/site/build
