@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 // Explicitly forces a filesystem synchronisation.
 // Likely not needed if the IDBFS filesystem is mounted with `autoPersist`
@@ -65,7 +66,6 @@ void file__initialiseFS() {
 }
 
 int file__open(const char *path, int flags, Error *err) {
-  fprintf(stdout, "Flags: %o\n", flags);
   int fd = open(path, flags);
 
   if (fd < 0) {
@@ -211,6 +211,7 @@ void file__shift(int fd, int amt, Error *err) {
     return;
   }
 
+  *err = 0;
   return;
 }
 
@@ -221,6 +222,97 @@ void file__goto(int fd, int pos, Error *err) {
     *err = errno;
     return;
   }
+  *err = 0;
+  return;
+}
 
+// Unlinks a node
+//
+// TODO: Test on directories, if it doesnt work - likely change to `file__removeFile`
+void file__remove(const char *path, Error *err) {
+  int error = unlink(path);
+  if (error < 0) {
+    *err = errno;
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+void file__move(const char *old_path, const char *new_path, Error *err) {
+  int error = rename(old_path, new_path);
+  if (error < 0) {
+    *err = errno;
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+void file__make_dir(const char *path, Error *err) {
+  int error = mkdir(path, 0755);
+  if (error < 0) {
+    *err = errno;
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+void file__remove_dir(const char *path, Error *err) {
+  int error = rmdir(path);
+  if (error < 0) {
+    *err = errno;
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+void file__read_dir(const char *path, Entry *entry, int *err) {
+  // Ensure previous entry name is freed before overwriting
+  // (This is performed in JS API, but just to be safe!)
+  if (entry->name) {
+    free(entry->name);
+    entry->name = NULL;
+  }
+
+  // If this is the first call (dirp == NULL), open the directory
+  if (entry->dirp == NULL) {
+    entry->dirp = opendir(path);
+    if (entry->dirp == NULL) {
+      *err = errno;
+      return;
+    }
+  }
+
+  // Read the next entry
+  errno = 0; // readdir signals an error when at End of Directory, but doesn't set errno
+  struct dirent *ep = readdir(entry->dirp);
+
+  if (ep == NULL) {
+    // Errno still being 0 signals end of directory
+    if (errno == 0) {
+      entry->isEnd = 1;
+      closedir(entry->dirp);
+      entry->dirp = NULL;  // Ensure `dirp` is reset to avoid reuse of closed pointer
+      return;
+    }
+    *err = errno;
+    return;
+  }
+
+  // Store the entry name
+  entry->name = strdup(ep->d_name);
+  if (entry->name == NULL) {
+    closedir(entry->dirp);
+    entry->dirp = NULL;  // Prevent reuse of closed pointer
+    *err = errno;
+    return;
+  }
+
+  entry->name_len = strlen(entry->name);
+  entry->isEnd = 0;
+  *err = 0;
   return;
 }

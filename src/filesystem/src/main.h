@@ -14,14 +14,15 @@
 typedef int Error;
 
 typedef struct __attribute__((packed)) {
-  char *name; // To dirent
-  int len;
-  DIR *dirp;
-} Entry;
+  int name_len; // 4 bytes
+  char *name; // 4 bytes
+  int isEnd; // 4 bytes (0 for false, 1 for true)
+  DIR *dirp; // 4 bytes
+} Entry; // 16 bytes
 
 typedef struct __attribute__((packed)) {
-  char *data;
-  int size;
+  char *data; // 4 bytes
+  int size;   // 4 bytes
 } ReadResult;
 
 int Entry__name();

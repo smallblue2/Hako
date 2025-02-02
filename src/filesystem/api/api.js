@@ -17,8 +17,6 @@ export function initialiseAPI(Module) {
       [...args, errorPointer]
     );
 
-    console.log(`${fnName} = ${returnVal}`);
-
     let errno = Module.getValue(errorPointer, 'i32');
 
     Module.stackRestore(sp);
@@ -64,8 +62,6 @@ export function initialiseAPI(Module) {
     else if (write) cFlag |= O_WRONLY;
 
     if (create) cFlag |= O_CREAT;
-
-    console.log(`Flags: ${cFlag.toString(8)}`)
 
     let { returnVal: fd, errno } = callWithErrno(
       "file__open",
@@ -212,7 +208,7 @@ export function initialiseAPI(Module) {
       [fd, amt]
     );
 
-    if (errno < 0) {
+    if (errno > 0) {
       errorStr = errnoToString(errno);
     }
 
@@ -228,22 +224,123 @@ export function initialiseAPI(Module) {
       [fd, pos]
     );
 
-    if (errno < 0) {
+    if (errno > 0) {
       errorStr = errnoToString(errno);
     }
 
     return { error: errorStr }
   };
-  Filesystem.test = () => {
-    let { error: err0, fd: fd0 } = Filesystem.open("/persistent/test.txt", "cw");
-    console.log(`err0: ${err0}, fd0: ${fd0}`);
-    Filesystem.write(fd0, "PLEASE");
-    Filesystem.close(fd0);
-    let { error: err1, fd: fd1 } = Filesystem.open("/persistent/test.txt", "rw");
-    console.log(`err1: ${err1}, fd1: ${fd1}`);
-    console.log(Filesystem.read(fd1, 6));
-    Filesystem.close(fd1);
-  }
-  console.log("Finished initialising filesystem API");
+  Filesystem.remove = (path) => {
+    let errorStr = null;
 
+    let { errno } = callWithErrno(
+      "file__remove",
+      null,
+      ["string"],
+      [path],
+    )
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    return { error: errorStr }
+  }
+
+  Filesystem.move = (oldPath, newPath) => {
+    let errorStr = null;
+
+    let { errno } = callWithErrno(
+      "file__move",
+      null,
+      ["string", "string"],
+      [oldPath, newPath]
+    );
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    return { error: errorStr }
+  }
+  Filesystem.make_dir = (path) => {
+    let errorStr = null;
+
+    let { errno } = callWithErrno(
+      "file__make_dir",
+      null,
+      ["string"],
+      [path]
+    );
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    return { error: errorStr }
+  }
+  Filesystem.remove_dir = (path) => {
+    let errorStr = null;
+
+    let { errno } = callWithErrno(
+      "file__remove_dir",
+      null,
+      ["string"],
+      [path]
+    );
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    return { error: errorStr }
+  }
+  Filesystem.read_dir = (path) => {
+    let errorStr = null;
+
+    let entries = [];
+
+    let sp = Module.stackSave();
+
+    // Allocate space on the heap for the Entry struct
+    // Heap is chosen here to allow the Entry to persist
+    // accross calls
+    let entryPtr = Module._malloc(16);
+
+    while (true) {
+      let { errno } = callWithErrno(
+        "file__read_dir",
+        null,
+        ["string", "number"],
+        [path, entryPtr]
+      )
+
+      if (errno > 0) {
+        errorStr = errnoToString(errno);
+        break;
+      }
+      
+      let entryNameLength = Module.getValue(entryPtr, 'i32');
+      let dataPtr = Module.getValue(entryPtr + 4, 'i32');
+      let endIndicator = Module.getValue(entryPtr + 8, 'i32');
+      if (endIndicator == 1) break; // STOP if we're at the end
+
+      if (entryNameLength > 0) {
+        // Extract the entry name
+        const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, entryNameLength);
+        const entryName = Filesystem._UTF8Decoder.decode(dataView);
+        entries.push(entryName);
+        // Free the entry name string as it was created via
+        // `strdup` in C
+        Module._free(dataPtr);
+      }
+    }
+
+    // Free the entry pointer
+    Module._free(entryPtr);
+
+    Module.stackRestore(sp);
+
+    return { error: errorStr, entries }
+  }
 };
