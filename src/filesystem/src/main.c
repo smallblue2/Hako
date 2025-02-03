@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 // Explicitly forces a filesystem synchronisation.
 // Likely not needed if the IDBFS filesystem is mounted with `autoPersist`
@@ -228,7 +228,8 @@ void file__goto(int fd, int pos, Error *err) {
 
 // Unlinks a node
 //
-// TODO: Test on directories, if it doesnt work - likely change to `file__removeFile`
+// TODO: Test on directories, if it doesnt work - likely change to
+// `file__removeFile`
 void file__remove(const char *path, Error *err) {
   int error = unlink(path);
   if (error < 0) {
@@ -287,7 +288,8 @@ void file__read_dir(const char *path, Entry *entry, int *err) {
   }
 
   // Read the next entry
-  errno = 0; // readdir signals an error when at End of Directory, but doesn't set errno
+  errno = 0; // readdir signals an error when at End of Directory, but doesn't
+             // set errno
   struct dirent *ep = readdir(entry->dirp);
 
   if (ep == NULL) {
@@ -295,7 +297,8 @@ void file__read_dir(const char *path, Entry *entry, int *err) {
     if (errno == 0) {
       entry->isEnd = 1;
       closedir(entry->dirp);
-      entry->dirp = NULL;  // Ensure `dirp` is reset to avoid reuse of closed pointer
+      entry->dirp =
+          NULL; // Ensure `dirp` is reset to avoid reuse of closed pointer
       return;
     }
     *err = errno;
@@ -306,7 +309,7 @@ void file__read_dir(const char *path, Entry *entry, int *err) {
   entry->name = strdup(ep->d_name);
   if (entry->name == NULL) {
     closedir(entry->dirp);
-    entry->dirp = NULL;  // Prevent reuse of closed pointer
+    entry->dirp = NULL; // Prevent reuse of closed pointer
     *err = errno;
     return;
   }
@@ -316,3 +319,87 @@ void file__read_dir(const char *path, Entry *entry, int *err) {
   *err = 0;
   return;
 }
+
+void file__stat(const char *name, StatResult *sr, Error *err) {
+  struct stat file_stat;
+  if (stat(name, &file_stat) < 0) {
+    *err = errno;
+    return;
+  }
+
+  sr->size = file_stat.st_size;
+  sr->blocks = file_stat.st_blocks;
+  sr->blocksize = file_stat.st_blksize;
+  sr->ino = file_stat.st_ino;
+  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+  sr->atime.sec = (int)file_stat.st_atim.tv_sec;
+  sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
+  sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
+  sr->mtime.nsec = (int)file_stat.st_mtim.tv_nsec;
+  sr->ctime.sec = (int)file_stat.st_ctim.tv_sec;
+  sr->ctime.nsec = (int)file_stat.st_ctim.tv_nsec;
+
+  *err = 0;
+  return;
+}
+
+void file__fdstat(int fd, StatResult *sr, Error *err) {
+  struct stat file_stat;
+  if (fstat(fd, &file_stat) < 0) {
+    *err = errno;
+    return;
+  }
+
+  sr->size = file_stat.st_size;
+  sr->blocks = file_stat.st_blocks;
+  sr->blocksize = file_stat.st_blksize;
+  sr->ino = file_stat.st_ino;
+  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+  sr->atime.sec = (int)file_stat.st_atim.tv_sec;
+  sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
+  sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
+  sr->mtime.nsec = (int)file_stat.st_mtim.tv_nsec;
+  sr->ctime.sec = (int)file_stat.st_ctim.tv_sec;
+  sr->ctime.nsec = (int)file_stat.st_ctim.tv_nsec;
+
+  *err = 0;
+  return;
+}
+
+void file__change_dir(const char *path, Error *err) {
+  if (chdir(path) < 0) {
+    *err = errno;
+    return;
+  }
+
+  *err = 0;
+  return;
+}
+
+// Changes permissions (only for user - single user OS, 0[use][ignore][ignore])
+void file__permit(const char *path, int flags, Error *err) {
+  // No permissions check here - user should be allowed to modify all file permissions
+  // TODO: Figure out how to modify 
+  if (chmod(path, flags) < 0) {
+    *err = errno;
+    return;
+  }
+
+  *err = 0;
+  return;
+}
+// typedef struct {
+//   int sec; // 4
+//   int nsec; // 4
+// } Time; // 8 bytes
+
+// typedef struct { // 48 bytes
+//   int size; // 4b
+//   int blocks;
+//   int blocksize;
+//   int ino;
+//   int perm; // permissions (01 Read, 010 Write) 20 bytes
+//   Time atime;
+//   Time mtime;
+//   Time ctime; // 24 bytes
+// } StatResult; // 44 bytes

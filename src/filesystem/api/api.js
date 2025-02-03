@@ -24,6 +24,39 @@ export function initialiseAPI(Module) {
     return { returnVal, errno };
   }
 
+  function extractStatFields(statResultPtr) {
+
+    // Extract fields from StatResult struct
+    const size = Module.getValue(statResultPtr, "i32");
+    const blocks = Module.getValue(statResultPtr + 4, "i32");
+    const blocksize = Module.getValue(statResultPtr + 8, "i32");
+    const ino = Module.getValue(statResultPtr + 12, "i32");
+    const permNum = Module.getValue(statResultPtr + 16, "i32");
+
+    let permString = "";
+    if ((permNum & 0o400) == 0o400) permString += "r";
+    if ((permNum & 0o200) == 0o200) permString += "w";
+    if ((permNum & 0o100) == 0o100) permString += "x";
+
+    const atimeSec = Module.getValue(statResultPtr + 20, "i32");
+    const atimeNSec = Module.getValue(statResultPtr + 24, "i32");
+    const mtimeSec = Module.getValue(statResultPtr + 28, "i32");
+    const mtimeNSec = Module.getValue(statResultPtr + 32, "i32");
+    const ctimeSec = Module.getValue(statResultPtr + 36, "i32");
+    const ctimeNSec = Module.getValue(statResultPtr + 40, "i32");
+
+    return {
+      size: size,
+      blocks: blocks,
+      blocksize: blocksize,
+      ino: ino,
+      perm: permString,
+      atime: { sec: atimeSec, nsec: atimeNSec },
+      mtime: { sec: mtimeSec, nsec: mtimeNSec },
+      ctime: { sec: ctimeSec, nsec: ctimeNSec },
+    }
+  }
+
   Filesystem._UTF8Encoder = new TextEncoder();
   Filesystem._UTF8Decoder = new TextDecoder("utf-8");
 
@@ -319,7 +352,7 @@ export function initialiseAPI(Module) {
         errorStr = errnoToString(errno);
         break;
       }
-      
+
       let entryNameLength = Module.getValue(entryPtr, 'i32');
       let dataPtr = Module.getValue(entryPtr + 4, 'i32');
       let endIndicator = Module.getValue(entryPtr + 8, 'i32');
@@ -342,5 +375,108 @@ export function initialiseAPI(Module) {
     Module.stackRestore(sp);
 
     return { error: errorStr, entries }
+  }
+  Filesystem.stat = (path) => {
+    let errorStr = null;
+
+    let sp = Module.stackSave();
+
+    let statResultPtr = Module.stackAlloc(44);
+
+    let { errno } = callWithErrno(
+      "file__stat",
+      null,
+      ["string", "number"],
+      [path, statResultPtr],
+    );
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+      return { error: errorStr }
+    }
+
+    const stat = extractStatFields(statResultPtr);
+
+    Module.stackRestore(sp);
+
+    return { error: errorStr, stat }
+  }
+  Filesystem.fdstat = (fd) => {
+    let errorStr = null;
+
+    let sp = Module.stackSave();
+
+    let statResultPtr = Module.stackAlloc(44);
+
+    let { errno } = callWithErrno(
+      "file__fdstat",
+      null,
+      ["number", "number"],
+      [fd, statResultPtr]
+    );
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+      return { error: errorStr }
+    }
+
+    const stat = extractStatFields(statResultPtr);
+
+    Module.stackRestore(sp);
+
+    return { error: errorStr, stat }
+  }
+  Filesystem.change_dir = (path) => {
+    let errorStr = null;
+
+    let { errno } = callWithErrno(
+      "file__change_dir",
+      null,
+      ["string"],
+      [path],
+    );
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+    }
+
+    return { error: errorStr };
+  }
+  Filesystem.permit = (path, flags) => {
+
+    let errorStr = null;
+
+    // Flags can be any combination of 'r, w or c' for READ, WRITE and EXECUTE
+    const flagsRegex = /^(?!.*([rwx]).*\1)[rwx]{1,3}$/;
+
+    // Validate flags
+    let isValid = flagsRegex.test(flags);
+    let read = flags.includes("r");
+    let write = flags.includes("w");
+    let exec = flags.includes("x");
+    if (!((read || write || exec) && isValid) && flags != "") {
+      errorStr = "Invalid flags provided"; // Custom API error
+      return { error: errorStr };
+    }
+
+    // Construct C flag
+    let cFlag = 0;
+    if (read) cFlag |= 0o400;
+    if (write) cFlag |= 0o200;
+    if (exec) cFlag |= 0o100;
+
+    let { errno } = callWithErrno(
+      "file__permit",
+      null,
+      ["string", "number"],
+      [path, cFlag],
+    );
+
+    if (errno > 0) {
+      errorStr = errnoToString(errno);
+      return { error: errorStr }
+    }
+
+    return { error: errorStr }
   }
 };

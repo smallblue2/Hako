@@ -7,10 +7,6 @@
 #define PERSISTENT_ROOT_NAME "/persistent"
 #define BUFSIZ 1024
 
-// ================= Errors=================
-// Memory Isse
-#define E_MEM 1
-
 typedef int Error;
 
 typedef struct __attribute__((packed)) {
@@ -25,12 +21,21 @@ typedef struct __attribute__((packed)) {
   int size;   // 4 bytes
 } ReadResult;
 
-int Entry__name();
-int Entry__len();
-int Entry__dirp();
+typedef struct __attribute__((packed)) {
+  int sec; // 4
+  int nsec; // 4
+} Time; // 8 bytes
 
-int ReadResult__data();
-int ReadResult__size();
+typedef struct __attribute__((packed)) { // 48 bytes
+  int size;
+  int blocks;
+  int blocksize;
+  int ino;
+  int perm; // permissions (01 Read, 001 Write, 0001 Execute) 20 bytes
+  Time atime;
+  Time mtime;
+  Time ctime; // 24 bytes
+} StatResult; // 44 bytes
 
 void file__initialiseFS();
 void file__syncFS();
@@ -45,11 +50,11 @@ void file__remove(const char *path, Error *err);
 void file__move(const char *old_path, const char *new_path, Error *err);
 void file__make_dir(const char *path, Error *err);
 void file__remove_dir(const char *path, Error *err);
+void file__change_dir(const char *path, Error *err);
 void file__read_dir(const char *path, Entry *entry,
                     Error *err); // Keep calling, state kept in DIR*
-void file__stat(const char *path, ReadResult *rr, Error *err);
-void file__fstat(int fd, ReadResult *rr, Error *err);
-void file__change_dir(char *path);
-void file__permit(const char *path, int flags);
+void file__stat(const char *path, StatResult *sr, Error *err);
+void file__fdstat(int fd, StatResult *sr, Error *err);
+void file__permit(const char *path, int flags, Error *err);
 
 #endif
