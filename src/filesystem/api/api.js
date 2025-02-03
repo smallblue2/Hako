@@ -446,7 +446,7 @@ export function initialiseAPI(Module) {
 
     let errorStr = null;
 
-    // Flags can be any combination of 'r, w or c' for READ, WRITE and EXECUTE
+    // Flags can be any combination of 'r, w or x' for READ, WRITE and EXECUTE
     const flagsRegex = /^(?!.*([rwx]).*\1)[rwx]{1,3}$/;
 
     // Validate flags
