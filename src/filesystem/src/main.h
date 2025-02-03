@@ -5,7 +5,25 @@
 #include <fcntl.h>
 
 #define PERSISTENT_ROOT_NAME "/persistent"
+
+// For reading
 #define BUFSIZ 1024
+
+// If this bit is set on any files, they cannot be modified
+// and are considered system files.
+#define PROTECTED_BIT 0010
+
+// Define our own errors as Emscripten seems to use its own strange system.
+#define E_EXISTS 1
+#define E_DOESNTEXIST 2
+#define E_PERM 3
+#define E_BADF 4
+#define E_SYSFS 5
+#define E_ISDIR          6
+#define E_NOTDIR         7
+#define E_IOERROR        8
+#define E_INVALID        9
+#define E_AGAIN          10
 
 typedef int Error;
 
