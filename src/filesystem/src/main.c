@@ -1,14 +1,5 @@
 #include "main.h"
-#include <emscripten.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 // Emscripten uses its own errno convention when compiled which
 // makes accurate error reporting convoluted - use our own.
@@ -480,7 +471,14 @@ void file__stat(const char *name, StatResult *sr, Error *err) {
   sr->blocks = file_stat.st_blocks;
   sr->blocksize = file_stat.st_blksize;
   sr->ino = file_stat.st_ino;
-  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+
+  // If it's a directory, just report `rwx`
+  if (S_ISDIR(file_stat.st_mode)) {
+    sr->perm = 0700;
+  } else {
+    sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+  }
+
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
@@ -507,7 +505,14 @@ void file__fdstat(int fd, StatResult *sr, Error *err) {
   sr->blocks = file_stat.st_blocks;
   sr->blocksize = file_stat.st_blksize;
   sr->ino = file_stat.st_ino;
-  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+
+  // If it's a directory, just report `rwx`
+  if (S_ISDIR(file_stat.st_mode)) {
+    sr->perm = 0700;
+  } else {
+    sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+  }
+
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
@@ -531,7 +536,7 @@ void file__change_dir(const char *path, Error *err) {
   return;
 }
 
-// Changes permissions (only for user - single user OS, 0[use][ignore][ignore])
+// Changes FILE permissions (only for user - single user OS, 0[use][ignore][ignore])
 void file__permit(const char *path, int flags, Error *err) {
   // permissions check
   struct stat st;
@@ -539,6 +544,13 @@ void file__permit(const char *path, int flags, Error *err) {
 
   if (!file_exists) {
     *err = translate_errors(EEXIST);
+    return;
+  }
+
+  // If it's a directory, fail - as this does nothing in our system
+  // and might even break it due to emscripten's emulation
+  if (S_ISDIR(st.st_mode)) {
+    *err = translate_errors(EISDIR);
     return;
   }
 
