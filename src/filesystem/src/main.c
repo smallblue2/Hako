@@ -29,18 +29,22 @@ int translate_errors(int err) {
   }
 }
 
+// Helper function for checking read perms based on stat
 bool can_read(struct stat *node_stat) {
   return ((node_stat->st_mode & 0400) == 0400);
 }
 
+// Helper function for checking write perms based on stat
 bool can_write(struct stat *node_stat) {
   return ((node_stat->st_mode & 0200) == 0200);
 }
 
+// Helper function for checking exec perms based on stat
 bool can_exec(struct stat *node_stat) {
   return ((node_stat->st_mode & 0100) == 0100);
 }
 
+// Helper function for guarding system nodes based on stat
 bool is_system_file(struct stat *node_stat) {
   return ((node_stat->st_mode & PROTECTED_BIT) == PROTECTED_BIT);
 }

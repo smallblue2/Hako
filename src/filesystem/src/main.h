@@ -1,8 +1,8 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-// =================================== Includes
-// ===================================
+// ======================= Includes =======================
+
 #include <dirent.h>
 #include <emscripten.h>
 #include <errno.h>
@@ -15,8 +15,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-// =================================== Filesystem Definitions
-// ===================================
+// ======================= Filesystem Definitions =======================
 
 // The root of our persisten filesystem
 #define PERSISTENT_ROOT_NAME "/persistent"
@@ -40,8 +39,7 @@
 #define E_INVALID 9
 #define E_AGAIN 10
 
-// =================================== Filesystem Structs
-// ===================================
+// ======================= Filesystem Structs =======================
 
 // Output parameter on all filesystem API functions
 //
@@ -77,14 +75,14 @@ typedef struct __attribute__((packed)) { // 48 bytes
   int blocks;
   int blocksize;
   int ino;
-  int perm; // permissions (Only user: 01 Read, 001 Write, 0001 Execute) 20 bytes
+  int perm; // permissions (Only user: 01 Read, 001 Write, 0001 Execute) 20
+            // bytes
   Time atime;
   Time mtime;
   Time ctime; // 24 bytes
 } StatResult; // 44 bytes
 
-// =================================== Filesystem API
-// ===================================
+// ======================= Filesystem API =======================
 
 // Creates a `/persistent` directory and mounts persisting FS volume
 void file__initialiseFS();
