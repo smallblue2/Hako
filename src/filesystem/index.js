@@ -1,5 +1,4 @@
 // Import modules for globals and API
-import './api/definitions.js';
 import { initialiseAPI, Filesystem } from './api/api.js';
 
 window.isFilesystemInitialised = false;
