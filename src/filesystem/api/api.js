@@ -10,6 +10,9 @@ export function initialiseAPI(Module) {
 
     let errorPointer = Module.stackAlloc(4);
 
+    console.log(argTypes);
+    console.log(args);
+
     let returnVal = Module.ccall(
       fnName,
       returnType,

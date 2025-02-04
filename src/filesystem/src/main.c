@@ -24,7 +24,7 @@ int translate_errors(int err) {
   case EAGAIN:
     return E_AGAIN;
   default:
-    printf("[C] Unknown error: %d\n", err);
+    printf("[C] Unknown error: %d: %s\n", err, strerror(err));
     return err;
   }
 }
@@ -121,7 +121,6 @@ int file__open(const char *path, int flags, Error *err) {
       *err = E_EXISTS;
       return -1;
     }
-    printf("We exist!");
     // Read check
     if (wants_read && !can_read(&st)) {
       *err = translate_errors(EACCES);
@@ -146,7 +145,7 @@ int file__open(const char *path, int flags, Error *err) {
   }
 
   // Finally open the file
-  int fd = open(path, flags & 0700, 0700); // Extra AND for additional defence
+  int fd = open(path, flags, 0700);
 
   if (fd < 0) {
     // has failed (sad) :'(
@@ -171,8 +170,12 @@ void file__close(int fd, Error *err) {
 void file__write(int fd, const char *content, Error *err) {
   // NOTE: no perm checks as the user already has the file descriptor
 
+
   int contentLength = strlen(content);
+  printf("[C] Passed in fd: %d\n", fd);
+  printf("[C] Passed in string: \"%s\" (%d)\n", content, contentLength);
   int written = write(fd, content, contentLength);
+  printf("[C] Written returned => {%d}\n", written);
   if (written < 0) {
     *err = translate_errors(errno);
     return;

@@ -89,4 +89,39 @@ describe("Filesystem tests", () => {
 
     assert.strictEqual(hasFilesystem, true, "Filesystem should exist on the window object");
   });
+
+  it("Check whether we can open a file (create)", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, fd, stat } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/test.txt", "c");
+      let { error: error1 } = window.Filesystem.close(fd);
+      let { error: error2, stat } = window.Filesystem.stat("/persistent");
+      return { error0, error1, error2, fd, stat }
+    })
+
+    assert.ok(fd > 0, "Invalid file descriptor");
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(error1 == null, "Close reported an error");
+    assert.ok(error2 == null, "Stat reported an error");
+    assert.ok(stat != null, "Stat call didn't return a stat struct");
+  });
+
+  it("Check whether closing a file works", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, fd } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/another.txt", "wc");
+      let { error: error1 } = window.Filesystem.write(fd, "This should work");
+      let { error: error2 } = window.Filesystem.close(fd);
+      let { error: error3 } = window.Filesystem.write(fd, "This shouldn't work");
+      return { error0, error1, error2, error3, fd };
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Invalid file descriptor from close");
+    assert.ok(error1 == null, "Write reported an error");
+    assert.ok(error2 == null, "Close reported an error");
+    assert.ok(error3 != null, "Second write should have failed due to closed file descriptor");
+  });
 });
