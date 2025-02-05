@@ -72,7 +72,6 @@ void file__syncFS() {
 
 // Mounts filesystem, creating structure if required.
 void file__initialiseFS() {
-  printf("[C] Starting up persistent filesystem at '%s'...\n",
          PERSISTENT_ROOT_NAME);
 
 #ifdef __EMSCRIPTEN__
@@ -172,10 +171,7 @@ void file__write(int fd, const char *content, Error *err) {
 
 
   int contentLength = strlen(content);
-  printf("[C] Passed in fd: %d\n", fd);
-  printf("[C] Passed in string: \"%s\" (%d)\n", content, contentLength);
   int written = write(fd, content, contentLength);
-  printf("[C] Written returned => {%d}\n", written);
   if (written < 0) {
     *err = translate_errors(errno);
     return;
