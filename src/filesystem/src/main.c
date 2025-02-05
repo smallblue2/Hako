@@ -366,7 +366,7 @@ void file__move(const char *old_path, const char *new_path, Error *err) {
     return;
   }
 
-  // Permission checks [OLD FILE]
+  // Permission checks [NEW FILE]
   file_exists = (stat(new_path, &st) == 0);
 
   // If it's a system file, fail - user can't overwrite system files
