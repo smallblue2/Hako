@@ -13,7 +13,7 @@
 <div id="root" bind:this={root}>
   <button onclick={() => {
     // lib.openWindow(Terminal, { props: { wasmModule: "/lua.mjs?url" }});
-    lib.openWindow(Terminal, { props: { wasmModule: "/main.js?url" }});
+    lib.openWindow(Terminal, { props: { wasmModule: "/runtime.js?url" }});
   }}>Create Terminal</button>
   <button onclick={() => {
     lib.openWindow(Editor);
