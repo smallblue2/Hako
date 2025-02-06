@@ -1,24 +1,9 @@
-#ifndef FS_H
-#define FS_H
+#ifndef LIB_H
+#define LIB_H
 
 #include <lua.h>
-
-int lfile__open(lua_State *L);
-int lfile__close(lua_State *L);
-int lfile__write(lua_State *L);
-int lfile__read(lua_State *L);
-int lfile__read_all(lua_State *L);
-int lfile__shift(lua_State *L);
-int lfile__goto(lua_State *L);
-int lfile__remove(lua_State *L);
-int lfile__move(lua_State *L);
-int lfile__make_dir(lua_State *L);
-int lfile__remove_dir(lua_State *L);
-int lfile__change_dir(lua_State *L);
-int lfile__read_dir(lua_State *L);
-int lfile__stat(lua_State *L);
-int lfile__fdstat(lua_State *L);
-int lfile__permit(lua_State *L);
+#include "file.h"
+#include "errors.h"
 
 typedef struct {
   const char *name;
@@ -43,12 +28,16 @@ static const ModuleEntry file_module[] = {
   {"fdstat", lfile__fdstat},
   {"permit", lfile__permit},
 };
-
 static const size_t file_module_len = sizeof(file_module) / sizeof(file_module[0]);
 
-static const ModuleEntry *stdlib[] = { file_module };
-static const size_t stdlib_len[] = { file_module_len };
-static const char *stdlib_ns[] = { "file" };
+static const ModuleEntry errors_module[] = {
+  {"as_string", lerrors__as_string},
+};
+static const size_t errors_module_len = sizeof(errors_module) / sizeof(errors_module[0]);
+
+static const ModuleEntry *stdlib[] = { file_module, errors_module };
+static const size_t stdlib_len[] = { file_module_len, errors_module_len };
+static const char *stdlib_ns[] = { "file", "errors" };
 static const size_t nmodules = sizeof(stdlib) / sizeof(stdlib[0]);
 
 #endif

@@ -1,9 +1,10 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <stddef.h>
 
 #include "../filesystem/src/main.h"
-#include "fs.h"
+#include "lib.h"
 
 void export_stdlib(lua_State *L) {
   for (size_t modi = 0; modi < nmodules; modi++) {
@@ -31,15 +32,6 @@ int main(void) {
   file__initialiseFS();
 
   export_stdlib(L);
-
-  // lua_pushglobaltable(L);
-  //
-  // for (size_t i = 0; i < file_module_len; i++) {
-  //   lua_pushcfunction(L, file_module[i].func);
-  //   lua_setfield(L, -2, file_module[i].name);
-  // }
-  //
-  // lua_setglobal(L, "file");
 
   if (luaL_loadstring(L, src) == LUA_OK) {
     if (lua_pcall(L, 0, 0, 0) == LUA_OK) {
