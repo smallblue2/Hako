@@ -5,6 +5,7 @@
     "npm:@codemirror/state@^6.5.0": "6.5.0",
     "npm:@codemirror/view@^6.36.1": "6.36.1",
     "npm:@sveltejs/adapter-auto@3": "3.3.1_@sveltejs+kit@2.15.0__@sveltejs+vite-plugin-svelte@4.0.4___svelte@5.16.0____acorn@8.14.0___vite@5.4.11__svelte@5.16.0___acorn@8.14.0__vite@5.4.11_@sveltejs+vite-plugin-svelte@4.0.4__svelte@5.16.0___acorn@8.14.0__vite@5.4.11_svelte@5.16.0__acorn@8.14.0_vite@5.4.11",
+    "npm:@sveltejs/adapter-static@^3.0.8": "3.0.8_@sveltejs+kit@2.15.0__@sveltejs+vite-plugin-svelte@4.0.4___svelte@5.16.0____acorn@8.14.0___vite@5.4.11__svelte@5.16.0___acorn@8.14.0__vite@5.4.11_@sveltejs+vite-plugin-svelte@4.0.4__svelte@5.16.0___acorn@8.14.0__vite@5.4.11_svelte@5.16.0__acorn@8.14.0_vite@5.4.11",
     "npm:@sveltejs/kit@2": "2.15.0_@sveltejs+vite-plugin-svelte@4.0.4__svelte@5.16.0___acorn@8.14.0__vite@5.4.11_svelte@5.16.0__acorn@8.14.0_vite@5.4.11",
     "npm:@sveltejs/vite-plugin-svelte@4": "4.0.4_svelte@5.16.0__acorn@8.14.0_vite@5.4.11",
     "npm:@xterm/addon-fit@0.10": "0.10.0_@xterm+xterm@5.5.0",
@@ -234,6 +235,12 @@
       "dependencies": [
         "@sveltejs/kit",
         "import-meta-resolve"
+      ]
+    },
+    "@sveltejs/adapter-static@3.0.8_@sveltejs+kit@2.15.0__@sveltejs+vite-plugin-svelte@4.0.4___svelte@5.16.0____acorn@8.14.0___vite@5.4.11__svelte@5.16.0___acorn@8.14.0__vite@5.4.11_@sveltejs+vite-plugin-svelte@4.0.4__svelte@5.16.0___acorn@8.14.0__vite@5.4.11_svelte@5.16.0__acorn@8.14.0_vite@5.4.11": {
+      "integrity": "sha512-YaDrquRpZwfcXbnlDsSrBQNCChVOT9MGuSg+dMAyfsAa1SmiAhrA5jUYUiIMC59G92kIbY/AaQOWcBdq+lh+zg==",
+      "dependencies": [
+        "@sveltejs/kit"
       ]
     },
     "@sveltejs/kit@2.15.0_@sveltejs+vite-plugin-svelte@4.0.4__svelte@5.16.0___acorn@8.14.0__vite@5.4.11_svelte@5.16.0__acorn@8.14.0_vite@5.4.11": {
@@ -559,6 +566,7 @@
         "npm:@codemirror/state@^6.5.0",
         "npm:@codemirror/view@^6.36.1",
         "npm:@sveltejs/adapter-auto@3",
+        "npm:@sveltejs/adapter-static@^3.0.8",
         "npm:@sveltejs/kit@2",
         "npm:@sveltejs/vite-plugin-svelte@4",
         "npm:@xterm/addon-fit@0.10",

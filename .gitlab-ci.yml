@@ -39,15 +39,18 @@ build_filesystem:
   stage: build
   script:
     - cd src/filesystem
-    - make build
-    # Confirm our files are there
-    - test -e api/compiled.mjs
-    - test -e api/compiled.wasm
+    - apt-get update && apt-get -y install meson ninja-build
+    - meson setup --cross-file ../emscripten.ini ../../build/filesystem
+    - ninja -C ../../build/filesystem
   # Artifacts are to be kept between jobs
   artifacts:
     paths:
-      - src/filesystem/api/compiled.mjs
-      - src/filesystem/api/compiled.wasm
+      - build/filesystem/index.html
+      - build/filesystem/index.js
+      - build/filesystem/api.js
+      - build/filesystem/definitions.js
+      - build/filesystem/filesystem.js
+      - build/filesystem/filesystem.wasm
     expire_in: 1 week
 
 validate_artefact_persistence:
@@ -56,8 +59,14 @@ validate_artefact_persistence:
     - build_filesystem
   script:
     # Ensure artifacts have persisted
-    - test -e src/filesystem/api/compiled.mjs
-    - test -e src/filesystem/api/compiled.wasm
+    - test -e build/filesystem/filesystem.js
+    - test -e build/filesystem/filesystem.wasm
+    - test -e build/filesystem/index.html
+    - test -e build/filesystem/index.js
+    - test -e build/filesystem/api.js
+    - test -e build/filesystem/definitions.js
+    - test -e build/filesystem/filesystem.js
+    - test -e build/filesystem/filesystem.wasm
 
 validate_wasm:
   stage: validate
@@ -65,7 +74,7 @@ validate_wasm:
     - build_filesystem
   script:
     - apt-get update && apt-get install -y wabt
-    - wasm-validate src/filesystem/api/compiled.wasm    
+    - wasm-validate --enable-threads build/filesystem/filesystem.wasm
 
 test_filesystem:
   stage: test
@@ -76,7 +85,7 @@ test_filesystem:
     - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1
     - cd src/filesystem
     - npm install
-    - npm run start-server &
+    - npm run start-server ../../build/filesystem &
     # Wait for the server to start
     - until curl -s http://localhost:8080 > /dev/null; do echo "Waiting for server..."; sleep 1; done
     - npm run test

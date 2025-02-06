@@ -361,7 +361,8 @@ export function initialiseAPI(Module) {
       if (entryNameLength > 0) {
         // Extract the entry name
         const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, entryNameLength);
-        const entryName = Filesystem._UTF8Decoder.decode(dataView);
+        const copy = new Uint8Array(dataView);
+        const entryName = Filesystem._UTF8Decoder.decode(copy);
         entries.push(entryName);
         // Free the entry name string as it was created via
         // `strdup` in C

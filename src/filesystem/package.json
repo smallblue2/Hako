@@ -11,7 +11,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start-server": "http-server . -p 8080",
+    "start-server": "http-server ../../build/filesystem -p 8080",
     "test-with-server": "npm-run-all --parallel start-server test-only",
     "test": "mocha tests/*.test.js",
     "format": "eslint --fix api/*js tests/*js",

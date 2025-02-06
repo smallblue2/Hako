@@ -85,10 +85,10 @@ typedef struct __attribute__((packed)) { // 48 bytes
 // ======================= Filesystem API =======================
 
 // Creates a `/persistent` directory and mounts persisting FS volume
-void file__initialiseFS();
+void file__initialiseFS(void);
 
 // Force syncs the filesystem
-void file__syncFS();
+void file__syncFS(void);
 
 // Opens a file, only uses user flags, ignores any others provided
 // INFO: Performs permission and existence checks
