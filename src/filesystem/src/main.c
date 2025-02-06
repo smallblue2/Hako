@@ -275,15 +275,17 @@ void file__read_all(int fd, ReadResult *rr, Error *err) {
   rr->size = (ptr - buf);
 
   // Allocate enough space for the files contents into our ReadResult struct
-  rr->data = malloc(rr->size * sizeof(char));
-  if (!rr->data) {
-    *err = translate_errors(errno);
-    free(buf);
-    return;
-  }
+  if (rr->size != 0) {
+    rr->data = malloc(rr->size * sizeof(char));
+    if (!rr->data) {
+      *err = translate_errors(errno);
+      free(buf);
+      return;
+    }
 
-  // copy the buffer into our String output struct
-  memcpy(rr->data, buf, rr->size);
+    // copy the buffer into our String output struct
+    memcpy(rr->data, buf, rr->size);
+  }
 
   // free the buffer
   free(buf);
@@ -366,7 +368,7 @@ void file__move(const char *old_path, const char *new_path, Error *err) {
     return;
   }
 
-  // Permission checks [OLD FILE]
+  // Permission checks [NEW FILE]
   file_exists = (stat(new_path, &st) == 0);
 
   // If it's a system file, fail - user can't overwrite system files
@@ -413,13 +415,6 @@ void file__remove_dir(const char *path, Error *err) {
 void file__read_dir(const char *path, Entry *entry, int *err) {
   // NOTE: No permission checks as we're not enforcing permissions
   //       on directories.
-
-  // Ensure previous entry name is freed before overwriting
-  // (This is performed in JS API, but just to be safe!)
-  if (entry->name) {
-    free(entry->name);
-    entry->name = NULL;
-  }
 
   // If this is the first call (dirp == NULL), open the directory
   if (entry->dirp == NULL) {
