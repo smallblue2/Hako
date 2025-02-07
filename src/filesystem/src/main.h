@@ -87,8 +87,9 @@ typedef struct __attribute__((packed)) { // 48 bytes
 // Creates a `/persistent` directory and mounts persisting FS volume
 void file__initialiseFS(void);
 
-// Force syncs the filesystem
-void file__syncFS(void);
+// Force syncing from and to indexeddb
+void file__pushToPersist(void);
+void file__pullFromPersist(void);
 
 // Opens a file, only uses user flags, ignores any others provided
 // INFO: Performs permission and existence checks

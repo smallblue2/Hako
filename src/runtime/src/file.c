@@ -1,9 +1,11 @@
 #include "../../filesystem/src/main.h"
-#include "fs.h"
+#include "file.h"
 #include "fcntl.h"
 #include "lauxlib.h"
 #include "lua.h"
 #include <time.h>
+#include <errno.h>
+#include <emscripten.h>
 
 // Not in mainline lua, but adapted from: https://github.com/luau-lang/luau/pull/221
 bool checkboolean(lua_State *L, int narg) {
@@ -29,6 +31,9 @@ bool can_create_s(const char *flags) {
   return strchr(flags, 'c') != NULL;
 }
 
+/**
+ * @@ file.open(path: string, flags: string) -> (fd: int | nil, err: number | nil)
+ */
 int lfile__open(lua_State *L) {
   lua_settop(L, 2);
 
@@ -48,27 +53,36 @@ int lfile__open(lua_State *L) {
   Error err;
   int fd = file__open(path, flags, &err);
   if (fd < 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnil(L);
+    lua_pushnumber(L, errno);
+    return 2;
   }
 
   lua_pushnumber(L, fd);
+  lua_pushnil(L);
 
-  return 1;
+  return 2;
 }
 
+/**
+ * @@ file.close(fd: int) -> (err: number | nil)
+ */
 int lfile__close(lua_State *L) {
   lua_settop(L, 1);
   int fd = luaL_checknumber(L, 1);
   Error err;
   file__close(fd, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
-  return 0;
+  lua_pushnil(L);
+  return 1;
 }
 
+/**
+ * @@ file.write(fd: int, text: string) -> (err: number | nil)
+ */
 int lfile__write(lua_State *L) {
   lua_settop(L, 2);
   int fd = luaL_checknumber(L, 1);
@@ -76,12 +90,17 @@ int lfile__write(lua_State *L) {
   Error err;
   file__write(fd, content, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
-  return 0;
+
+  lua_pushnil(L);
+  return 1;
 }
 
+/**
+ * @@ file.read(fd: int, amt: int) -> (read: string | nil, err: number | nil)
+ */
 int lfile__read(lua_State *L) {
   lua_settop(L, 2);
   int fd = luaL_checknumber(L, 1);
@@ -90,14 +109,19 @@ int lfile__read(lua_State *L) {
   Error err;
   file__read(fd, amt, &rr, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnil(L);
+    lua_pushnumber(L, errno);
+    return 2;
   }
   lua_pushlstring(L, rr.data, rr.size);
   free(rr.data); // safe to free as lua does not own/borrow the memory
-  return 1;
+  lua_pushnil(L);
+  return 2;
 }
 
+/**
+ * @@ file.read_all(fd: int) -> (read: string | nil, err: number | nil)
+ */
 int lfile__read_all(lua_State *L) {
   lua_settop(L, 1);
   int fd = luaL_checknumber(L, 1);
@@ -105,14 +129,19 @@ int lfile__read_all(lua_State *L) {
   Error err;
   file__read_all(fd, &rr, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnil(L);
+    lua_pushnumber(L, errno);
+    return 2;
   }
   lua_pushlstring(L, rr.data, rr.size);
   free(rr.data);
-  return 1;
+  lua_pushnil(L);
+  return 2;
 }
 
+/**
+ * @@ file.shift(fd: int, amt: int) -> (err: number | nil)
+ */
 int lfile__shift(lua_State *L) {
   lua_settop(L, 2);
   int fd = luaL_checknumber(L, 1);
@@ -120,12 +149,16 @@ int lfile__shift(lua_State *L) {
   Error err;
   file__shift(fd, amt, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
-  return 0;
+  lua_pushnil(L);
+  return 1;
 }
 
+/**
+ * @@ file.goto(fd: int, pos: int) -> (err: number | nil)
+ */
 int lfile__goto(lua_State *L) {
   lua_settop(L, 2);
   int fd = luaL_checknumber(L, 1);
@@ -133,24 +166,32 @@ int lfile__goto(lua_State *L) {
   Error err;
   file__goto(fd, pos, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
-  return 0;
+  lua_pushnil(L);
+  return 1;
 }
 
+/**
+ * @@ file.remove(path: string) -> (err: number | nil)
+ */
 int lfile__remove(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
   Error err;
   file__remove(path, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
-  return 0;
+  lua_pushnil(L);
+  return 1;
 }
 
+/**
+ * @@ file.move(old_path: string, new_path: string) -> (err: number | nil)
+ */
 int lfile__move(lua_State *L) {
   lua_settop(L, 2);
   const char *old_path = luaL_checkstring(L, 1);
@@ -158,71 +199,98 @@ int lfile__move(lua_State *L) {
   Error err;
   file__move(old_path, new_path, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
-  return 0;
+  lua_pushnil(L);
+  return 1;
 }
 
+/**
+ * @@ file.make_dir(dir_path: string) -> (err: number | nil)
+ */
 int lfile__make_dir(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
   Error err;
   file__make_dir(path, &err);
+
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
-  return 0;
+  lua_pushnil(L);
+  return 1;
 }
 
+/**
+ * @@ file.remove_dir(dir_path: string) -> (err: number | nil)
+ */
 int lfile__remove_dir(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
   Error err;
   file__remove_dir(path, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
-  return 0;
+  lua_pushnil(L);
+  return 1;
 }
 
+/**
+ * @@ file.change_dir(dir_path: string) -> (err: number | nil)
+ */
 int lfile__change_dir(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
   Error err;
   file__change_dir(path, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
-  return 0;
+  lua_pushnil(L);
+  return 1;
 }
 
+/**
+ * @@ file.read_dir(dir_path: string) -> (entries: string[], err: number | nil)
+ */
 int lfile__read_dir(lua_State *L) {
   lua_settop(L, 2);
   const char *path = luaL_checkstring(L, 1);
 
-  Entry entry;
-  Error err;
-  lua_createtable(L, 0, 0);
+  Entry entry = {0};
+  Error err = 0;
+  lua_newtable(L);
 
-  int idx = 0;
-  while (idx++, file__read_dir(path, &entry, &err), entry.isEnd && err == 0) {
+  int idx = 1;
+  file__read_dir(path, &entry, &err);
+
+  do {
     lua_pushstring(L, entry.name);
     free(entry.name);
     entry.name = NULL;
-    lua_insert(L, idx);
-    lua_pop(L, 1);
-  }
+
+    lua_pushinteger(L, idx);
+    lua_insert(L, -2);
+    lua_settable(L, -3);
+
+    file__read_dir(path, &entry, &err);
+    idx++;
+  } while (!entry.isEnd && err == 0);
 
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pop(L, 1);
+    lua_pushnil(L);
+    lua_pushnumber(L, errno);
+    return 2;
   }
 
-  return 1;
+  lua_pushnil(L);
+  return 2;
 }
 
 void statr_as_l(lua_State *L, StatResult *sr) {
@@ -271,6 +339,31 @@ void statr_as_l(lua_State *L, StatResult *sr) {
 
 }
 
+/**
+ * @@ file.stat(path: string) -> (sr: StatResult | nil, err: number | nil)
+ *
+ * type StatResult {
+ *   size: number,
+ *   blocks: number,
+ *   blocksize: number,
+ *   ino: number,
+ *   perm: number, -- permissions (Only user: 01 Read, 001 Write, 0001 Execute) 20
+ * 
+ *   atime: {
+ *     sec: number,
+ *     nsec: number,
+ *   },
+ *   mtime: {
+ *     sec: number,
+ *     nsec: number,
+ *   },
+ *   ctime: {
+ *     sec: number,
+ *     nsec: number,
+ *   },
+ * }
+ *
+ */
 int lfile__stat(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
@@ -278,13 +371,40 @@ int lfile__stat(lua_State *L) {
   Error err;
   file__stat(path, &sr, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnil(L);
+    lua_pushnumber(L, errno);
+    return 2;
   }
   statr_as_l(L, &sr);
-  return 1;
+  lua_pushnil(L);
+  return 2;
 }
 
+/**
+ * @@ file.fdstat(fd: number) -> (sr: StatResult | nil, err: number | nil)
+ *
+ * type StatResult {
+ *   size: number,
+ *   blocks: number,
+ *   blocksize: number,
+ *   ino: number,
+ *   perm: number, -- permissions (Only user: 01 Read, 001 Write, 0001 Execute) 20
+ * 
+ *   atime: {
+ *     sec: number,
+ *     nsec: number,
+ *   },
+ *   mtime: {
+ *     sec: number,
+ *     nsec: number,
+ *   },
+ *   ctime: {
+ *     sec: number,
+ *     nsec: number,
+ *   },
+ * }
+ *
+ */
 int lfile__fdstat(lua_State *L) {
   lua_settop(L, 1);
   int fd = luaL_checknumber(L, 1);
@@ -292,13 +412,18 @@ int lfile__fdstat(lua_State *L) {
   Error err;
   file__fdstat(fd, &sr, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnil(L);
+    lua_pushnumber(L, errno);
+    return 2;
   }
   statr_as_l(L, &sr);
-  return 1;
+  lua_pushnil(L);
+  return 2;
 }
 
+/**
+ * @@ file.permit(fd: number, flags: string) -> (err: number | nil)
+ */
 int lfile__permit(lua_State *L) {
   lua_settop(L, 2);
 
@@ -317,9 +442,10 @@ int lfile__permit(lua_State *L) {
   Error err;
   file__permit(path, flags, &err);
   if (err != 0) {
-    fprintf(stderr, "Failed to open file: error %d\n", (int)err);
-    return -1;
+    lua_pushnumber(L, errno);
+    return 1;
   }
 
-  return 0;
+  lua_pushnil(L);
+  return 1;
 }

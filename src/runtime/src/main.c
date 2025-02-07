@@ -1,20 +1,16 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <stddef.h>
 
-#include "../filesystem/src/main.h"
-#include "fs.h"
+#include "../../filesystem/src/main.h"
+#include "lib.h"
 
 void export_stdlib(lua_State *L) {
-  for (size_t modi = 0; modi < nmodules; modi++) {
-    lua_pushglobaltable(L);
-    for (size_t i = 0; i < stdlib_len[modi]; i++) {
-      ModuleEntry ent = stdlib[modi][i];
-      lua_pushcfunction(L, ent.func);
-      lua_setfield(L, -2, ent.name);
-    }
-    lua_setglobal(L, stdlib_ns[modi]);
-  }
+  luaL_newlib(L, file_module);
+  lua_setglobal(L, "file");
+  luaL_newlib(L, errors_module);
+  lua_setglobal(L, "errors");
 }
 
 int main(void) {
@@ -31,15 +27,6 @@ int main(void) {
   file__initialiseFS();
 
   export_stdlib(L);
-
-  // lua_pushglobaltable(L);
-  //
-  // for (size_t i = 0; i < file_module_len; i++) {
-  //   lua_pushcfunction(L, file_module[i].func);
-  //   lua_setfield(L, -2, file_module[i].name);
-  // }
-  //
-  // lua_setglobal(L, "file");
 
   if (luaL_loadstring(L, src) == LUA_OK) {
     if (lua_pcall(L, 0, 0, 0) == LUA_OK) {

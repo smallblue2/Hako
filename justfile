@@ -1,8 +1,9 @@
 alias conf := reconfigure
+alias srd := site-run-dev
 
 default: build
 
-build: site
+build: exported-runtime
 native: runtime
 test: test-filesystem
 
@@ -25,9 +26,12 @@ runtime:
   ninja -C build/runtime
 
 [working-directory('src/site')]
-site: runtime
+exported-runtime: runtime
   cp ../../build/runtime/runtime.js static/
   cp ../../build/runtime/runtime.wasm static/
+
+[working-directory('src/site')]
+site: exported-runtime
   deno run build
 
 [working-directory('src/filesystem')]
@@ -37,6 +41,10 @@ test-filesystem: filesystem
   job=$(nq deno run start-server)
   deno run test
   kill ${job#*.}
+
+[working-directory('src/site')]
+site-run-dev:
+  deno run dev
 
 clean:
   rm -rf build/filesystem
