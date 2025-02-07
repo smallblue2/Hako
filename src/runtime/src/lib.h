@@ -4,13 +4,9 @@
 #include <lua.h>
 #include "file.h"
 #include "errors.h"
+#include "lauxlib.h"
 
-typedef struct {
-  const char *name;
-  lua_CFunction func;
-} ModuleEntry;
-
-static const ModuleEntry file_module[] = {
+static const luaL_Reg file_module[] = {
   {"open", lfile__open},
   {"close", lfile__close},
   {"write", lfile__write},
@@ -27,17 +23,12 @@ static const ModuleEntry file_module[] = {
   {"stat", lfile__stat},
   {"fdstat", lfile__fdstat},
   {"permit", lfile__permit},
+  {NULL, NULL},
 };
-static const size_t file_module_len = sizeof(file_module) / sizeof(file_module[0]);
 
-static const ModuleEntry errors_module[] = {
+static const luaL_Reg errors_module[] = {
   {"as_string", lerrors__as_string},
+  {NULL, NULL},
 };
-static const size_t errors_module_len = sizeof(errors_module) / sizeof(errors_module[0]);
-
-static const ModuleEntry *stdlib[] = { file_module, errors_module };
-static const size_t stdlib_len[] = { file_module_len, errors_module_len };
-static const char *stdlib_ns[] = { "file", "errors" };
-static const size_t nmodules = sizeof(stdlib) / sizeof(stdlib[0]);
 
 #endif

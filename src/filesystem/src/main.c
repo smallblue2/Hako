@@ -52,9 +52,25 @@ bool is_system_file(struct stat *node_stat) {
 // Explicitly forces a filesystem synchronisation.
 // Likely not needed if the IDBFS filesystem is mounted with `autoPersist`
 // option set to TRUE
-void file__syncFS() {
+void file__pullFromPersist() {
 #ifdef __EMSCRIPTEN__
-  EM_ASM({
+  MAIN_THREAD_EM_ASM({
+    // Force an initial sync - despite `autoPersist` flag
+    FS.syncfs(true, function (err) {
+      if (err) {
+        console.error("[JS] Error during sync:", err);
+      } else {
+        console.log("[JS] Sync completed succesfully!");
+      }
+    });
+  });
+#endif
+  return;
+}
+
+void file__pushToPersist() {
+#ifdef __EMSCRIPTEN__
+  MAIN_THREAD_EM_ASM({
     // Force an initial sync - despite `autoPersist` flag
     FS.syncfs(
         true, function(err) {
@@ -76,7 +92,7 @@ void file__initialiseFS() {
          PERSISTENT_ROOT_NAME);
 
 #ifdef __EMSCRIPTEN__
-  EM_ASM(
+  MAIN_THREAD_EM_ASM(
       {
         let persistentRoot = UTF8ToString($0);
         let check = FS.analyzePath(persistentRoot, false);
@@ -99,7 +115,7 @@ void file__initialiseFS() {
       PERSISTENT_ROOT_NAME);
 #endif
 
-  file__syncFS(); // Not sure if needed due to autoPersist: true
+  file__pullFromPersist();
 
   return;
 }

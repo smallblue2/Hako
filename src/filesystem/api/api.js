@@ -67,7 +67,7 @@ export function initialiseAPI(Module) {
     [], // Argument types
   )
   Filesystem.sync = Module.cwrap(
-    'file__syncFS', // Function name
+    'file__pullFromPersist', // Function name
     null, // Return type
     [], // Argument types
   )

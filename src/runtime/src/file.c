@@ -5,6 +5,7 @@
 #include "lua.h"
 #include <time.h>
 #include <errno.h>
+#include <emscripten.h>
 
 // Not in mainline lua, but adapted from: https://github.com/luau-lang/luau/pull/221
 bool checkboolean(lua_State *L, int narg) {
@@ -213,6 +214,7 @@ int lfile__make_dir(lua_State *L) {
   const char *path = luaL_checkstring(L, 1);
   Error err;
   file__make_dir(path, &err);
+
   if (err != 0) {
     lua_pushnumber(L, errno);
     return 1;

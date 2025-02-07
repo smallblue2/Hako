@@ -3,19 +3,14 @@
 #include <lauxlib.h>
 #include <stddef.h>
 
-#include "../filesystem/src/main.h"
+#include "../../filesystem/src/main.h"
 #include "lib.h"
 
 void export_stdlib(lua_State *L) {
-  for (size_t modi = 0; modi < nmodules; modi++) {
-    lua_pushglobaltable(L);
-    for (size_t i = 0; i < stdlib_len[modi]; i++) {
-      ModuleEntry ent = stdlib[modi][i];
-      lua_pushcfunction(L, ent.func);
-      lua_setfield(L, -2, ent.name);
-    }
-    lua_setglobal(L, stdlib_ns[modi]);
-  }
+  luaL_newlib(L, file_module);
+  lua_setglobal(L, "file");
+  luaL_newlib(L, errors_module);
+  lua_setglobal(L, "errors");
 }
 
 int main(void) {
