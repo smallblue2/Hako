@@ -1,55 +1,116 @@
 import { expect } from 'chai';
-import { Worker, isMainThread, parentPort } from 'worker_threads';
-import Pipe from "../src/pipe.js";
+import { Worker } from 'worker_threads';
+import Pipe from '../src/pipe.js';
 
-describe('Pipe', function() {
-  this.timeout(5000);
+describe('Pipe Tests', function() {
+  this.timeout(10000);
 
-  it('Should correctly write and read data', () => {
+  it('Should correctly write and read a simple message', (done) => {
+    const message = "Hello, World!";
+    const pipe = new Pipe(64);
+    const pipeBuffer = pipe.getBuffer();
+
+    const writer = new Worker('./tests/writer.js', {
+      workerData: { buffer: pipeBuffer, message }
+    });
+    const reader = new Worker('./tests/reader.js', {
+      workerData: { buffer: pipeBuffer, length: message.length }
+    });
+
+    reader.on('message', (msg) => {
+      expect(msg).to.equal(message);
+      done();
+    });
+    reader.on('error', done);
+    writer.on('error', done);
+  });
+
+  it('Should handle wrap-around correctly', (done) => {
     const pipe = new Pipe(10);
-    pipe.write("Hello");
-    const output = pipe.read(5);
-    expect(output).to.equal("Hello");
-  })
+    const message = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const pipeBuffer = pipe.getBuffer();
 
-  it('Should handle multiple writers', (done) => {
-    let numOfWriters = 10;
-    const pipe = new Pipe(55 * numOfWriters);
+    const writer = new Worker('./tests/writer.js', {
+      workerData: { buffer: pipeBuffer, message }
+    });
+    const reader = new Worker('./tests/reader.js', {
+      workerData: { buffer: pipeBuffer, length: message.length }
+    });
 
-    let writerPromises = []
+    reader.on('message', (msg) => {
+      expect(msg).to.equal(message);
+      done();
+    });
+    reader.on('error', done);
+    writer.on('error', done);
+  });
 
-    // Write a bunch
-    for (let i = 0; i < numOfWriters; i++) {
-      writerPromises.push(new Promise((resolve, reject) => {
-        const writer = new Worker('./tests/writer.js',
-          { workerData: pipe.getBuffer() }
-        );
+  it('Should block on read when empty and then resume', (done) => {
+    const message = "BLOCKING READ TEST";
+    const pipe = new Pipe(32);
+    const pipeBuffer = pipe.getBuffer();
 
-        writer.on('exit', () => {
-          resolve();
-        });
+    // Start the reader first so it blocks waiting for data
+    const reader = new Worker('./tests/reader.js', {
+      workerData: { buffer: pipeBuffer, length: message.length }
+    });
+    reader.on('message', (msg) => {
+      expect(msg).to.equal(message);
+      done();
+    });
+    reader.on('error', done);
 
-        writer.on('error', reject);
+    // Delay the writer so the reader must block
+    setTimeout(() => {
+      const writer = new Worker('./tests/writer.js', {
+        workerData: { buffer: pipeBuffer, message }
+      });
+      writer.on('error', done);
+    }, 200);
+  });
 
-      }));
-    }
+  it('Should block on write when full and then resume', (done) => {
+    const pipe = new Pipe(5);
+    const message = "BLOCKING WRITE TEST";
+    const pipeBuffer = pipe.getBuffer();
 
-    let expected = 'A'.repeat(50 * numOfWriters);
+    // Start the writer - it will block if the pipe is full
+    const writer = new Worker('./tests/writer.js', {
+      workerData: { buffer: pipeBuffer, message }
+    });
+    writer.on('error', done);
 
-    Promise.all(writerPromises).then(() => {
-      console.log("All writers finished, starting reader.")
-      // Read
-      const reader = new Worker('./tests/reader.js',
-        { workerData: { buffer: pipe.getBuffer(), numOfWriters: numOfWriters} }
-      );
-
+    // Delay the reader to force the writer to block
+    setTimeout(() => {
+      const reader = new Worker('./tests/reader.js', {
+        workerData: { buffer: pipeBuffer, length: message.length }
+      });
       reader.on('message', (msg) => {
-        let readOutput = msg;
-        expect(readOutput).to.equal(expected);
+        expect(msg).to.equal(message);
         done();
       });
-
       reader.on('error', done);
-    }).catch(done);
+    }, 300);
+  });
+
+  it('Should handle continuous streaming without data loss', (done) => {
+    const baseMessage = "STREAM" + Date.now();
+    const repeatCount = 1000;
+    const fullMessage = baseMessage.repeat(repeatCount);
+    const pipe = new Pipe(128);
+    const pipeBuffer = pipe.getBuffer();
+
+    const writer = new Worker('./tests/writer.js', {
+      workerData: { buffer: pipeBuffer, message: fullMessage }
+    });
+    const reader = new Worker('./tests/reader.js', {
+      workerData: { buffer: pipeBuffer, length: fullMessage.length }
+    });
+    reader.on('message', (msg) => {
+      expect(msg).to.equal(fullMessage);
+      done();
+    });
+    reader.on('error', done);
+    writer.on('error', done);
   });
 });

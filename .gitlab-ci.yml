@@ -89,3 +89,10 @@ test_filesystem:
     # Wait for the server to start
     - until curl -s http://localhost:8080 > /dev/null; do echo "Waiting for server..."; sleep 1; done
     - npm run test
+
+test_processes:
+  stage: test
+  script:
+    - cd src/processes
+    - npm install
+    - npm run test
