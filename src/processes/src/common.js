@@ -2,7 +2,7 @@ export const ProcessStates = Object.freeze({
   READY: "ready",
   RUNNING: "running",
   SLEEPING: "sleeping",
-  STARTING: "starting",
+  TERMINATING: "terminating"
 });
 
 export const ProcessOperations = Object.freeze({
