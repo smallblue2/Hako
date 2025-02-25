@@ -2,19 +2,20 @@ export default class Pipe {
   // Creates a pipe with buffer size of 'size'
   // OR uses passed buffer
   constructor(size, buffer = null) {
-    this.attachBuffer(buffer || new SharedArrayBuffer(size + 8))
-
+    this.attachBuffer(buffer || new SharedArrayBuffer(size + 8));
     this.encoder = new TextEncoder();
     this.decoder = new TextDecoder();
   }
 
   attachBuffer(buffer) {
     this.buffer = buffer;
+    // Reserve the first 8 bytes for control (2 Int32s)
     this.data = new Uint8Array(this.buffer, 8, this.buffer.byteLength - 8);
+    // control[0] = read pointer, control[1] = write pointer
     this.control = new Int32Array(this.buffer, 0, 2);
   }
 
-  // Not sure if will need
+  // Returns the underlying SharedArrayBuffer
   getBuffer() {
     return this.buffer;
   }
@@ -23,23 +24,36 @@ export default class Pipe {
     const encodedData = this.encoder.encode(data);
 
     for (let i = 0; i < encodedData.length; i++) {
-      // Check if the buffer is full (writer + 1 === reader)
-      while((Atomics.load(this.control, 1) + 1) % this.data.length === Atomics.load(this.control, 0)) {
-        // Wait on this.control[1] until this.control[1] changes
-        // 
-        // This will be woken up by a reader calling notify(this.control, 1)
-        // which waits any workers waiting on that index
-        Atomics.wait(this.control, 1, Atomics.load(this.control, 1))
+      while (true) {
+        const currentWriter = Atomics.load(this.control, 1);
+        const currentReader = Atomics.load(this.control, 0);
+
+        // Buffer is full when the difference equals the capacity.
+        if (currentWriter - currentReader === this.data.length) {
+          // Buffer is full. Wait until a reader makes space.
+          Atomics.wait(this.control, 1, currentWriter);
+          continue;
+        }
+
+        // Try to atomically increment the writer pointer.
+        const prev = Atomics.compareExchange(
+          this.control,
+          1,
+          currentWriter,
+          currentWriter + 1
+        );
+
+        if (prev === currentWriter) {
+          // Successfully reserved a slot!
+          const writeIndex = currentWriter % this.data.length;
+          this.data[writeIndex] = encodedData[i];
+
+          // Notify any waiting readers that data is available.
+          Atomics.notify(this.control, 0);
+          break;
+        }
+        // Someone got there before us, try again :(
       }
-
-      // Get unique write index
-      const writeIndex = Atomics.add(this.control, 1, 1) % this.data.length;
-
-      // Safely write data
-      this.data[writeIndex] = encodedData[i];
-
-      // Wake up any readers blocked due to buffer being empty
-      Atomics.notify(this.control, 0)
     }
   }
 
@@ -47,19 +61,35 @@ export default class Pipe {
     let result = [];
 
     for (let i = 0; i < amt; i++) {
-      // Check if the buffer is empty (reader === writer)
-      while(Atomics.load(this.control, 0) === Atomics.load(this.control, 1)) {
-        // Buffer empty, wait for data
-        Atomics.wait(this.control, 0, Atomics.load(this.control, 0));
+      while (true) {
+        const currentReader = Atomics.load(this.control, 0);
+        const currentWriter = Atomics.load(this.control, 1);
+
+        // Buffer is empty when both pointers are equal
+        if (currentWriter - currentReader === 0) {
+          // Buffer empty, wait for data.
+          Atomics.wait(this.control, 0, currentReader);
+          continue;
+        }
+
+        // Try to atomically increment the reader pointer
+        const prev = Atomics.compareExchange(
+          this.control,
+          0,
+          currentReader,
+          currentReader + 1
+        );
+
+        if (prev === currentReader) {
+          // Successfully reserved a read slot
+          const readIndex = currentReader % this.data.length;
+          result.push(this.data[readIndex]);
+
+          // Notify waiting writers that space is now available
+          Atomics.notify(this.control, 1);
+          break;
+        }
       }
-
-      // Get unique readIndex
-      const readIndex = Atomics.add(this.control, 0, 1) % this.data.length;
-
-      result.push(this.data[readIndex]);
-
-      // Notify writers space is available
-      Atomics.notify(this.control, 1);
     }
 
     return this.decoder.decode(new Uint8Array(result));

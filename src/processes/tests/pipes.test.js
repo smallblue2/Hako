@@ -20,7 +20,7 @@ describe('Pipe', function() {
 
     // Write a bunch
     for (let i = 0; i < numOfWriters; i++) {
-      new Promise((resolve, reject) => {
+      writerPromises.push(new Promise((resolve, reject) => {
         const writer = new Worker('./tests/writer.js',
           { workerData: pipe.getBuffer() }
         );
@@ -31,7 +31,7 @@ describe('Pipe', function() {
 
         writer.on('error', reject);
 
-      })
+      }));
     }
 
     let expected = 'A'.repeat(50 * numOfWriters);
