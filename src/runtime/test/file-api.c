@@ -91,9 +91,38 @@ void test_file_close(void) {
   TEST_ASSERT_EQUAL_INT_MESSAGE(0, lua_tonumber(L, -1), "file.open or file.close returned an error code");
 }
 
+void test_file_write(void) {
+  TEST_ASSERT_MESSAGE(L != NULL, "Lua is not initialized properly");
+
+  snprintf(static_fmt_buf, STATIC_FMT_SIZE,
+      "local fd, err = file.open('/tmp/%d-file-write', 'rwc')\n"
+      "if err ~= nil then\n"
+      "  return err\n"
+      "end\n"
+      "local err = file.write(fd, 'Hello, world')\n"
+      "if err ~= nil then\n"
+      "  return err\n"
+      "end\n"
+      "file.close(fd)\n"
+      "fd = file.open('/tmp/%d-file-write', 'r')\n"
+      "local res, err = file.read(fd, 12)\n"
+      "if err ~= nil then\n"
+      "  return err\n"
+      "end\n"
+      "return res", unique_test_id, unique_test_id);
+  if (LUA_OK != luaL_dostring(L, static_fmt_buf)) {
+    const char *err = lua_tostring(L, -1);
+    fprintf(stderr, "lua code failed to run: %s\n", err);
+    TEST_FAIL();
+  }
+  TEST_ASSERT_EQUAL_INT_MESSAGE(LUA_TSTRING, lua_type(L, -1), "expected to get string result");
+  TEST_ASSERT_EQUAL_STRING_MESSAGE("Hello, world", lua_tostring(L, -1), "Written contents are different from what is expected");
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_file_open);
   RUN_TEST(test_file_close);
+  RUN_TEST(test_file_write);
   return UNITY_END();
 }

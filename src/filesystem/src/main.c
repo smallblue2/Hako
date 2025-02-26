@@ -122,7 +122,7 @@ void file__initialiseFS() {
 
 int file__open(const char *path, int flags, Error *err) {
   // Permission checks
-  static struct stat st = {0}; // If built on cathals machine if this is not static it
+  struct stat st = {0}; // If built on cathals machine if this is not static it
                                // cause stack smashing, this is a anomoly
   bool file_exists = (stat(path, &st) == 0);
 
