@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAssembly with Emscripten Glue</title>
+</head>
+
+<body>
+  <script type="module">
+    window.getStdin = () => {
+      return "Hello to C!"
+    }
+
+    async function runWasm() {
+      try {
+        const {default: initEmscripten} = await import('./main.mjs');
+
+        const Module = await initEmscripten({
+          onRuntimeInitialized: () => {
+            console.log("WE UP!")
+          }
+        })
+
+        Module._main();
+      } catch (err) {
+        console.error("Error loading Wasm:", err);
+      }
+    }
+
+    window.runWasm = runWasm;
+  </script>
+
+  <h1>WebAssembly Running via Emscripten</h1>
+  <button onclick="runWasm()">Run WebAssembly</button>
+
+</body>
+
+</html>
