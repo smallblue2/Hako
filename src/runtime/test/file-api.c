@@ -53,6 +53,7 @@ void tearDown(void) {
 
 void test_file_open(void) {
   TEST_ASSERT_MESSAGE(L != NULL, "Lua is not initialized properly");
+  int top = lua_gettop(L);
 
   snprintf(static_fmt_buf, STATIC_FMT_SIZE,
       "local fd, err = file.open('/tmp/%d-file-open', 'c')\n"
@@ -67,10 +68,13 @@ void test_file_open(void) {
   }
   TEST_ASSERT_EQUAL_INT_MESSAGE(LUA_TNUMBER, lua_type(L, -1), "expected to get integer result");
   TEST_ASSERT_EQUAL_INT_MESSAGE(0, lua_tonumber(L, -1), "file.open returned an error code");
+
+  lua_settop(L, top);
 }
 
 void test_file_close(void) {
   TEST_ASSERT_MESSAGE(L != NULL, "Lua is not initialized properly");
+  int top = lua_gettop(L);
 
   snprintf(static_fmt_buf, STATIC_FMT_SIZE,
       "local fd, err = file.open('/tmp/%d-file-close', 'c')\n"
@@ -89,10 +93,13 @@ void test_file_close(void) {
   }
   TEST_ASSERT_EQUAL_INT_MESSAGE(LUA_TNUMBER, lua_type(L, -1), "expected to get integer result");
   TEST_ASSERT_EQUAL_INT_MESSAGE(0, lua_tonumber(L, -1), "file.open or file.close returned an error code");
+
+  lua_settop(L, top);
 }
 
 void test_file_write(void) {
   TEST_ASSERT_MESSAGE(L != NULL, "Lua is not initialized properly");
+  int top = lua_gettop(L);
 
   snprintf(static_fmt_buf, STATIC_FMT_SIZE,
       "local fd, err = file.open('/tmp/%d-file-write', 'rwc')\n"
@@ -117,6 +124,8 @@ void test_file_write(void) {
   }
   TEST_ASSERT_EQUAL_INT_MESSAGE(LUA_TSTRING, lua_type(L, -1), "expected to get string result");
   TEST_ASSERT_EQUAL_STRING_MESSAGE("Hello, world", lua_tostring(L, -1), "Written contents are different from what is expected");
+
+  lua_settop(L, top);
 }
 
 int main(void) {

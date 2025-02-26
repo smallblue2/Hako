@@ -122,7 +122,7 @@ void file__initialiseFS() {
 
 int file__open(const char *path, int flags, Error *err) {
   // Permission checks
-  struct stat st = {0}; // If built on cathals machine if this is not static it
+  static struct stat st = {0}; // If built on cathals machine if this is not static it
                                // cause stack smashing, this is a anomoly
   bool file_exists = (stat(path, &st) == 0);
 
@@ -344,7 +344,7 @@ void file__goto(int fd, int pos, Error *err) {
 // `file__removeFile`
 void file__remove(const char *path, Error *err) {
   // Permission checks
-  struct stat st;
+  static struct stat st;
   bool file_exists = (stat(path, &st) == 0);
 
   if (!file_exists) {
@@ -370,7 +370,7 @@ void file__remove(const char *path, Error *err) {
 
 void file__move(const char *old_path, const char *new_path, Error *err) {
   // Permission checks [OLD FILE]
-  struct stat st;
+  static struct stat st;
   bool file_exists = (stat(old_path, &st) == 0);
 
   if (!file_exists) {
@@ -479,7 +479,7 @@ void file__stat(const char *name, StatResult *sr, Error *err) {
   // This usually relies on the `x` of the parent directory,
   // but we're not implementing directory permissions
 
-  struct stat file_stat;
+  static struct stat file_stat;
   if (stat(name, &file_stat) < 0) {
     *err = translate_errors(errno);
     return;
@@ -513,7 +513,7 @@ void file__fdstat(int fd, StatResult *sr, Error *err) {
   // This usually relies on the `x` of the parent directory,
   // but we're not implementing directory permissions
 
-  struct stat file_stat;
+  static struct stat file_stat;
   if (fstat(fd, &file_stat) < 0) {
     *err = translate_errors(errno);
     return;
@@ -557,7 +557,7 @@ void file__change_dir(const char *path, Error *err) {
 // Changes FILE permissions (only for user - single user OS, 0[use][ignore][ignore])
 void file__permit(const char *path, int flags, Error *err) {
   // permissions check
-  struct stat st;
+  static struct stat st;
   bool file_exists = (stat(path, &st) == 0);
 
   if (!file_exists) {
