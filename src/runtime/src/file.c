@@ -1,11 +1,10 @@
 #include "../../filesystem/src/main.h"
 #include "file.h"
-#include "fcntl.h"
-#include "lauxlib.h"
-#include "lua.h"
+#include <fcntl.h>
+#include <lauxlib.h>
+#include <lua.h>
 #include <time.h>
 #include <errno.h>
-#include <emscripten.h>
 
 // Not in mainline lua, but adapted from: https://github.com/luau-lang/luau/pull/221
 bool checkboolean(lua_State *L, int narg) {
@@ -43,18 +42,20 @@ int lfile__open(lua_State *L) {
   bool read = can_read_s(flagss);
   bool write = can_write_s(flagss);
   bool create = can_create_s(flagss);
-
+ 
   int flags = 0;
+ 
   if (read && write) flags |= O_RDWR;
   else if (read) flags |= O_RDONLY;
   else if (write) flags |=  O_WRONLY;
+ 
   if (create) flags |= O_CREAT;
 
-  Error err;
+  Error err = 0;
   int fd = file__open(path, flags, &err);
   if (fd < 0) {
     lua_pushnil(L);
-    lua_pushnumber(L, errno);
+    lua_pushnumber(L, err);
     return 2;
   }
 
