@@ -1,4 +1,5 @@
 #include "main.h"
+#include <fcntl.h>
 #include <sys/stat.h>
 
 // Emscripten uses its own errno convention when compiled which

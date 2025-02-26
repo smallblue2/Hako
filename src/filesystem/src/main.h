@@ -2,9 +2,10 @@
 #define MAIN_H
 
 // ======================= Includes =======================
-
-#include <dirent.h>
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#endif
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
