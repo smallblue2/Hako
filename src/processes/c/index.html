@@ -9,24 +9,14 @@
 
 <body>
   <script type="module">
-    window.getStdin = () => {
-      return "Hello to C!"
-    }
-
     async function runWasm() {
-      try {
-        const {default: initEmscripten} = await import('./main.mjs');
+      let worker = new Worker(new URL("worker.js", import.meta.url))
 
-        const Module = await initEmscripten({
-          onRuntimeInitialized: () => {
-            console.log("WE UP!")
-          }
-        })
-
-        Module._main();
-      } catch (err) {
-        console.error("Error loading Wasm:", err);
+      worker.onmessage = (e) => {
+        console.log(e.data);
       }
+
+      worker.postMessage("Start");
     }
 
     window.runWasm = runWasm;
