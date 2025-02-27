@@ -9,9 +9,9 @@ EM_JS(int, get_stdin, (char* buf, int len), {
   return s.length;
 });
 
-EM_JS(int, get_stdout, (char* buf, int len), {
+EM_JS(int, send_to_stdout, (char* buf, int len), {
   var s = Module.UTF8ToString(buf, len);
-  getStdOut(s);
+  sendToStdOut(s);
   return s.length;
 });
 
@@ -23,13 +23,10 @@ void test(void) {
   char buffer[256]; // Allocate a buffer in C
   int length = get_stdin(buffer, sizeof(buffer)); // Call JS, get input
 
-  char* out = "hello stdout!";
-  int errlength = get_stdout(out, strlen(out));
-
   if (length > 0) {
     char outbuffer[256];
     sprintf(outbuffer, "Received: %s\n", buffer);
-    log_message(outbuffer);
+    send_to_stdout(outbuffer, strlen(outbuffer));
   } else {
     printf("Error");
   }

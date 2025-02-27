@@ -9,14 +9,21 @@
 
 <body>
   <script type="module">
+    import Pipe from './pipe.js';
+
     async function runWasm() {
-      let worker = new Worker(new URL("worker.js", import.meta.url))
+      window.stdin = new Pipe(1024);
+      window.stdout = new Pipe(1024);
+
+      console.log("Creating worker");
+      let worker = new Worker(new URL("worker.js", import.meta.url));
+      console.log("Worker created");
 
       worker.onmessage = (e) => {
         console.log(e.data);
       }
 
-      worker.postMessage("Start");
+      worker.postMessage({stdinBuffer: window.stdin.getBuffer(), stdoutBuffer: window.stdout.getBuffer()});
     }
 
     window.runWasm = runWasm;
