@@ -113,4 +113,35 @@ describe('Pipe Tests', function() {
     reader.on('error', done);
     writer.on('error', done);
   });
+
+  it('Should exit readAll immediately if no data available', (done) => {
+    const pipe = new Pipe(64);
+    let data = pipe.readAll();
+
+    expect(data).to.equal("");
+    done();
+  });
+
+  it('Should return all written data via readAll', (done) => {
+    const pipe = new Pipe(1024);
+    let msg = "please help me I am trapped inside of this pipe";
+    pipe.write(msg);
+
+    let retrieved = pipe.readAll();
+
+    expect(retrieved).to.equal(msg);
+    done();
+  })
+
+  it('Should return only one line via readLine()', (done) => {
+  const pipe = new Pipe(1024);
+  let msg = "please help me I am trapped inside of this pipe\nThis should be a secret";
+  pipe.write(msg);
+
+  let retrieved = pipe.readLine();
+
+  expect(retrieved).to.equal("please help me I am trapped inside of this pipe\n");
+  done();
+})
+
 });

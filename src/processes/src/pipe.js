@@ -70,4 +70,48 @@ export default class Pipe {
     }
     return this.decoder.decode(new Uint8Array(result));
   }
+
+  // Non-blocking readAll. If empty, instantly returns.
+  readAll() {
+    const result = []
+    while (true) {
+      const rd = Atomics.load(this.control, 0);
+      const wr = Atomics.load(this.control, 1);
+
+      // If buffer is empty, break
+      if (rd === wr) break;
+
+      result.push(this.data[rd]);
+      const newRd = (rd + 1) % this.data.length;
+      Atomics.store(this.control, 0, newRd);
+      Atomics.notify(this.control, 0, 1);
+    }
+    return this.decoder.decode(new Uint8Array(result));
+  }
+
+  // Blocking, will read until `\n`
+  readLine() {
+    const result = []
+    while (true) {
+      const rd = Atomics.load(this.control, 0);
+      const wr = Atomics.load(this.control, 1);
+
+      // Buffer is empty if the read pointer equals the write pointer
+      if (rd === wr) {
+        // Buffer empty; wait on the write pointer
+        Atomics.wait(this.control, 1, wr);
+        continue;
+      }
+
+      result.push(this.data[rd]);
+      const newRd = (rd + 1) % this.data.length;
+      Atomics.store(this.control, 0, newRd);
+      Atomics.notify(this.control, 0, 1);
+
+      if (this.data[rd] == 10) { // `\n` = 10 in ASCII
+        break;
+      }
+    }
+    return this.decoder.decode(new Uint8Array(result));
+  }
 }
