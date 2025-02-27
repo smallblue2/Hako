@@ -298,24 +298,30 @@ void statr_as_l(lua_State *L, StatResult *sr) {
   lua_createtable(L, 0, 8);
 
   lua_pushnumber(L, sr->size);
-  lua_setfield(L, -1, "size");
-  lua_pop(L, 1);
+  lua_setfield(L, -2, "size");
 
   lua_pushnumber(L, sr->blocks);
-  lua_setfield(L, -1, "blocks");
-  lua_pop(L, 1);
+  lua_setfield(L, -2, "blocks");
 
   lua_pushnumber(L, sr->blocksize);
-  lua_setfield(L, -1, "blocksize");
-  lua_pop(L, 1);
+  lua_setfield(L, -2, "blocksize");
 
   lua_pushnumber(L, sr->ino);
-  lua_setfield(L, -1, "ino");
-  lua_pop(L, 1);
+  lua_setfield(L, -2, "ino");
 
-  lua_pushnumber(L, sr->perm);
-  lua_setfield(L, -1, "perm");
-  lua_pop(L, 1);
+  int usr = (sr->perm & 0700) >> 6;
+  bool read = (usr & 4) != 0;
+  bool write = (usr & 2) != 0;
+  bool exec = (usr & 1) != 0;
+
+  char perm[4] = {0};
+  int i = 0;
+  if (read) perm[i++] = 'r';
+  if (write) perm[i++] = 'w';
+  if (exec) perm[i] = 'x';
+
+  lua_pushstring(L, perm);
+  lua_setfield(L, -2, "perm");
 
   // Fill up those time fields
   static const char *time_fields[] = { "atime", "mtime", "ctime" };
@@ -327,15 +333,11 @@ void statr_as_l(lua_State *L, StatResult *sr) {
     Time *time = (Time *)(srr + time_offsets[i]); // then just extract the field by byte offset
 
     lua_pushnumber(L, time->sec);
-    lua_setfield(L, -1, "sec");
-    lua_pop(L, 1);
-
+    lua_setfield(L, -2, "sec");
     lua_pushnumber(L, time->nsec);
-    lua_setfield(L, -1, "nsec");
-    lua_pop(L, 1);
+    lua_setfield(L, -2, "nsec");
 
-    lua_setfield(L, -1, time_fields[i]);
-    lua_pop(L, 1);
+    lua_setfield(L, -2, time_fields[i]);
   }
 
 }
@@ -436,9 +438,9 @@ int lfile__permit(lua_State *L) {
   bool exec = can_exec_s(flagss);
 
   int flags = 0;
-  if (read) flags |= 0100;
+  if (read) flags |= 0400;
   if (write) flags |= 0200;
-  if (exec) flags |= 0300;
+  if (exec) flags |= 0100;
 
   Error err;
   file__permit(path, flags, &err);

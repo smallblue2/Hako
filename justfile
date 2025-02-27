@@ -5,7 +5,7 @@ default: build
 
 build: exported-runtime
 build-native: runtime-native
-test: test-filesystem
+test: test-filesystem test-runtime
 
 reconfigure: reconfigure-filesystem reconfigure-runtime
 
@@ -60,7 +60,10 @@ test-filesystem: filesystem
   deno run test
   kill ${job#*.}
 
-[working-directory('src/site')]
+test-runtime: runtime-native filesystem-native
+  meson test -C build-native/runtime --print-errorlogs
+
+[ working-directory('src/site')]
 site-run-dev:
   deno run dev
 

@@ -19,5 +19,5 @@ if host_machine.system() == 'emscripten'
 
   library('filesystem', sources, c_args: ['-std=gnu23', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lidbfs.js', '-sFORCE_FILESYSTEM', '-pthread', '-sEXPORT_ES6', '-sPROXY_TO_PTHREAD', '-sENVIRONMENT=web,worker'], install: true)
 else
-  library('filesystem', sources, c_args: ['-std=gnu23', '-Os', '-Wall', '-Wextra'], install: true)
+  library('filesystem', sources, c_args: ['-std=gnu23', '-Os', '-Wall', '-Wextra', '-D_FILE_OFFSET_BITS=64'], install: true)
 endif
