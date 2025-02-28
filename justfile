@@ -11,21 +11,21 @@ reconfigure: reconfigure-filesystem reconfigure-runtime
 
 [working-directory('src/filesystem')]
 reconfigure-filesystem:
-  meson setup --cross-file ../emscripten.ini ../../build/filesystem --wipe
+  meson setup --cross-file ../emscripten.ini ../../build/filesystem
 
 [working-directory('src/runtime')]
 reconfigure-runtime: filesystem
-  meson setup --cross-file ../emscripten.ini ../../build/runtime --wipe --force-fallback-for=lua
+  meson setup --cross-file ../emscripten.ini ../../build/runtime --wrap-mode=forcefallback
 
 # Native compilation is used for running tests, just so we don't need to run
 # them in a wasm + browser context
 [working-directory('src/filesystem')]
 reconfigure-filesystem-native:
-  meson setup ../../build-native/filesystem --wipe
+  meson setup ../../build-native/filesystem
 
 [working-directory('src/runtime')]
 reconfigure-runtime-native: filesystem
-  meson setup ../../build-native/runtime --wipe --force-fallback-for=lua
+  meson setup ../../build-native/runtime --wrap-mode=forcefallback
 
 filesystem-native:
   if [ ! -d build-native/filesystem ]; then just reconfigure-filesystem-native; fi
@@ -56,14 +56,14 @@ site: exported-runtime
 test-filesystem: filesystem
   #!/bin/sh
   export NQDIR=../../build
-  job=$(nq deno run start-server)
-  deno run test
+  job=$(nq npm run start-server)
+  npm run test
   kill ${job#*.}
 
-test-runtime: runtime-native filesystem-native
+test-runtime: runtime-native
   meson test -C build-native/runtime --print-errorlogs
 
-[ working-directory('src/site')]
+[working-directory('src/site')]
 site-run-dev:
   deno run dev
 
