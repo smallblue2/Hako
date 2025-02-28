@@ -4,7 +4,9 @@
 // ======================= Includes =======================
 
 #include <dirent.h>
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#endif
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -21,6 +23,9 @@
 #define PERSISTENT_ROOT_NAME "/persistent"
 
 // Buffer size for reading
+#ifdef BUFSIZ
+#undef BUFSIZ
+#endif
 #define BUFSIZ 1024
 
 // If this bit is set on any files, they cannot be modified

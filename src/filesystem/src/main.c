@@ -121,9 +121,8 @@ void file__initialiseFS() {
 }
 
 int file__open(const char *path, int flags, Error *err) {
-
   // Permission checks
-  struct stat st;
+  struct stat st = {0};
   bool file_exists = (stat(path, &st) == 0);
 
   bool wants_read =
