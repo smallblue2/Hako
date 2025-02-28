@@ -1,4 +1,5 @@
 import { ProcessStates } from "./common.js";
+import Pipe from "./pipe.js";
 
 /**
  * The ProcessTable class is responsible for storing and tracking all
@@ -29,6 +30,12 @@ export default class ProcessTable {
      * @type {number}
      */
     this.nextPID = 1; // Start PID allocation from 1
+
+    /**
+     * The default pipe size for processes.
+     * @type {number}
+     */
+    this.pipeSize = 1024;
   }
 
   /**
@@ -62,15 +69,15 @@ export default class ProcessTable {
     // ============= Initialise Process Entry ============= 
 
     // Create MessageChannels for inter-process communication
-    const stdinChannel = new MessageChannel();
-    const stdoutChannel = new MessageChannel();
-    const stderrChannel = new MessageChannel();
+    const stdinPipe = new Pipe(this.pipeSize);
+    const stdoutPipe = new Pipe(this.pipeSize);
+    const stderrPipe = new Pipe(this.pipeSize);
 
     const process = {
       worker: null, // Will be set below
-      stdin: stdinChannel.port2,
-      stdout: stdoutChannel.port2,
-      stderr: stderrChannel.port2,
+      stdin: stdinPipe,
+      stdout: stdoutPipe,
+      stderr: stderrPipe,
       time: Date.now(),
       state: ProcessStates.STARTING,
     }
@@ -86,21 +93,19 @@ export default class ProcessTable {
     let start = () => {
       worker.postMessage(
         {
-          stdin: stdinChannel.port1,
-          stdout: stdoutChannel.port1,
-          stderr: stderrChannel.port1,
-          func: processData.processFunction.toString()
-        },
-        [stdinChannel.port1, stdoutChannel.port1, stderrChannel.port1],
-      )
+          stdin: stdinPipe.getBuffer(),
+          stdout: stdoutPipe.getBuffer(),
+          stderr: stderrPipe.getBuffer(),
+          sourceCode: processData.sourceCode
+        });
     }
 
     // Return the allocated PID and increment it
     return {
       pid: this.nextPID++,
-      stdin: stdinChannel.port2,
-      stdout: stdoutChannel.port2,
-      stderr: stderrChannel.port2,
+      stdin: stdinPipe,
+      stdout: stdoutPipe,
+      stderr: stderrPipe,
       worker,
       start
     };

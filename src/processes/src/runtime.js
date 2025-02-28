@@ -28,7 +28,7 @@ var readyPromise = new Promise((resolve, reject) => {
   readyPromiseResolve = resolve;
   readyPromiseReject = reject;
 });
-["_test","_memory","_get_stdin","_send_to_stdout","_log_message","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
+["_test","_memory","_proc__input","_proc__inputAll","_proc__inputLine","_proc__output","_proc__error","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
   if (!Object.getOwnPropertyDescriptor(readyPromise, prop)) {
     Object.defineProperty(readyPromise, prop, {
       get: () => abort('You are getting ' + prop + ' on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js'),
@@ -543,14 +543,14 @@ function createExportWrapper(name, nargs) {
 // end include: runtime_exceptions.js
 function findWasmBinary() {
   if (Module['locateFile']) {
-    var f = 'main.wasm';
+    var f = 'runtime.wasm';
     if (!isDataURI(f)) {
       return locateFile(f);
     }
     return f;
   }
   // Use bundler-friendly `new URL(..., import.meta.url)` pattern; works in browsers too.
-  return new URL('main.wasm', import.meta.url).href;
+  return new URL('runtime.wasm', import.meta.url).href;
 }
 
 var wasmBinaryFile;
@@ -820,9 +820,11 @@ function dbg(...args) {
 // end include: runtime_debug.js
 // === Body ===
 
-function get_stdin(buf,len) { var s = getStdIn(); Module.stringToUTF8(s, buf, len); return s.length; }
-function send_to_stdout(buf,len) { var s = Module.UTF8ToString(buf, len); sendToStdOut(s); return s.length; }
-function log_message(msg) { self.postMessage({ type: "log", message: Module.UTF8ToString(msg)}) }
+function proc__input(buf,len) { var s = self.input(len); Module.stringToUTF8(s, buf, len); return s.length; }
+function proc__inputAll(buf,len) { var s = self.inputAll(); Module.stringToUTF8(s, buf, len); return s.length; }
+function proc__inputLine(buf,len) { var s = self.inputLine(); Module.stringToUTF8(s, buf, len); return s.length; }
+function proc__output(buf,len) { var s = Module.UTF8ToString(buf, len); self.output(s); return s.length; }
+function proc__error(buf,len) { var s = Module.UTF8ToString(buf, len); self.error(s); return s.length; }
 
 // end include: preamble.js
 
@@ -1133,9 +1135,9 @@ var wasmImports = {
   /** @export */
   fd_write: _fd_write,
   /** @export */
-  get_stdin,
+  proc__inputLine,
   /** @export */
-  send_to_stdout
+  proc__output
 };
 var wasmExports;
 createWasm();

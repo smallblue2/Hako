@@ -1,4 +1,24 @@
 import { ProcessStates, ProcessOperations } from "./common.js";
+import Pipe from './pipe.js';
+
+
+// =============== PIPES TO OVERRIDE =============== 
+self.stdin;
+self.stdout;
+self.stderr;
+
+// =============== FUNCTION TO OVERRIDE =============== 
+
+// stdin
+self.inputLine;
+self.input;
+self.inputAll;
+
+// stdout
+self.output;
+
+// stderr
+self.error;
 
 /**
  * Represents a single process that runs within a Web Worker.
@@ -17,9 +37,9 @@ class Process {
    * @param {MessagePort} stderr - Error stream for the process.
    */
   constructor(stdin, stdout, stderr) {
-    this.stdin = stdin;
-    this.stdout = stdout;
-    this.stderr = stderr;
+    this.stdin = new Pipe(0, stdin);
+    this.stdout = new Pipe(0, stdout);
+    this.stderr = new Pipe(0, stderr);
     this.state = ProcessStates.SLEEPING;
 
     this.func = null;
@@ -38,10 +58,48 @@ class Process {
    *
    * @throws {Error} If the provided function cannot be parsed or executed.
    */
-  initialise({ func }) {
-    // WARNING: Function needs to be cleaned/sanitised, subject to
-    //          code injections.
-    this.func = new Function("e", `return (${func})(e)`);
+  async initialise({ sourceCode }) {
+
+    // Overwriting functions so the runtime can access
+    self.input = (amt) => {
+      return this.stdin.read(amt);
+    }
+    self.inputLine = () => {
+      console.log("Reading a line...")
+      let s = this.stdin.readLine();
+      console.log("Read a line!");
+      return s;
+    }
+    self.inputAll = () => {
+      return this.stdin.readAll();
+    }
+    self.output = (msg) => {
+      this.stdout.write(msg);
+    }
+    self.error = (msg) => {
+      this.stderr.write(msg);
+    }
+
+    // TODO: Change this to Lua runtime/interpreter
+    try {
+      // Load WASM
+      const {default: initEmscripten} = await import('./runtime.js');
+
+      self.Module = await initEmscripten({
+        onRuntimeInitialized: () => {
+          console.log("WASM finished initialising inside worker!");
+        }
+      })
+
+      // ASSUMING _test() EXIST - TEST STUB
+      console.log("Running WASM test()");
+      Module._test();
+      console.log("Finished WASM test()");
+
+    } catch (err) {
+      console.error("Error loading Wasm:", err);
+    }
+
   }
 
   /**
@@ -112,12 +170,12 @@ class Process {
  *   func: "(e) => e.data * 2",
  * });
  */
-self.onmessage = (e) => {
-  let { stdin, stdout, stderr, func } = e.data;
+self.onmessage = async (e) => {
+  let { stdin, stdout, stderr, sourceCode } = e.data;
 
   // Create a process instance
   let process = new Process(stdin, stdout, stderr);
 
   // Initialise the process with a function or other config
-  process.initialise({ func });
+  await process.initialise({ sourceCode });
 }
