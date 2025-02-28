@@ -28,7 +28,7 @@ var readyPromise = new Promise((resolve, reject) => {
   readyPromiseResolve = resolve;
   readyPromiseReject = reject;
 });
-["_test","_memory","_proc__input","_proc__inputAll","_proc__inputLine","_proc__output","_proc__error","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
+["_test","_memory","_proc__input","_proc__inputAll","_proc__inputLine","_proc__output","_proc__error","_proc__wait","_proc__create","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
   if (!Object.getOwnPropertyDescriptor(readyPromise, prop)) {
     Object.defineProperty(readyPromise, prop, {
       get: () => abort('You are getting ' + prop + ' on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js'),
@@ -825,6 +825,8 @@ function proc__inputAll(buf,len) { var s = self.inputAll(); Module.stringToUTF8(
 function proc__inputLine(buf,len) { var s = self.inputLine(); Module.stringToUTF8(s, buf, len); return s.length; }
 function proc__output(buf,len) { var s = Module.UTF8ToString(buf, len); self.output(s); return s.length; }
 function proc__error(buf,len) { var s = Module.UTF8ToString(buf, len); self.error(s); return s.length; }
+function proc__wait(pid) { self.wait(pid); }
+function proc__create(buf,len) { var luaPath = Module.UTF8ToString(buf, len); var createdPID = self.create(luaPath); return createdPID; }
 
 // end include: preamble.js
 
@@ -1135,9 +1137,13 @@ var wasmImports = {
   /** @export */
   fd_write: _fd_write,
   /** @export */
+  proc__create,
+  /** @export */
   proc__inputLine,
   /** @export */
-  proc__output
+  proc__output,
+  /** @export */
+  proc__wait
 };
 var wasmExports;
 createWasm();

@@ -38,14 +38,25 @@ EM_JS(int, proc__error, (char* buf, int len), {
   return s.length;
 });
 
-// Jut for logging a message
-// EM_JS(void, log_message, (const char* msg), {
-//   self.postMessage({ type: "log", message: Module.UTF8ToString(msg)})
-// });
+EM_JS(void, proc__wait, (int pid), {
+  self.wait(pid);
+});
+
+EM_JS(int, proc__create, (char *buf, int len), {
+  var luaPath = Module.UTF8ToString(buf, len);
+  var createdPID = self.create(luaPath);
+  return createdPID;
+});
 
 void test(void) {
   char buffer[256]; // Allocate a buffer in C
   int length = proc__inputLine(buffer, sizeof(buffer)); // Call JS, get input
+
+  int new_pid = proc__create("", 0);
+
+  printf("Waiting on %d\n", new_pid);
+  proc__wait(new_pid);
+  printf("Finished waiting!\n");
 
   if (length > 0) {
     char outbuffer[256];

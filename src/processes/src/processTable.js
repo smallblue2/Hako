@@ -1,5 +1,6 @@
 import { ProcessStates } from "./common.js";
 import Pipe from "./pipe.js";
+import Signal from "./signal.js";
 
 /**
  * The ProcessTable class is responsible for storing and tracking all
@@ -72,14 +73,16 @@ export default class ProcessTable {
     const stdinPipe = new Pipe(this.pipeSize);
     const stdoutPipe = new Pipe(this.pipeSize);
     const stderrPipe = new Pipe(this.pipeSize);
+    const signal = new Signal();
 
     const process = {
       worker: null, // Will be set below
       stdin: stdinPipe,
       stdout: stdoutPipe,
       stderr: stderrPipe,
+      signal: signal,
       time: Date.now(),
-      state: ProcessStates.STARTING,
+      state: ProcessStates.STARTING
     }
 
     // Place the new process object in the table
@@ -89,23 +92,28 @@ export default class ProcessTable {
     const worker = new Worker(processData.processScript, { type: "module" });
     process.worker = worker; // Attach it to the process record
 
+    let newProcessPID = this.nextPID++;
+
     // Start closure to actually kick-off the process
     let start = () => {
       worker.postMessage(
         {
+          pid: newProcessPID,
           stdin: stdinPipe.getBuffer(),
           stdout: stdoutPipe.getBuffer(),
           stderr: stderrPipe.getBuffer(),
+          signal: signal.getBuffer(),
           sourceCode: processData.sourceCode
         });
     }
 
     // Return the allocated PID and increment it
     return {
-      pid: this.nextPID++,
+      pid: newProcessPID,
       stdin: stdinPipe,
       stdout: stdoutPipe,
       stderr: stderrPipe,
+      signal,
       worker,
       start
     };

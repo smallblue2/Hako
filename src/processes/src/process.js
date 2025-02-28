@@ -1,13 +1,12 @@
 import { ProcessStates, ProcessOperations } from "./common.js";
 import Pipe from './pipe.js';
-
-
-// =============== PIPES TO OVERRIDE =============== 
-self.stdin;
-self.stdout;
-self.stderr;
+import Signal from './signal.js';
 
 // =============== FUNCTION TO OVERRIDE =============== 
+
+// For receiving data back synchronously from process Manager
+// when worker is idle
+self.blockedResponse = -1;
 
 // stdin
 self.inputLine;
@@ -19,6 +18,12 @@ self.output;
 
 // stderr
 self.error;
+
+// wait
+self.wait;
+
+// create
+self.create;
 
 /**
  * Represents a single process that runs within a Web Worker.
@@ -36,18 +41,13 @@ class Process {
    * @param {MessagePort} stdout - Output stream for the process.
    * @param {MessagePort} stderr - Error stream for the process.
    */
-  constructor(stdin, stdout, stderr) {
+  constructor(pid, stdin, stdout, stderr, signal) {
+    this.pid = pid;
     this.stdin = new Pipe(0, stdin);
     this.stdout = new Pipe(0, stdout);
     this.stderr = new Pipe(0, stderr);
+    this.signal = new Signal(signal);
     this.state = ProcessStates.SLEEPING;
-
-    this.func = null;
-
-    // Set stdin to listen for messages
-    this.stdin.onmessage = (e) => {
-      this.handleInput(e);
-    };
   }
 
   /**
@@ -60,24 +60,56 @@ class Process {
    */
   async initialise({ sourceCode }) {
 
+    // Redefine onmessage to handle messages from process manager
+    self.onmessage = (e) => this.handleSignalFromProcessManager(e);
+
     // Overwriting functions so the runtime can access
     self.input = (amt) => {
-      return this.stdin.read(amt);
+      this.changeState(ProcessStates.SLEEPING);
+      let s = this.stdin.read(amt);
+      this.changeState(ProcessStates.RUNNING);
+      return s;
     }
     self.inputLine = () => {
-      console.log("Reading a line...")
+      this.changeState(ProcessStates.SLEEPING);
       let s = this.stdin.readLine();
-      console.log("Read a line!");
+      this.changeState(ProcessStates.RUNNING);
       return s;
     }
     self.inputAll = () => {
-      return this.stdin.readAll();
+      this.changeState(ProcessStates.SLEEPING);
+      let s = this.stdin.readAll();
+      this.changeState(ProcessStates.RUNNING);
+      return s;
     }
     self.output = (msg) => {
       this.stdout.write(msg);
     }
     self.error = (msg) => {
       this.stderr.write(msg);
+    }
+    self.wait = (pid) => {
+      // Tell the manager we'd like to wait on a process
+      self.postMessage({
+        op: ProcessOperations.WAIT_ON_PID,
+        requester: this.pid,
+        waiting_for: pid
+      });
+      this.changeState(ProcessStates.SLEEPING);
+      this.signal.sleep();
+      this.changeState(ProcessStates.RUNNING);
+    }
+    self.create = (luaPath) => {
+      // Tell the manager we'd like to create a process
+      self.postMessage({
+        op: ProcessOperations.CREATE_PROCESS,
+        luaPath,
+        requester: this.pid
+      });
+      this.changeState(ProcessStates.SLEEPING);
+      this.signal.sleep();
+      this.changeState(ProcessStates.RUNNING);
+      return this.signal.get();
     }
 
     // TODO: Change this to Lua runtime/interpreter
@@ -93,7 +125,9 @@ class Process {
 
       // ASSUMING _test() EXIST - TEST STUB
       console.log("Running WASM test()");
+      this.changeState(ProcessStates.RUNNING);
       Module._test();
+      this.changeState(ProcessStates.SLEEPING);
       console.log("Finished WASM test()");
 
     } catch (err) {
@@ -102,30 +136,13 @@ class Process {
 
   }
 
-  /**
-   * Handles input from stdin, as defined in the constructor. This method executes
-   * the user-provided function and writes the result to stdout or errors to stderr.
-   *
-   * @param {MessageEvent} e - Event from stdin containing input data for the process.
-   *
-   * @throws {Error} If the user-defined function throws an error during execution.
-   */
-  handleInput(e) {
-    try {
-      this.changeState(ProcessStates.RUNNING);
-
-      // Execute the function and post the result
-      const result = this.func(e);
-      this.stdout.postMessage(result);
-
-    } catch (error) {
-      // Write any errors to stderr
-      this.stderr.postMessage(`Error: ${error}`);
-    } finally {
-      // Return the process to a sleeping state
-      this.changeState(ProcessStates.SLEEPING);
+  handleSignalFromProcessManager(e) {
+    const operation = e.data.op;
+    switch (operation) {
+      default:
+        console.warn(`[PROC_MAN] Unknown operation: ${operation}`);
     }
-  }
+}
 
   /**
    * Change the process state and notify the main thread of the update.
@@ -171,10 +188,10 @@ class Process {
  * });
  */
 self.onmessage = async (e) => {
-  let { stdin, stdout, stderr, sourceCode } = e.data;
+  let { pid, stdin, stdout, stderr, signal, sourceCode } = e.data;
 
   // Create a process instance
-  let process = new Process(stdin, stdout, stderr);
+  let process = new Process(pid, stdin, stdout, stderr, signal);
 
   // Initialise the process with a function or other config
   await process.initialise({ sourceCode });

@@ -16,7 +16,8 @@ export default class ProcessManager {
    * @private
    * @type {ProcessTable}
    */
-  #processesTable
+  #processesTable;
+  #waitingProcesses;
 
   /**
    * Creates a new ProcessManager instance with a maximum PID capacity.
@@ -27,6 +28,7 @@ export default class ProcessManager {
      * @private
      */
     this.#processesTable = new ProcessTable(MAX_PID);
+    this.#waitingProcesses = new Map();
   }
 
   /**
@@ -38,7 +40,7 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  createProcess(processScript = "src/process.js", sourceCode = "") {
+  createProcess(sourceCode = "", processScript = "src/process.js") {
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid, stdin, stdout, stderr, worker, start } = this.#processesTable.allocateProcess(
       { processScript, sourceCode }, // Defined behaviour for web-worker
@@ -73,6 +75,27 @@ export default class ProcessManager {
     this.#processesTable.displayTable();
   }
 
+  killProcess(pid) {
+    // Kill the process
+    let toKill = this.getProcess(pid);
+    if (!toKill) {
+      console.error("THIS DOES NOT EXIST BRO");
+    }
+    toKill.worker.terminate();
+    this.#processesTable.freeProcess(pid);
+
+    // Check if anybody else was waiting on it
+    let waitingSet = this.#waitingProcesses.get(pid)
+    if (waitingSet) {
+      waitingSet.forEach(waitingPID => {
+        let toAwakeProcess = this.getProcess(waitingPID);
+        if (toAwakeProcess) {
+          toAwakeProcess.signal.wake()
+        }
+      })
+    }
+  }
+
   /**
    * Handles signals (messages) from a worker. Currently interprets
    * the 'CHANGE_STATE' operation and updates the process state in
@@ -88,11 +111,32 @@ export default class ProcessManager {
       case ProcessOperations.CHANGE_STATE:
         if ("state" in e.data) {
           let newState = e.data.state;
-          console.log(`[PROC_MAN] Changing process state to "${newState}"`);
           this.#processesTable.changeProcessState(pid, newState);
         } else {
           console.error(`[PROC_MAN] ERROR: State undefined for process state change: ${e.data}`);
         }
+        break;
+      case ProcessOperations.WAIT_ON_PID:
+        let requester = e.data.requester;
+        let waiting_on = e.data.waiting_for;
+        
+        // Store (waiting_for: Set{ requestor })
+        let waitingSet = this.#waitingProcesses.get(waiting_on);
+        if (!waitingSet) {
+          waitingSet = new Set();
+          this.#waitingProcesses.set(waiting_on, waitingSet);
+        }
+        waitingSet.add(requester);
+        break;
+      case ProcessOperations.CREATE_PROCESS:
+        let newPID = this.createProcess(e.data.luaPath);
+        let requestingProcess = this.getProcess(e.data.requester);
+        // requestingProcess.worker.postMessage({
+        //   op: ProcessOperations.RETURN_CREATED_PID,
+        //   pid: newPID
+        // });
+        requestingProcess.signal.set(newPID);
+        requestingProcess.signal.wake();
         break;
       default:
         console.warn(`[PROC_MAN] Unknown operation: ${operation}`);
