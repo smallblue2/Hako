@@ -25,6 +25,9 @@ self.wait;
 // create
 self.create;
 
+// kill
+self.kill;
+
 /**
  * Represents a single process that runs within a Web Worker.
  *
@@ -110,6 +113,14 @@ class Process {
       this.signal.sleep();
       this.changeState(ProcessStates.RUNNING);
       return this.signal.get();
+    }
+    self.kill = (pid) => {
+      // Tell the manager we'd like to kill a process
+      self.postMessage({
+        op: ProcessOperations.KILL_PROCESS,
+        kill: pid,
+        requester: this.pid
+      })
     }
 
     // TODO: Change this to Lua runtime/interpreter

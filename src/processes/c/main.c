@@ -38,14 +38,21 @@ EM_JS(int, proc__error, (char* buf, int len), {
   return s.length;
 });
 
+// proc__wait(int pid)
 EM_JS(void, proc__wait, (int pid), {
   self.wait(pid);
 });
 
+// proc__create(char *buf, int len)
 EM_JS(int, proc__create, (char *buf, int len), {
   var luaPath = Module.UTF8ToString(buf, len);
   var createdPID = self.create(luaPath);
   return createdPID;
+});
+
+// proc__kill(int pid)
+EM_JS(void, proc__kill, (int pid), {
+  self.kill(pid);
 });
 
 void test(void) {
@@ -54,9 +61,11 @@ void test(void) {
 
   int new_pid = proc__create("", 0);
 
-  printf("Waiting on %d\n", new_pid);
-  proc__wait(new_pid);
-  printf("Finished waiting!\n");
+  printf("Spun up process: %d\n", new_pid);
+
+  proc__kill(new_pid);
+
+  printf("Killed process: %d\n", new_pid);
 
   if (length > 0) {
     char outbuffer[256];

@@ -131,12 +131,12 @@ export default class ProcessManager {
       case ProcessOperations.CREATE_PROCESS:
         let newPID = this.createProcess(e.data.luaPath);
         let requestingProcess = this.getProcess(e.data.requester);
-        // requestingProcess.worker.postMessage({
-        //   op: ProcessOperations.RETURN_CREATED_PID,
-        //   pid: newPID
-        // });
         requestingProcess.signal.set(newPID);
         requestingProcess.signal.wake();
+        break;
+      case ProcessOperations.KILL_PROCESS:
+        let pidToKill = e.data.kill;
+        this.killProcess(pidToKill);
         break;
       default:
         console.warn(`[PROC_MAN] Unknown operation: ${operation}`);
