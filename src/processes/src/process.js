@@ -28,6 +28,9 @@ self.create;
 // kill
 self.kill;
 
+// list
+self.list;
+
 /**
  * Represents a single process that runs within a Web Worker.
  *
@@ -95,7 +98,7 @@ class Process {
       // Tell the manager we'd like to wait on a process
       self.postMessage({
         op: ProcessOperations.WAIT_ON_PID,
-        requester: this.pid,
+        requestor: this.pid,
         waiting_for: pid
       });
       this.changeState(ProcessStates.SLEEPING);
@@ -107,20 +110,51 @@ class Process {
       self.postMessage({
         op: ProcessOperations.CREATE_PROCESS,
         luaPath,
-        requester: this.pid
+        requestor: this.pid
       });
       this.changeState(ProcessStates.SLEEPING);
       this.signal.sleep();
       this.changeState(ProcessStates.RUNNING);
-      return this.signal.get();
+      let data = this.signal.read();
+      return Number(data);
     }
     self.kill = (pid) => {
       // Tell the manager we'd like to kill a process
       self.postMessage({
         op: ProcessOperations.KILL_PROCESS,
         kill: pid,
-        requester: this.pid
+        requestor: this.pid
       })
+    }
+    self.list = () => {
+      self.postMessage({
+        op:ProcessOperations.GET_PROCESS_LIST,
+        requestor: this.pid
+      })
+      this.changeState(ProcessStates.SLEEPING);
+      this.signal.sleep();
+      this.changeState(ProcessStates.RUNNING);
+
+      // TODO: care about the error that this may throw
+      let list = JSON.parse(this.signal.read());
+      let heapAllocationSize = list.length * 20 // C 'Process' struct is 16 bytes long
+      // WARNING: NEEDS TO BE FREED IN C
+      let memPointer = Module._malloc(heapAllocationSize);
+          // pid: index,
+          // created: entry.time,
+          // alive: Date.now() - entry.time,
+          // state: entry.state
+      let offsetCounter = 0;
+      list.forEach((item, index) => {
+        console.log("Assigning:", item);
+        Module.setValue(offsetCounter + memPointer, item.pid, 'i32');
+        Module.setValue(offsetCounter + memPointer + 4, item.alive, 'i32');
+        Module.setValue(offsetCounter + memPointer + 8, item.created, 'i64');
+        Module.setValue(offsetCounter + memPointer + 16, item.state, 'i32')
+        offsetCounter = index * 20
+      })
+
+      return memPointer
     }
 
     // TODO: Change this to Lua runtime/interpreter

@@ -72,7 +72,7 @@ export default class ProcessManager {
    * Lists all active processes by printing them to the console.
    */
   listProcesses() {
-    this.#processesTable.displayTable();
+    console.log(this.#processesTable.getTable());
   }
 
   killProcess(pid) {
@@ -108,7 +108,7 @@ export default class ProcessManager {
   #handleSignalFromProcess(e, pid) {
     const operation = e.data.op;
     switch (operation) {
-      case ProcessOperations.CHANGE_STATE:
+      case ProcessOperations.CHANGE_STATE: {
         if ("state" in e.data) {
           let newState = e.data.state;
           this.#processesTable.changeProcessState(pid, newState);
@@ -116,28 +116,39 @@ export default class ProcessManager {
           console.error(`[PROC_MAN] ERROR: State undefined for process state change: ${e.data}`);
         }
         break;
-      case ProcessOperations.WAIT_ON_PID:
-        let requester = e.data.requester;
+      }
+      case ProcessOperations.WAIT_ON_PID: {
+        let requestor = e.data.requestor;
         let waiting_on = e.data.waiting_for;
-        
+      
         // Store (waiting_for: Set{ requestor })
         let waitingSet = this.#waitingProcesses.get(waiting_on);
         if (!waitingSet) {
           waitingSet = new Set();
           this.#waitingProcesses.set(waiting_on, waitingSet);
         }
-        waitingSet.add(requester);
+        waitingSet.add(requestor);
         break;
-      case ProcessOperations.CREATE_PROCESS:
+      }
+      case ProcessOperations.CREATE_PROCESS: {
         let newPID = this.createProcess(e.data.luaPath);
-        let requestingProcess = this.getProcess(e.data.requester);
-        requestingProcess.signal.set(newPID);
-        requestingProcess.signal.wake();
+        let requestor = this.getProcess(e.data.requestor);
+        requestor.signal.write(newPID);
+        requestor.signal.wake();
         break;
-      case ProcessOperations.KILL_PROCESS:
+      }
+      case ProcessOperations.KILL_PROCESS: {
         let pidToKill = e.data.kill;
         this.killProcess(pidToKill);
         break;
+      }
+      case ProcessOperations.GET_PROCESS_LIST: {
+        let serialised = JSON.stringify(this.#processesTable.getTable());
+        let requestor = this.getProcess(e.data.requestor);
+        requestor.signal.write(serialised);
+        requestor.signal.wake();
+        break;
+      }
       default:
         console.warn(`[PROC_MAN] Unknown operation: ${operation}`);
     }

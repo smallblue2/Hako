@@ -55,11 +55,41 @@ EM_JS(void, proc__kill, (int pid), {
   self.kill(pid);
 });
 
+typedef enum : int {
+  READY,
+  RUNNING,
+  SLEEPING,
+  TERMINATING
+} ProcessStates;
+
+typedef struct __attribute__((packed)) {
+  int pid; // 0
+  int alive; // 4
+  long long created; // 8
+  ProcessStates state; // 16
+} Process; // 20
+
+EM_JS(Process*, proc__list, (), {
+  return self.list();
+});
+
+
 void test(void) {
   char buffer[256]; // Allocate a buffer in C
   int length = proc__inputLine(buffer, sizeof(buffer)); // Call JS, get input
 
+  printf("Getting proc__list!\n");
+  Process* proc_list = proc__list();
+  printf("Got proc__list!\n");
+
+  printf("pid[0] -> %d\n", proc_list->pid);
+  printf("created[0] -> %lld\n", proc_list->created);
+  printf("alive[0] -> %d\n", proc_list->alive);
+  printf("state[0] -> %d\n", proc_list->state);
+  free(proc_list);
+
   int new_pid = proc__create("", 0);
+
 
   printf("Spun up process: %d\n", new_pid);
 

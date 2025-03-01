@@ -28,7 +28,7 @@ var readyPromise = new Promise((resolve, reject) => {
   readyPromiseResolve = resolve;
   readyPromiseReject = reject;
 });
-["_test","_memory","_proc__input","_proc__inputAll","_proc__inputLine","_proc__output","_proc__error","_proc__wait","_proc__create","_proc__kill","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
+["_test","_malloc","_memory","_proc__input","_proc__inputAll","_proc__inputLine","_proc__output","_proc__error","_proc__wait","_proc__create","_proc__kill","_proc__list","___indirect_function_table","onRuntimeInitialized"].forEach((prop) => {
   if (!Object.getOwnPropertyDescriptor(readyPromise, prop)) {
     Object.defineProperty(readyPromise, prop, {
       get: () => abort('You are getting ' + prop + ' on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js'),
@@ -246,6 +246,12 @@ var HEAP,
   HEAPU32,
 /** @type {!Float32Array} */
   HEAPF32,
+/* BigInt64Array type is not correctly defined in closure
+/** not-@type {!BigInt64Array} */
+  HEAP64,
+/* BigUint64Array type is not correctly defined in closure
+/** not-t@type {!BigUint64Array} */
+  HEAPU64,
 /** @type {!Float64Array} */
   HEAPF64;
 
@@ -260,6 +266,8 @@ function updateMemoryViews() {
   Module['HEAPU32'] = HEAPU32 = new Uint32Array(b);
   Module['HEAPF32'] = HEAPF32 = new Float32Array(b);
   Module['HEAPF64'] = HEAPF64 = new Float64Array(b);
+  Module['HEAP64'] = HEAP64 = new BigInt64Array(b);
+  Module['HEAPU64'] = HEAPU64 = new BigUint64Array(b);
 }
 
 // end include: runtime_shared.js
@@ -697,10 +705,6 @@ async function createWasm() {
   }
 }
 
-// Globals used by JS i64 conversions (see makeSetValue)
-var tempDouble;
-var tempI64;
-
 // include: runtime_debug.js
 // Endianness check
 (() => {
@@ -828,6 +832,7 @@ function proc__error(buf,len) { var s = Module.UTF8ToString(buf, len); self.erro
 function proc__wait(pid) { self.wait(pid); }
 function proc__create(buf,len) { var luaPath = Module.UTF8ToString(buf, len); var createdPID = self.create(luaPath); return createdPID; }
 function proc__kill(pid) { self.kill(pid); }
+function proc__list() { return self.list(); }
 
 // end include: preamble.js
 
@@ -859,7 +864,7 @@ function proc__kill(pid) { self.kill(pid); }
       case 'i8': return HEAP8[ptr];
       case 'i16': return HEAP16[((ptr)>>1)];
       case 'i32': return HEAP32[((ptr)>>2)];
-      case 'i64': abort('to do getValue(i64) use WASM_BIGINT');
+      case 'i64': return HEAP64[((ptr)>>3)];
       case 'float': return HEAPF32[((ptr)>>2)];
       case 'double': return HEAPF64[((ptr)>>3)];
       case '*': return HEAPU32[((ptr)>>2)];
@@ -889,7 +894,7 @@ function proc__kill(pid) { self.kill(pid); }
       case 'i8': HEAP8[ptr] = value; break;
       case 'i16': HEAP16[((ptr)>>1)] = value; break;
       case 'i32': HEAP32[((ptr)>>2)] = value; break;
-      case 'i64': abort('to do setValue(i64) use WASM_BIGINT');
+      case 'i64': HEAP64[((ptr)>>3)] = BigInt(value); break;
       case 'float': HEAPF32[((ptr)>>2)] = value; break;
       case 'double': HEAPF64[((ptr)>>3)] = value; break;
       case '*': HEAPU32[((ptr)>>2)] = value; break;
@@ -908,8 +913,6 @@ function proc__kill(pid) { self.kill(pid); }
         err(text);
       }
     };
-
-  var __emscripten_memcpy_js = (dest, src, num) => HEAPU8.copyWithin(dest, src, src + num);
 
   var getHeapMax = () =>
       HEAPU8.length;
@@ -1127,12 +1130,11 @@ function proc__kill(pid) { self.kill(pid); }
       if (ret) stringToUTF8(str, ret, size);
       return ret;
     };
+
 function checkIncomingModuleAPI() {
   ignoredModuleProp('fetchSettings');
 }
 var wasmImports = {
-  /** @export */
-  _emscripten_memcpy_js: __emscripten_memcpy_js,
   /** @export */
   emscripten_resize_heap: _emscripten_resize_heap,
   /** @export */
@@ -1144,6 +1146,8 @@ var wasmImports = {
   /** @export */
   proc__kill,
   /** @export */
+  proc__list,
+  /** @export */
   proc__output
 };
 var wasmExports;
@@ -1152,7 +1156,7 @@ var ___wasm_call_ctors = createExportWrapper('__wasm_call_ctors', 0);
 var _test = Module['_test'] = createExportWrapper('test', 0);
 var _fflush = createExportWrapper('fflush', 1);
 var _strerror = createExportWrapper('strerror', 1);
-var _malloc = createExportWrapper('malloc', 1);
+var _malloc = Module['_malloc'] = createExportWrapper('malloc', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
 var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();
 var _emscripten_stack_get_base = () => (_emscripten_stack_get_base = wasmExports['emscripten_stack_get_base'])();
@@ -1160,12 +1164,12 @@ var _emscripten_stack_get_end = () => (_emscripten_stack_get_end = wasmExports['
 var __emscripten_stack_restore = (a0) => (__emscripten_stack_restore = wasmExports['_emscripten_stack_restore'])(a0);
 var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'])(a0);
 var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'])();
-var dynCall_jiji = Module['dynCall_jiji'] = createExportWrapper('dynCall_jiji', 5);
 
 
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===
 
+Module['setValue'] = setValue;
 Module['UTF8ToString'] = UTF8ToString;
 Module['stringToUTF8'] = stringToUTF8;
 Module['stringToNewUTF8'] = stringToNewUTF8;
@@ -1180,6 +1184,7 @@ var missingLibrarySymbols = [
   'convertI32PairToI53',
   'convertI32PairToI53Checked',
   'convertU32PairToI53',
+  'bigintToI53Checked',
   'stackAlloc',
   'getTempRet0',
   'setTempRet0',
@@ -1199,7 +1204,6 @@ var missingLibrarySymbols = [
   'getExecutableName',
   'listenOnce',
   'autoResumeAudioContext',
-  'dynCallLegacy',
   'getDynCaller',
   'dynCall',
   'handleException',
@@ -1374,6 +1378,8 @@ var unexportedSymbols = [
   'wasmExports',
   'writeStackCookie',
   'checkStackCookie',
+  'INT53_MAX',
+  'INT53_MIN',
   'stackSave',
   'stackRestore',
   'ptrToString',
@@ -1393,7 +1399,6 @@ var unexportedSymbols = [
   'noExitRuntime',
   'freeTableIndexes',
   'functionsInTableMap',
-  'setValue',
   'getValue',
   'PATH',
   'PATH_FS',

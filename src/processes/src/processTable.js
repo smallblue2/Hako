@@ -90,6 +90,7 @@ export default class ProcessTable {
 
     // Create worker
     const worker = new Worker(processData.processScript, { type: "module" });
+    worker.onerror = (event) => { console.error(`Error in worker: ${event.message} at ${event.filename}:${event.lineno}:${event.colno}`); };
     process.worker = worker; // Attach it to the process record
 
     let newProcessPID = this.nextPID++;
@@ -174,13 +175,19 @@ export default class ProcessTable {
    * Prints out a summary of all active (non-null) processes in the table.
    * This is a convenience method for debugging.
    */
-  displayTable() {
-    console.log("Process Table:")
+  getTable() {
+    let out = [];
     this.processTable.forEach((entry, index) => {
       if (entry !== null) {
-        console.log(this.processToString(entry, index));
+        out.push({
+          pid: index,
+          created: entry.time,
+          alive: Date.now() - entry.time,
+          state: entry.state
+        });
       }
     });
+    return out;
   }
 
   /**
