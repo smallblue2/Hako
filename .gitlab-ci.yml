@@ -38,19 +38,27 @@ lint_processes:
 build_filesystem:
   stage: build
   script:
-    - cd src/filesystem
-    - apt-get update && apt-get -y install meson ninja-build
-    - meson setup --cross-file ../emscripten.ini ../../build/filesystem
-    - ninja -C ../../build/filesystem
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update
+    - apt-get install -y meson
+    - just filesystem
   # Artifacts are to be kept between jobs
   artifacts:
     paths:
-      - build/filesystem/index.html
-      - build/filesystem/index.js
-      - build/filesystem/api.js
-      - build/filesystem/definitions.js
-      - build/filesystem/filesystem.js
-      - build/filesystem/filesystem.wasm
+      - build/filesystem/
+    expire_in: 1 week
+
+build_runtime:
+  stage: build
+  script:
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update
+    - apt-get install -y meson
+    - just runtime
+  # Artifacts are to be kept between jobs
+  artifacts:
+    paths:
+      - build/runtime/
     expire_in: 1 week
 
 validate_artefact_persistence:
@@ -79,20 +87,16 @@ validate_wasm:
 test_filesystem:
   stage: test
   script:
-    - cat /etc/apt/sources.list
-    - cat /etc/os-release
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
     - apt-get update
-    - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1
-    - cd src/filesystem
-    - npm install
-    - npm run start-server ../../build/filesystem &
-    # Wait for the server to start
-    - until curl -s http://localhost:8080 > /dev/null; do echo "Waiting for server..."; sleep 1; done
-    - npm run test
+    - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1 meson nq
+    - cd src/filesystem && npm install
+    - PATH=$PATH:/root/.deno/bin/ just test-filesystem
 
-test_processes:
+test_runtime:
   stage: test
   script:
-    - cd src/processes
-    - npm install
-    - npm run test
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update
+    - apt-get install -y chromium-browser meson
+    - just test-runtime

@@ -13,7 +13,7 @@ static const luaL_Reg file_module[] = {
   {"read", lfile__read},
   {"read_all", lfile__read_all},
   {"shift", lfile__shift},
-  {"goto", lfile__goto},
+  {"jump", lfile__goto},
   {"remove", lfile__remove},
   {"move", lfile__move},
   {"make_dir", lfile__make_dir},
