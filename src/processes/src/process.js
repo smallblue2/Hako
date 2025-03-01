@@ -149,7 +149,8 @@ class Process {
         console.log("Assigning:", item);
         Module.setValue(offsetCounter + memPointer, item.pid, 'i32');
         Module.setValue(offsetCounter + memPointer + 4, item.alive, 'i32');
-        Module.setValue(offsetCounter + memPointer + 8, item.created, 'i64');
+        Module.setValue(offsetCounter + memPointer + 8, Number(BigInt(item.created) & 0xFFFFFFFFn), 'i32');
+        Module.setValue(offsetCounter + memPointer + 12, Number((BigInt(item.created) >> 32n) & 0xFFFFFFFFn), 'i32');
         Module.setValue(offsetCounter + memPointer + 16, item.state, 'i32')
         offsetCounter = index * 20
       })

@@ -824,15 +824,15 @@ function dbg(...args) {
 // end include: runtime_debug.js
 // === Body ===
 
-function proc__input(buf,len) { var s = self.input(len); Module.stringToUTF8(s, buf, len); return s.length; }
-function proc__inputAll(buf,len) { var s = self.inputAll(); Module.stringToUTF8(s, buf, len); return s.length; }
-function proc__inputLine(buf,len) { var s = self.inputLine(); Module.stringToUTF8(s, buf, len); return s.length; }
-function proc__output(buf,len) { var s = Module.UTF8ToString(buf, len); self.output(s); return s.length; }
-function proc__error(buf,len) { var s = Module.UTF8ToString(buf, len); self.error(s); return s.length; }
-function proc__wait(pid) { self.wait(pid); }
-function proc__create(buf,len) { var luaPath = Module.UTF8ToString(buf, len); var createdPID = self.create(luaPath); return createdPID; }
-function proc__kill(pid) { self.kill(pid); }
-function proc__list() { return self.list(); }
+function proc__input(buf,len,err) { try { var s = self.input(len); Module.stringToUTF8(s, buf, len); Module.setValue(err, 0, 'i32'); return s.length; } catch (e) { Module.setValue(err, 1, 'i32'); return -1; } }
+function proc__inputAll(buf,len,err) { try { var s = self.inputAll(); Module.stringToUTF8(s, buf, len); Module.setValue(err, 0, 'i32'); return s.length; } catch (e) { Module.setValue(err, 1, 'i32'); return -1; } }
+function proc__inputLine(buf,len,err) { try { var s = self.inputLine(); Module.stringToUTF8(s, buf, len); Module.setValue(err, 0, 'i32'); return s.length; } catch (e) { Module.setValue(err, 1, 'i32'); return -1; } }
+function proc__output(buf,len,err) { try { var s = Module.UTF8ToString(buf, len); self.output(s); Module.setValue(err, 0, 'i32'); return s.length; } catch (e) { Module.setValue(err, 1, 'i32'); return -1; } }
+function proc__error(buf,len,err) { try { var s = Module.UTF8ToString(buf, len); self.error(s); Module.setValue(err, 0, 'i32'); return s.length; } catch (e) { Module.setValue(err, 1, 'i32'); return -1; } }
+function proc__wait(pid,err) { try { self.wait(pid); Module.setValue(err, 0, 'i32'); } catch (e) { Module.setValue(err, 1, 'i32'); return -1; } }
+function proc__create(buf,len,err) { try { var luaPath = Module.UTF8ToString(buf, len); var createdPID = self.create(luaPath); Module.setValue(err, 0, 'i32'); return createdPID; } catch (e) { Module.setValue(err, 1, 'i32'); return -1; } }
+function proc__kill(pid,err) { try { self.kill(pid); Module.setValue(err, 0, 'i32'); } catch (e) { Module.setValue(err, 1, 'i32'); } }
+function proc__list() { try { Module.setValue(err, 0, 'i32'); return self.list(); } catch (e) { Module.setValue(err, 1, 'i32'); return -1; } }
 
 // end include: preamble.js
 
