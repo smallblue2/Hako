@@ -8,6 +8,7 @@
   function showAll(type) {
     _windows
       .filter((win) => win.type == type)
+      .filter(({ state: { show }}) => !show)
       .forEach(({ id }) => lib.showWindow(id))
   }
 
