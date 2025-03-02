@@ -2,20 +2,70 @@
   import * as lib from "$lib/windows.svelte.js";
   import { applications, _windows } from "$lib/windows.svelte.js";
 
+  /**
+   * @param {number} type
+   */
+  function showAll(type) {
+    _windows
+      .filter((win) => win.type == type)
+      .forEach(({ id }) => lib.showWindow(id))
+  }
+
+  /**
+   * @param {number} type
+   */
+  function hideAll(type) {
+    _windows
+      .filter((win) => win.type == type)
+      .forEach(({ id }) => lib.hideWindow(id))
+  }
+
+  /**
+   * @param {number} type
+   */
+  function closeAll(type) {
+    _windows
+      .filter((win) => win.type == type)
+      .forEach(({ id }) => lib.closeWindow(id))
+  }
+
 </script>
 
 <div class="wrapper">
   <div class="tasks">
-    {#each applications as app}
+    {#each applications as app, type}
       {#if app.alwaysShow || app.instances !== 0}
-        <button title={app.name} class={`remove-button-styles application ${app.instances !== 0 ? app.instances === 1 ? "application-one-instance" : "application-many-instances" : ""}`} onclick={() => {
-          if (app.instances === 0 && app.create !== null) {
-            app.create();
-          } else {
-          }
-        }}>
-          {@html app.icon}
-        </button>
+        <div>
+          <menu tabindex="-1" onfocusout={(ev) => {
+            ev.target.classList.toggle("menu-hidden");
+          }} id={`context-menu-for-${type}`} class="menu menu-hidden">
+            <li class="menu-item"><button class="remove-button-styles" onmousedown={() => closeAll(type)}>Close All</button></li>
+            <li class="menu-item"><button class="remove-button-styles" onmousedown={() => hideAll(type)}>Hide All</button></li>
+            <hr class="menu-divider"/>
+            <li class="menu-item"><button class="remove-button-styles" onmousedown={() => showAll(type)}>Show All</button></li>
+            {#if app.create !== null}
+              <li class="menu-item"><button class="remove-button-styles" onmousedown={() => {
+                app.create();
+              }}>New Window</button></li>
+            {/if}
+          </menu>
+          <button id={`button-for-${type}`} title={app.name} class={`remove-button-styles application ${app.instances !== 0 ? app.instances === 1 ? "application-one-instance" : "application-many-instances" : ""}`} onclick={() => {
+            if (app.instances === 0 && app.create !== null) {
+              app.create();
+            } else {
+              showAll(type);
+            }
+          }} oncontextmenu={(ev) => {
+            ev.preventDefault();
+            const el = document.getElementById(`context-menu-for-${type}`);
+            if (el !== null) {
+              el.classList.toggle("menu-hidden");
+              el.focus();
+            }
+          }}>
+            {@html app.icon}
+          </button>
+        </div>
       {/if}
     {/each}
   </div>
@@ -35,6 +85,47 @@
     display: flex;
     flex-direction: row;
     justify-content: center;
+  }
+
+  .menu {
+    display: flex;
+    background-color: white;
+    flex-direction: column;
+    list-style: none;
+    transform: translate(calc((2.7rem * 0.5) - 50%), calc(-100% - 1rem));
+    padding: 0.2rem;
+    white-space: nowrap;
+    background-color: var(--md-sys-color-surface);
+
+    width: max-content;
+    position: absolute;
+    margin: 0;
+    outline: var(--md-sys-color-outline) solid 1px;
+    opacity: 100%;
+    transition: visibility 0s, opacity 0.1s linear;
+  }
+
+  .menu-hidden {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .menu-hidden:focus {
+    visibility: visible;
+  }
+
+  .menu-item {
+    padding: 0.3rem 0.5rem 0.3rem 0.5rem;
+    border-radius: 0.15rem;
+  }
+
+  .menu-item:hover {
+    background-color: var(--md-sys-color-surface-dim);
+  }
+
+  .menu-divider {
+    border-color: var(--md-sys-color-outline-variant);
+    width: 90%;
   }
 
   .tasks {
