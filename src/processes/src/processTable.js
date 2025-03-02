@@ -128,7 +128,7 @@ export default class ProcessTable {
    */
   getProcess(pid) {
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      return null; // Process does not exist
+      throw new Error(`Process ${pid} does not exist!`)
     }
 
     return this.processTable[pid];

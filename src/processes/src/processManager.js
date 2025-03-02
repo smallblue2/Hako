@@ -79,7 +79,7 @@ export default class ProcessManager {
     // Kill the process
     let toKill = this.getProcess(pid);
     if (!toKill) {
-      console.error("THIS DOES NOT EXIST BRO");
+      throw new Error("Process does not exist!");
     }
     toKill.worker.terminate();
     this.#processesTable.freeProcess(pid);
@@ -113,7 +113,7 @@ export default class ProcessManager {
           let newState = e.data.state;
           this.#processesTable.changeProcessState(pid, newState);
         } else {
-          console.error(`[PROC_MAN] ERROR: State undefined for process state change: ${e.data}`);
+          throw new Error("State undefined for process state change");
         }
         break;
       }
@@ -150,7 +150,7 @@ export default class ProcessManager {
         break;
       }
       default:
-        console.warn(`[PROC_MAN] Unknown operation: ${operation}`);
+        throw new Error(`Unknown operation: ${operation}`);
     }
   }
 }
