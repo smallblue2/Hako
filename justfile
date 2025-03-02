@@ -7,11 +7,15 @@ build: exported-runtime
 build-native: runtime-native
 test: test-filesystem test-runtime
 
-reconfigure: reconfigure-filesystem reconfigure-runtime
+reconfigure: reconfigure-filesystem reconfigure-processes reconfigure-runtime
 
 [working-directory('src/filesystem')]
 reconfigure-filesystem:
   meson setup --cross-file ../emscripten.ini ../../build/filesystem
+
+[working-directory('src/processes')]
+reconfigure-processes:
+  meson setup --cross-file ../emscripten.ini ../../build/processes
 
 [working-directory('src/runtime')]
 reconfigure-runtime: filesystem
@@ -42,6 +46,10 @@ filesystem:
 runtime:
   if [ ! -d build/runtime ]; then just reconfigure-runtime; fi
   ninja -C build/runtime
+
+processes:
+  if [ ! -d build/processes ]; then just reconfigure-processes; fi
+  ninja -C build/processes
 
 [working-directory('src/site')]
 exported-runtime: runtime

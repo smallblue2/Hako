@@ -17,7 +17,7 @@ EM_JS(int, proc__input, (char* buf, int len, Error *err), {
       Module.setValue(err, 1, 'i32');
       return -1;
     }
-});
+})
 
 // proc__inputAll(char* buf, int len, Error *err)
 EM_JS(int, proc__inputAll, (char* buf, int len, Error *err), {
@@ -30,7 +30,7 @@ EM_JS(int, proc__inputAll, (char* buf, int len, Error *err), {
     Module.setValue(err, 1, 'i32');
     return -1;
   }
-});
+})
 
 // proc__inputLine(char* buf, int len, Error *err)
 EM_JS(int, proc__inputLine, (char* buf, int len, Error *err), {
@@ -43,7 +43,7 @@ EM_JS(int, proc__inputLine, (char* buf, int len, Error *err), {
     Module.setValue(err, 1, 'i32');
     return -1;
   }
-});
+})
 
 // proc__output(char* buf, int len, Error *err)
 EM_JS(int, proc__output, (char* buf, int len, Error *err), {
@@ -56,7 +56,7 @@ EM_JS(int, proc__output, (char* buf, int len, Error *err), {
     Module.setValue(err, 1, 'i32');
     return -1;
   }
-});
+})
 
 // proc__error(char* buf, int len, Error *err)
 EM_JS(int, proc__error, (char* buf, int len, Error *err), {
@@ -69,7 +69,7 @@ EM_JS(int, proc__error, (char* buf, int len, Error *err), {
     Module.setValue(err, 1, 'i32');
     return -1;
   }
-});
+})
 
 // proc__wait(int pid, Error *err)
 EM_JS(void, proc__wait, (int pid, Error *err), {
@@ -80,7 +80,7 @@ EM_JS(void, proc__wait, (int pid, Error *err), {
     Module.setValue(err, 1, 'i32');
     return -1;
   }
-});
+})
 
 // proc__create(char *buf, int len, Error *err)
 EM_JS(int, proc__create, (char *buf, int len, Error *err), {
@@ -93,7 +93,7 @@ EM_JS(int, proc__create, (char *buf, int len, Error *err), {
     Module.setValue(err, 1, 'i32');
     return -1;
   }
-});
+})
 
 // proc__kill(int pid)
 EM_JS(void, proc__kill, (int pid, Error *err), {
@@ -103,7 +103,7 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
   } catch (e) {
     Module.setValue(err, 1, 'i32');
   }
-});
+})
 
 typedef enum : int {
   READY,
@@ -120,7 +120,7 @@ typedef struct __attribute__((packed)) {
   ProcessStates state; // 16
 } Process; // 20
 
-EM_JS(Process*, proc__list, (), {
+EM_JS(Process*, proc__list, (Error* err), {
   try {
     Module.setValue(err, 0, 'i32');
     return self.list();
@@ -128,7 +128,7 @@ EM_JS(Process*, proc__list, (), {
     Module.setValue(err, 1, 'i32');
     return -1;
   }
-});
+})
 
 
 void test(void) {
