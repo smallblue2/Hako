@@ -1,5 +1,5 @@
 // Import modules for globals and API
-import { initialiseAPI, Filesystem } from './api.js';
+import { initialiseAPI, Filesystem } from './api.js'
 
 window.isFilesystemInitialised = false;
 

@@ -1,4 +1,6 @@
 import { ProcessStates } from "./common.js";
+import Pipe from "./pipe.js";
+import Signal from "./signal.js";
 
 /**
  * The ProcessTable class is responsible for storing and tracking all
@@ -29,6 +31,12 @@ export default class ProcessTable {
      * @type {number}
      */
     this.nextPID = 1; // Start PID allocation from 1
+
+    /**
+     * The default pipe size for processes.
+     * @type {number}
+     */
+    this.pipeSize = 1024;
   }
 
   /**
@@ -62,17 +70,19 @@ export default class ProcessTable {
     // ============= Initialise Process Entry ============= 
 
     // Create MessageChannels for inter-process communication
-    const stdinChannel = new MessageChannel();
-    const stdoutChannel = new MessageChannel();
-    const stderrChannel = new MessageChannel();
+    const stdinPipe = new Pipe(this.pipeSize);
+    const stdoutPipe = new Pipe(this.pipeSize);
+    const stderrPipe = new Pipe(this.pipeSize);
+    const signal = new Signal();
 
     const process = {
       worker: null, // Will be set below
-      stdin: stdinChannel.port2,
-      stdout: stdoutChannel.port2,
-      stderr: stderrChannel.port2,
+      stdin: stdinPipe,
+      stdout: stdoutPipe,
+      stderr: stderrPipe,
+      signal: signal,
       time: Date.now(),
-      state: ProcessStates.STARTING,
+      state: ProcessStates.STARTING
     }
 
     // Place the new process object in the table
@@ -80,27 +90,31 @@ export default class ProcessTable {
 
     // Create worker
     const worker = new Worker(processData.processScript, { type: "module" });
+    worker.onerror = (event) => { console.error(`Error in worker: ${event.message} at ${event.filename}:${event.lineno}:${event.colno}`); };
     process.worker = worker; // Attach it to the process record
+
+    let newProcessPID = this.nextPID++;
 
     // Start closure to actually kick-off the process
     let start = () => {
       worker.postMessage(
         {
-          stdin: stdinChannel.port1,
-          stdout: stdoutChannel.port1,
-          stderr: stderrChannel.port1,
-          func: processData.processFunction.toString()
-        },
-        [stdinChannel.port1, stdoutChannel.port1, stderrChannel.port1],
-      )
+          pid: newProcessPID,
+          stdin: stdinPipe.getBuffer(),
+          stdout: stdoutPipe.getBuffer(),
+          stderr: stderrPipe.getBuffer(),
+          signal: signal.getBuffer(),
+          sourceCode: processData.sourceCode
+        });
     }
 
     // Return the allocated PID and increment it
     return {
-      pid: this.nextPID++,
-      stdin: stdinChannel.port2,
-      stdout: stdoutChannel.port2,
-      stderr: stderrChannel.port2,
+      pid: newProcessPID,
+      stdin: stdinPipe,
+      stdout: stdoutPipe,
+      stderr: stderrPipe,
+      signal,
       worker,
       start
     };
@@ -114,7 +128,7 @@ export default class ProcessTable {
    */
   getProcess(pid) {
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      return null; // Process does not exist
+      throw new Error(`Process ${pid} does not exist!`)
     }
 
     return this.processTable[pid];
@@ -161,13 +175,19 @@ export default class ProcessTable {
    * Prints out a summary of all active (non-null) processes in the table.
    * This is a convenience method for debugging.
    */
-  displayTable() {
-    console.log("Process Table:")
+  getTable() {
+    let out = [];
     this.processTable.forEach((entry, index) => {
       if (entry !== null) {
-        console.log(this.processToString(entry, index));
+        out.push({
+          pid: index,
+          created: entry.time,
+          alive: Date.now() - entry.time,
+          state: entry.state
+        });
       }
     });
+    return out;
   }
 
   /**
