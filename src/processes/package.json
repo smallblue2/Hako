@@ -14,7 +14,8 @@
     "test": "mocha tests/*.test.js",
     "start-server": "http-server . -p 8081",
     "format": "eslint --fix src/*js",
-    "lint": "eslint src/*js"
+    "lint": "eslint src/*js",
+    "lint-tests": "eslint tests/*js"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

@@ -38,6 +38,22 @@ lint_processes:
     - npm install
     - npm run lint
 
+lint_processes_c:
+  stage: lint
+  script:
+    - cd src/processes
+    - ls -l Makefile
+    - cat Makefile | head -20
+    - apt-get update && apt-get -y install clang-tidy cppcheck
+    - make lint
+
+lint_processes_tests:
+  stage: lint
+  script:
+    - cd src/processes
+    - npm install
+    - npm run lint-tests
+
 # ----------------- BUILDING ----------------- 
   
 build_filesystem:

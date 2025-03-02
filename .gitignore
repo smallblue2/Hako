@@ -6,5 +6,5 @@ runtime.wasm
 filesystem.js
 filesystem.wasm
 
-runtime.js
-runtime.wasm
+processes.js
+processes.wasm
