@@ -31,3 +31,9 @@ export function clamp(n, min) {
   }
   return n;
 }
+
+export function getInitWindowSize() {
+  const width = window.innerWidth * 0.3;
+  const height = window.innerHeight * 0.4;
+  return  { initWidth: width, initHeight: height };
+}

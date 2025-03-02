@@ -5,6 +5,7 @@
   import { EditorView, keymap, lineNumbers, drawSelection } from "@codemirror/view";
   import { EditorState } from "@codemirror/state";
   import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+  import { onMount } from "svelte";
 
   let { id, layerFromId } = $props();
 
@@ -13,6 +14,14 @@
 
   let width = 320;
   let height = 260;
+
+  onMount(() => {
+    let { initWidth, initHeight } = lib.getInitWindowSize();
+    width = initWidth;
+    height = initHeight;
+    root.style.width = initWidth.toString() + "px";
+    root.style.height = initHeight.toString() + "px";
+  })
 
   let maximized = $state(false);
 

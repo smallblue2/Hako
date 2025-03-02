@@ -120,6 +120,12 @@
   }
 
   onMount(() => {
+    let { initWidth, initHeight } = lib.getInitWindowSize();
+    width = initWidth;
+    height = initHeight;
+    root.style.width = initWidth.toString() + "px";
+    root.style.height = initHeight.toString() + "px";
+
     window.addEventListener("resize", () => {
       if (maximized) {
         fitAddon.fit();
