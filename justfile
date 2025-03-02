@@ -71,6 +71,11 @@ test-filesystem: filesystem
 test-runtime: runtime-native
   meson test -C build-native/runtime --print-errorlogs
 
+[working-directory('src/processes')]
+test-processes: processes
+  #!/bin/sh
+  npm run test
+
 [working-directory('src/site')]
 site-run-dev:
   deno run dev

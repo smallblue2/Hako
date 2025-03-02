@@ -19,10 +19,10 @@ configure_file(input: 'src/process.js', output: 'process.js', copy: true)
 sources = files('c/main.c')
 
 if host_machine.system() == 'emscripten'
-  executable('runtime', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra'], link_args: ['-sEXPORTED_FUNCTIONS=_malloc', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue', '-pthread', '-sEXPORT_ES6', '-sENVIRONMENT=web,worker', '-sMODULARIZE=1'])
+  executable('processes', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra'], link_args: ['-sEXPORTED_FUNCTIONS=_malloc', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue', '-pthread', '-sEXPORT_ES6', '-sENVIRONMENT=web,worker', '-sMODULARIZE=1'])
 
-  library('runtime', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra'], link_args: ['-sEXPORT_ES6'], install: true)
+  library('processes', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra'], link_args: ['-sEXPORT_ES6'], install: true)
 else
-  library('runtime', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], install: true)
+  library('processes', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], install: true)
 endif
 

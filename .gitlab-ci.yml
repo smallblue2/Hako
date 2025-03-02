@@ -6,6 +6,9 @@ stages:
   - build
   - validate
   - test
+  - deploy
+
+# ----------------- LINTING ----------------- 
 
 lint_filesystem_js:
   stage: lint
@@ -34,6 +37,8 @@ lint_processes:
     - cd src/processes
     - npm install
     - npm run lint
+
+# ----------------- BUILDING ----------------- 
   
 build_filesystem:
   stage: build
@@ -46,6 +51,18 @@ build_filesystem:
   artifacts:
     paths:
       - build/filesystem/
+    expire_in: 1 week
+
+build_processes:
+  stage: build
+  script:
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update
+    - apt-get install -y meson
+    - just processes
+  artifacts:
+    paths:
+      - build/processes/
     expire_in: 1 week
 
 build_runtime:
@@ -61,10 +78,13 @@ build_runtime:
       - build/runtime/
     expire_in: 1 week
 
+# ----------------- VALIDATION ----------------- 
+
 validate_artefact_persistence:
   stage: validate
   dependencies:
     - build_filesystem
+    - build_processes
   script:
     # Ensure artifacts have persisted
     - test -e build/filesystem/filesystem.js
@@ -75,14 +95,26 @@ validate_artefact_persistence:
     - test -e build/filesystem/definitions.js
     - test -e build/filesystem/filesystem.js
     - test -e build/filesystem/filesystem.wasm
+    - test -e build/processes/processes.js
+    - test -e build/processes/processes.wasm
+    - test -e build/processes/signal.js
+    - test -e build/processes/common.js
+    - test -e build/processes/pipe.js
+    - test -e build/processes/processTable.js
+    - test -e build/processes/processManager.js
+    - test -e build/processes/process.js
 
 validate_wasm:
   stage: validate
   dependencies:
     - build_filesystem
+    - build_processes
   script:
     - apt-get update && apt-get install -y wabt
     - wasm-validate --enable-threads build/filesystem/filesystem.wasm
+    - wasm-validate --enable-threads build/processes/processes.wasm
+
+# ----------------- TESTING ----------------- 
 
 test_filesystem:
   stage: test
@@ -93,6 +125,15 @@ test_filesystem:
     - cd src/filesystem && npm install
     - PATH=$PATH:/root/.deno/bin/ just test-filesystem
 
+test_processes:
+  stage: test
+  script:
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update
+    - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1 meson nq
+    - cd src/processes && npm install
+    - PATH=$PATH:/root/.deno/bin/ just test-processes
+
 test_runtime:
   stage: test
   script:
@@ -100,3 +141,7 @@ test_runtime:
     - apt-get update
     - apt-get install -y chromium-browser meson
     - just test-runtime
+
+# ----------------- DEPLOYMENT ----------------- 
+
+
