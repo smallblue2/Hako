@@ -4,6 +4,12 @@
   import TaskBar from "../components/TaskBar.svelte";
 
   import * as lib from "$lib/windows.svelte.js";
+  import { onMount } from "svelte";
+
+  onMount(async () => {
+    let { default: ProcessManager } = await import("/processManager.js?url");
+    window.ProcessManager = new ProcessManager();
+  })
 
   let root = $state();
 

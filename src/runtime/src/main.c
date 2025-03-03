@@ -4,6 +4,8 @@
 #include <stddef.h>
 
 #include "../../filesystem/src/main.h"
+#include "../../processes/c/processes.h"
+
 #include "lib.h"
 
 void export_stdlib(lua_State *L) {
@@ -16,6 +18,11 @@ void export_stdlib(lua_State *L) {
 int main(void) {
   lua_State *L = luaL_newstate();
   luaL_openlibs(L);
+
+  Error err;
+  char sourceCode[256];
+  int pid = proc__create(sourceCode, 0, &err);
+  printf("created: %d\n", pid);
 
   char *src =
     "local func, ok = load(io.read('*a'))\n"

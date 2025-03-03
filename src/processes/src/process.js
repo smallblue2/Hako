@@ -116,6 +116,7 @@ class Process {
       this.signal.sleep();
       this.changeState(ProcessStates.RUNNING);
       let data = this.signal.read();
+      console.log("This:", data);
       return Number(data);
     }
     self.kill = (pid) => {
@@ -161,21 +162,15 @@ class Process {
     // TODO: Change this to Lua runtime/interpreter
     try {
       // Load WASM
-      const {default: initEmscripten} = await import('./runtime.js');
+      const {default: initEmscripten} = await import("/runtime.js?url");
 
-      self.Module = await initEmscripten({
-        onRuntimeInitialized: () => {
-          console.log("WASM finished initialising inside worker!");
-        }
-      })
+      console.log(Module.pty);
 
-      // ASSUMING _test() EXIST - TEST STUB
-      console.log("Running WASM test()");
-      this.changeState(ProcessStates.RUNNING);
-      Module._test();
-      this.changeState(ProcessStates.SLEEPING);
-      console.log("Finished WASM test()");
-
+      // self.Module = await initEmscripten({
+      //   onRuntimeInitialized: () => {
+      //     console.log("WASM finished initialising inside worker!");
+      //   }
+      // })
     } catch (err) {
       console.error("Error loading Wasm:", err);
     }

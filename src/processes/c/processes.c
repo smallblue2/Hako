@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-typedef int Error;
+#include "processes.h"
 
 // proc__input(char* buf, int len, Error *err)
 EM_JS(int, proc__input, (char* buf, int len, Error *err), {
@@ -90,6 +90,7 @@ EM_JS(int, proc__create, (char *buf, int len, Error *err), {
     Module.setValue(err, 0, 'i32');
     return createdPID;
   } catch (e) {
+    console.log(e);
     Module.setValue(err, 1, 'i32');
     return -1;
   }
@@ -105,21 +106,6 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
   }
 })
 
-typedef enum : int {
-  READY,
-  RUNNING,
-  SLEEPING,
-  TERMINATING
-} ProcessStates;
-
-typedef struct __attribute__((packed)) {
-  int pid; // 0
-  int alive; // 4
-  int created_low; // 8
-  int created_high; // 12
-  ProcessStates state; // 16
-} Process; // 20
-
 EM_JS(Process*, proc__list, (Error* err), {
   try {
     Module.setValue(err, 0, 'i32');
@@ -129,7 +115,6 @@ EM_JS(Process*, proc__list, (Error* err), {
     return -1;
   }
 })
-
 
 void test(void) {
   Error err;
