@@ -5,7 +5,7 @@ default: build
 
 build: exported-runtime
 build-native: runtime-native
-test: test-filesystem test-runtime
+test: test-filesystem test-runtime test-processes
 
 reconfigure: reconfigure-filesystem reconfigure-processes reconfigure-runtime
 
