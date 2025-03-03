@@ -1,31 +1,32 @@
-// _fd_read = (fd, iov, iovcnt, pnum) => PTY_handleSleep((wakeUp) => {
-//   let result = xterm_pty_old_fd_read(fd, iov, iovcnt, pnum);
-//
-//   // Did this call return our variant of EAGAIN?
-//     // If so, that means it called into the PTY and the buffer was empty.
-//     if (result === 1006) {
-//       // Wait for the PTY to become readable and try again.
-//         PTY_waitForReadable((type) => {
-//           switch (type) {
-//             case 0: { /* ready */
-//               const ret = xterm_pty_old_fd_read(fd, iov, iovcnt, pnum);
-//               if (ret == 1006) {
-//                 HEAPU32[((pnum)>>2)] = 0;
-//                 wakeUp(0);
-//               } else {
-//                 wakeUp(ret);
-//               }
-//               break;
-//             }
-//             case 1: /* interrupted */
-//                 wakeUp(27);
-//               break;
-//             case 2: /* timeout */
-//                 wakeUp(0);
-//               break;
-//           }
-//         });
-//     } else {
-//       wakeUp(result);
-//     }
-// });
+if (ENVIRONMENT_IS_PTHREAD) {
+  let queue = [];
+  let defaultHandleMessage = self.onmessage;
+
+  function goBack() {
+    // Set onmessage back
+    self.onmessage = defaultHandleMessage;
+    for (let msg of queue) { // Run any captured events
+      defaultHandleMessage(msg);
+    }
+  }
+
+  self.onmessage = (e) => {
+    console.log(e.data);
+    if (e.data.massage !== undefined) {
+      console.log("FROM THE WORKER: ", e);
+      goBack();
+    } else {
+      queue.push(e);
+    }
+  }
+} else {
+  function gammy() {
+    let running = PThread.runningWorkers[0];
+    if (running === undefined) {
+      setTimeout(gammy, 100);
+      return;
+    }
+    running.postMessage({ massage: "SHIT BED" });
+  }
+  setTimeout(gammy, 100);
+}

@@ -56,7 +56,7 @@ export default class ProcessTable {
    *
    * @throws {Error} If no available PIDs remain.
    */
-  allocateProcess(processData) {
+  async allocateProcess(processData) {
     // Find the next available PID
     while (this.nextPID < this.maxPIDs && this.processTable[this.nextPID] !== null) {
       this.nextPID++;
@@ -70,17 +70,17 @@ export default class ProcessTable {
     // ============= Initialise Process Entry ============= 
 
     // Create MessageChannels for inter-process communication
-    const stdinPipe = new Pipe(this.pipeSize);
-    const stdoutPipe = new Pipe(this.pipeSize);
-    const stderrPipe = new Pipe(this.pipeSize);
-    const signal = new Signal();
+    // const stdinPipe = new Pipe(this.pipeSize);
+    // const stdoutPipe = new Pipe(this.pipeSize);
+    // const stderrPipe = new Pipe(this.pipeSize);
+    // const signal = new Signal();
 
     const process = {
-      worker: null, // Will be set below
-      stdin: stdinPipe,
-      stdout: stdoutPipe,
-      stderr: stderrPipe,
-      signal: signal,
+      // worker: null, // Will be set below
+      // stdin: stdinPipe,
+      // stdout: stdoutPipe,
+      // stderr: stderrPipe,
+      // signal: signal,
       time: Date.now(),
       state: ProcessStates.STARTING
     }
@@ -89,34 +89,62 @@ export default class ProcessTable {
     this.processTable[this.nextPID] = process;
 
     // Create worker
-    const worker = new Worker(processData.processScript, { type: "module" });
-    worker.onerror = (event) => { console.error(`Error in worker: ${event.message} at ${event.filename}:${event.lineno}:${event.colno}`); };
-    process.worker = worker; // Attach it to the process record
+    // const worker = new Worker(processData.processScript, { type: "module" });
+    // worker.onerror = (event) => { console.error(`Error in worker: ${event.message} at ${event.filename}:${event.lineno}:${event.colno}`); };
+    // process.worker = worker; // Attach it to the process record
 
     let newProcessPID = this.nextPID++;
 
+    // Dynamically load the emscripten module
+    const { default: initEmscripten } = await import('/runtime.js?url');
+
+    console.log(processData);
+
+    // Initialise the emscripten module
+    const Module = await initEmscripten({
+      onRuntimeInitialized: () => {
+        console.log(self);
+        console.log("Runtime Emscripten module loaded.");
+      },
+      pty: processData.pty,
+      pid: newProcessPID
+    });
+
+    // let initializerChannel = new BroadcastChannel(newProcessPID);
+    // We cannot clone items via BroadcastChannel, so we will
+    // setup a MessageChannel via the BroadCast Channel
+    // let { port1, port2 } = new MessageChannel();
+    // initializerChannel.postMessage({
+    //   port: port2
+    // }, [port2])
+
+    let signal = new Signal();
+    let signalBuffer = signal.getBuffer();
+
     // Start closure to actually kick-off the process
     let start = () => {
-      worker.postMessage(
-        {
-          pid: newProcessPID,
-          stdin: stdinPipe.getBuffer(),
-          stdout: stdoutPipe.getBuffer(),
-          stderr: stderrPipe.getBuffer(),
-          signal: signal.getBuffer(),
-          sourceCode: processData.sourceCode
-        });
+      console.log("Start function ran (nothing in it)")
+      // port1.postMessage(
+      //   {
+      //     pid: newProcessPID,
+      //     signalBuffer
+      //     // stdin: stdinPipe.getBuffer(),
+      //     // stdout: stdoutPipe.getBuffer(),
+      //     // stderr: stderrPipe.getBuffer(),
+      //     // signal: signal.getBuffer(),
+      //     // sourceCode: processData.sourceCode
+      //   }, [signalBuffer]);
     }
 
     // Return the allocated PID and increment it
     return {
       pid: newProcessPID,
-      stdin: stdinPipe,
-      stdout: stdoutPipe,
-      stderr: stderrPipe,
-      signal,
-      worker,
       start
+      // stdin: stdinPipe,
+      // stdout: stdoutPipe,
+      // stderr: stderrPipe,
+      // signal,
+      // worker,
     };
   }
 

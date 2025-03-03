@@ -40,16 +40,21 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  createProcess(sourceCode = "", processScript = "src/process.js") {
+  async createProcess(pty=null) {
+    // TODO: Think more on this
+    if (pty === null) {
+      throw new Error("No PTY passed for new process");
+    }
+
     // Allocate space in the process table and retrieve references to the worker and channels
-    let { pid, stdin, stdout, stderr, worker, start } = this.#processesTable.allocateProcess(
-      { processScript, sourceCode }, // Defined behaviour for web-worker
+    let { pid, start } = await this.#processesTable.allocateProcess(
+      { pty }, // Defined behaviour for web-worker
     );
 
     // Set up communication from the Worker back to this manager
     // `#handleSignalFromProcess()` will interpret messages from the process
     // like 'CHANGE_STATE'.
-    worker.onmessage = (e) => this.#handleSignalFromProcess(e, pid);
+    // worker.onmessage = (e) => this.#handleSignalFromProcess(e, pid);
 
     // Actually start the Worker via closure
     start();

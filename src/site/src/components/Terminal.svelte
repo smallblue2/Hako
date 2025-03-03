@@ -92,7 +92,7 @@
   });
 
   $effect(async () => {
-    let { default: initEmscripten } = await import(wasmModule);
+    // let { default: initEmscripten } = await import(wasmModule);
 
     terminal = new Terminal({ fontFamily: "JetBrainsMono-Regular" });
     terminal.open(root);
@@ -107,9 +107,8 @@
     terminal.loadAddon(master);
     fitAddon.fit();
 
-    await initEmscripten({
-      pty: slave
-    });
+    await window.ProcessManager.createProcess(slave);
+
   })
 
   onMount(() => {

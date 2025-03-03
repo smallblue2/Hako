@@ -9,6 +9,7 @@
   onMount(async () => {
     let { default: ProcessManager } = await import("/processManager.js?url");
     window.ProcessManager = new ProcessManager();
+    console.log("Created process manager");
   })
 
   let root = $state();
