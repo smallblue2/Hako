@@ -7,8 +7,8 @@ clean:
 	rm c/runtime.wasm
 
 lint:
-	clang-tidy c/main.c -- -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
-	cppcheck c/main.c --force --enable=all --suppress=unmatchedSuppression --suppress=unusedFunction -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
+	clang-tidy c/processes.c -- -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
+	cppcheck c/processes.c --force --enable=all --suppress=unmatchedSuppression --suppress=unusedFunction -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
 
 export:
 	mv c/processes.* src/.
