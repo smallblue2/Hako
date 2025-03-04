@@ -22,6 +22,9 @@
 
   let terminal;
 
+  // PID attached to terminal
+  let pid = -1;
+
   /** @type {FitAddon} */
   let fitAddon;
 
@@ -107,7 +110,8 @@
     terminal.loadAddon(master);
     fitAddon.fit();
 
-    await window.ProcessManager.createProcess(slave);
+    pid = await window.ProcessManager.createProcess(slave);
+    console.log(`PID: ${pid}`);
 
   })
 
