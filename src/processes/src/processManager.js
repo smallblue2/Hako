@@ -42,7 +42,10 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  async createProcess(slave) {
+  async createProcess(slave=undefined) {
+    if (slave===undefined) {
+      throw new Error("Tried to create a process with no slave PTY!");
+    }
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
       { slave }, // Defined behaviour for web-worker
@@ -67,6 +70,13 @@ export default class ProcessManager {
     }
     let start = this.#processesTable.registerWorker(toRegister, worker);
 
+    // Save emscripten's onmessage in the process
+    let proc = this.getProcess(toRegister);
+    proc.emscriptenOnMessage = worker.onmessage;
+
+    // Override worker's omessage
+    worker.onmessage = (e) => this.#handleSignalFromProcess(e, toRegister, proc);
+
     start();
   }
 
@@ -77,7 +87,13 @@ export default class ProcessManager {
    * @returns {Object|null} - The process object, or null if the PID is invalid or free.
    */
   getProcess(pid) {
-    return this.#processesTable.getProcess(pid);
+    let proc = null;
+    try {
+      proc = this.#processesTable.getProcess(pid);
+    } catch(e) {
+      console.error(`[PROC_MAN] Failed to get process: ${e}`)
+    }
+    return proc;
   }
 
   /**
@@ -90,8 +106,10 @@ export default class ProcessManager {
   killProcess(pid) {
     // Kill the process
     let toKill = this.getProcess(pid);
-    if (!toKill) {
-      throw new Error("Process does not exist!");
+    console.log(`toKill: ${toKill}`);
+    if (!toKill)  {
+      console.error("[PROC_MAN] Couldn't kill process, getProcess returned null");
+      return;
     }
     toKill.worker.terminate();
     this.#processesTable.freeProcess(pid);
@@ -103,6 +121,8 @@ export default class ProcessManager {
         let toAwakeProcess = this.getProcess(waitingPID);
         if (toAwakeProcess) {
           toAwakeProcess.signal.wake()
+        } else {
+          console.error(`[PROC_MAN] Process ${waitingPID} was waiting on ${pid}, but Process ${waitingPID} couldn't be retrieved.`)
         }
       })
     }
@@ -117,7 +137,8 @@ export default class ProcessManager {
    * @param {MessageEvent} e - The message event from the Worker.
    * @param {number} pid - The PID of the Worker that sent this message.
    */
-  #handleSignalFromProcess(e, pid) {
+  async #handleSignalFromProcess(e, pid, proc) {
+    console.log(`[PROC_MAN] Handling signal from process ${pid}`);
     const operation = e.data.op;
     switch (operation) {
       case ProcessOperations.CHANGE_STATE: {
@@ -143,8 +164,13 @@ export default class ProcessManager {
         break;
       }
       case ProcessOperations.CREATE_PROCESS: {
-        let newPID = this.createProcess(e.data.luaPath);
         let requestor = this.getProcess(e.data.requestor);
+        let newPID = -1;
+        try {
+          newPID = await this.createProcess();
+        } catch (e) {
+          console.error(`[PROC_MAN] ${e}`);
+        }
         requestor.signal.write(newPID);
         requestor.signal.wake();
         break;
@@ -162,7 +188,8 @@ export default class ProcessManager {
         break;
       }
       default:
-        throw new Error(`Unknown operation: ${operation}`);
+        console.warn(`[PROC_MAN] Unknown request from process ${pid} - forwarding to emscripten`);
+        proc.emscriptenOnMessage(e);
     }
   }
 }

@@ -99,6 +99,10 @@ export default class ProcessTable {
       pid: newProcessPID
     })
 
+    console.log(Module.wasmMemory.buffer);
+    process.emscriptenBuffer = Module.wasmMemory.buffer;
+
+    // Attach Module to process
     // Return the allocated PID and increment it
     return {
       pid: newProcessPID,
@@ -106,7 +110,7 @@ export default class ProcessTable {
   }
 
   registerWorker(pid, worker) {
-    let registeredProcess = this.processTable[pid]
+    let registeredProcess = this.processTable[pid];
     registeredProcess.worker = worker;
 
     console.log("Attached worker to registeredProcess:");
@@ -115,10 +119,12 @@ export default class ProcessTable {
     let start = () => {
       worker.postMessage({
         cmd: "custom-init",
+        pid: pid,
+        emscriptenBuffer: registeredProcess.emscriptenBuffer,
         signal: registeredProcess.signal.getBuffer(),
         stdin: registeredProcess.stdin.getBuffer(),
         stdout: registeredProcess.stdout.getBuffer(),
-        stderr: registeredProcess.stderr.getBuffer(),
+        stderr: registeredProcess.stderr.getBuffer()
       });
     }
 
@@ -132,6 +138,7 @@ export default class ProcessTable {
    * @returns {Object|null} - The process object or null if not found or invalid.
    */
   getProcess(pid) {
+    console.log(`[DEBUG] getProcess called: ${Date.now()}`);
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
       throw new Error(`Process ${pid} does not exist!`)
     }

@@ -17,14 +17,6 @@ void export_stdlib(lua_State *L) {
 
 int main(void) {
   printf("Running EM_ASM\n");
-  // EM_ASM({
-  //   console.log(`self.Module.pid: ${self.Module.pid}`);
-  //   console.log(`self.Module.pty: ${self.Module.pty}`);
-  //   // self.channel = new BroadcastChannel(self.Module.pid);
-  //   // self.channel.onmessage = (data) => {
-  //   //   console.log(data);
-  //   // }
-  // });
   printf("Finished EM_ASM\n");
 
   lua_State *L = luaL_newstate();
