@@ -18,6 +18,7 @@ export default class ProcessManager {
    */
   #processesTable;
   #waitingProcesses;
+  #processesToBeInitialised
 
   /**
    * Creates a new ProcessManager instance with a maximum PID capacity.
@@ -29,6 +30,7 @@ export default class ProcessManager {
      */
     this.#processesTable = new ProcessTable(MAX_PID);
     this.#waitingProcesses = new Map();
+    this.#processesToBeInitialised = [];
   }
 
   /**
@@ -40,27 +42,32 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  async createProcess(pty=null) {
-    // TODO: Think more on this
-    if (pty === null) {
-      throw new Error("No PTY passed for new process");
-    }
-
+  async createProcess(slave) {
     // Allocate space in the process table and retrieve references to the worker and channels
-    let { pid, start } = await this.#processesTable.allocateProcess(
-      { pty }, // Defined behaviour for web-worker
+    let { pid } = await this.#processesTable.allocateProcess(
+      { slave }, // Defined behaviour for web-worker
     );
+
+    // Enqueue process to be initialised
+    this.#processesToBeInitialised.push(pid);
 
     // Set up communication from the Worker back to this manager
     // `#handleSignalFromProcess()` will interpret messages from the process
     // like 'CHANGE_STATE'.
     // worker.onmessage = (e) => this.#handleSignalFromProcess(e, pid);
 
-    // Actually start the Worker via closure
-    start();
-
     // Return the PID for external reference
     return pid;
+  }
+
+  registerWorker(worker) {
+    let toRegister = this.#processesToBeInitialised.shift();
+    if (toRegister === undefined) {
+      throw new Error("No processes to register!");
+    }
+    let start = this.#processesTable.registerWorker(toRegister, worker);
+
+    start();
   }
 
   /**
