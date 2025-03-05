@@ -16,9 +16,6 @@ void export_stdlib(lua_State *L) {
 }
 
 int main(void) {
-  printf("Running EM_ASM\n");
-  printf("Finished EM_ASM\n");
-
   lua_State *L = luaL_newstate();
   luaL_openlibs(L);
 
