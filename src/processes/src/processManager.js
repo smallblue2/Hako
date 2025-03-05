@@ -164,10 +164,12 @@ export default class ProcessManager {
         break;
       }
       case ProcessOperations.CREATE_PROCESS: {
-        let requestor = this.getProcess(e.data.requestor);
+        const pipeStdin = e.data.pipeStdin;
+        const pipeStdout = e.data.pipeStdout;
+        const requestor = this.getProcess(e.data.requestor);
         let newPID = -1;
         try {
-          newPID = await this.createProcess(requestor.pty);
+          newPID = await this.createProcess(requestor.pty, pipeStdin, pipeStdout);
         } catch (e) {
           console.error(`[PROC_MAN] ${e}`);
         }
