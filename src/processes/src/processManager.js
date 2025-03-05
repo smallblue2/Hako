@@ -1,4 +1,4 @@
-import { ProcessOperations } from "./common.js";
+import { ProcessOperations, StreamDescriptor } from "./common.js";
 import ProcessTable from "./processTable.js";
 
 // The max number of PIDs available to our system
@@ -42,13 +42,13 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  async createProcess(slave=undefined) {
+  async createProcess(slave=undefined, pipeStdin = false, pipeStdout = false) {
     if (slave===undefined) {
       throw new Error("Tried to create a process with no slave PTY!");
     }
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
-      { slave }, // Defined behaviour for web-worker
+      { slave, pipeStdin, pipeStdout }, // Defined behaviour for web-worker
     );
 
     // Enqueue process to be initialised
@@ -167,7 +167,7 @@ export default class ProcessManager {
         let requestor = this.getProcess(e.data.requestor);
         let newPID = -1;
         try {
-          newPID = await this.createProcess();
+          newPID = await this.createProcess(requestor.pty);
         } catch (e) {
           console.error(`[PROC_MAN] ${e}`);
         }

@@ -81,7 +81,10 @@ export default class ProcessTable {
       stderr: stderrPipe,
       signal: signal,
       time: Date.now(),
-      state: ProcessStates.STARTING
+      state: ProcessStates.STARTING,
+      pty: processData.slave,
+      pipeStdin: processData.pipeStdin,
+      pipeStdout: processData.pipeStdout
     }
 
     // Place the new process object in the table
@@ -122,7 +125,9 @@ export default class ProcessTable {
         signal: registeredProcess.signal.getBuffer(),
         stdin: registeredProcess.stdin.getBuffer(),
         stdout: registeredProcess.stdout.getBuffer(),
-        stderr: registeredProcess.stderr.getBuffer()
+        stderr: registeredProcess.stderr.getBuffer(),
+        pipeStdin: registeredProcess.pipeStdin,
+        pipeStdout: registeredProcess.pipeStdout,
       });
     }
 

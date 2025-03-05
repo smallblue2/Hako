@@ -7,7 +7,7 @@ async function initWorkerForProcess(data) {
   // Import process constructs
   const { default: Signal } = await import("/signal.js?url");
   const { default: Pipe } = await import("/pipe.js?url");
-  const { ProcessStates, ProcessOperations } = await import("/common.js?url");
+  const { StreamDescriptor, ProcessStates, ProcessOperations } = await import("/common.js?url");
 
   function changeState(newState) {
     self.state = newState;
@@ -108,6 +108,12 @@ async function initWorkerForProcess(data) {
       changeState(ProcessStates.RUNNING);
       // TODO: care about the error that this may throw
       return JSON.parse(self.proc.signal.read());
+    },
+    isPipeable: (stream) => {
+      switch (stream) {
+        case StreamDescriptor.STDIN: return data.pipeStdin;
+        case StreamDescriptor.STDOUT: return data.pipeStdin;
+      }
     }
   }
 }
