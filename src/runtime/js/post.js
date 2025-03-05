@@ -100,8 +100,6 @@ async function initWorkerForProcess(data) {
       })
     }
   }
-
-  self.proc.wait(1);
   // self.list = () => {
   //   self.postMessage({
   //     op: ProcessOperations.GET_PROCESS_LIST,

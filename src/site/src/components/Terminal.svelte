@@ -95,8 +95,6 @@
   });
 
   $effect(async () => {
-    // let { default: initEmscripten } = await import(wasmModule);
-
     terminal = new Terminal({ fontFamily: "JetBrainsMono-Regular" });
     terminal.open(root);
 
@@ -115,6 +113,11 @@
 
   })
 
+  function onClose() {
+    console.log(`Terminal with PID ${pid} is closing.`);
+    window.ProcessManager.killProcess(pid);
+  }
+
   onMount(() => {
     window.addEventListener("resize", () => {
       if (maximized) {
@@ -124,7 +127,7 @@
   })
 </script>
 
-<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root}>
+<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root} {onClose}>
   {#snippet data()}
     <div bind:this={root} class="contents"></div>
   {/snippet}
