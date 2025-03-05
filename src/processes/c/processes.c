@@ -9,25 +9,25 @@
 // proc__input(char* buf, int len, Error *err)
 EM_JS(int, proc__input, (char* buf, int len, Error *err), {
   try {
-    var s = self.input(len);
-    Module.stringToUTF8(s, buf, len);
-    Module.setValue(err, 0, 'i32');
+    let s = self.proc.input(len);
+    stringToUTF8(s, buf, len);
+    setValue(err, 0, 'i32');
     return s.length;
   } catch (e) {
-      Module.setValue(err, 1, 'i32');
+      setValue(err, 1, 'i32');
       return -1;
-    }
+  }
 })
 
 // proc__inputAll(char* buf, int len, Error *err)
 EM_JS(int, proc__inputAll, (char* buf, int len, Error *err), {
   try {
-    var s = self.inputAll();
-    Module.stringToUTF8(s, buf, len);
-    Module.setValue(err, 0, 'i32');
+    var s = self.proc.inputAll();
+    stringToUTF8(s, buf, len);
+    setValue(err, 0, 'i32');
     return s.length;
   } catch (e) {
-    Module.setValue(err, 1, 'i32');
+    setValue(err, 1, 'i32');
     return -1;
   }
 })
@@ -35,12 +35,12 @@ EM_JS(int, proc__inputAll, (char* buf, int len, Error *err), {
 // proc__inputLine(char* buf, int len, Error *err)
 EM_JS(int, proc__inputLine, (char* buf, int len, Error *err), {
   try {
-    var s = self.inputLine();
-    Module.stringToUTF8(s, buf, len);
-    Module.setValue(err, 0, 'i32');
+    var s = self.proc.inputLine();
+    stringToUTF8(s, buf, len);
+    setValue(err, 0, 'i32');
     return s.length;
   } catch (e) {
-    Module.setValue(err, 1, 'i32');
+    setValue(err, 1, 'i32');
     return -1;
   }
 })
@@ -48,12 +48,12 @@ EM_JS(int, proc__inputLine, (char* buf, int len, Error *err), {
 // proc__output(char* buf, int len, Error *err)
 EM_JS(int, proc__output, (char* buf, int len, Error *err), {
   try {
-    var s = Module.UTF8ToString(buf, len);
-    self.output(s);
-    Module.setValue(err, 0, 'i32');
+    var s = UTF8ToString(buf, len);
+    self.proc.output(s);
+    setValue(err, 0, 'i32');
     return s.length;
   } catch (e) {
-    Module.setValue(err, 1, 'i32');
+    setValue(err, 1, 'i32');
     return -1;
   }
 })
@@ -61,12 +61,12 @@ EM_JS(int, proc__output, (char* buf, int len, Error *err), {
 // proc__error(char* buf, int len, Error *err)
 EM_JS(int, proc__error, (char* buf, int len, Error *err), {
   try {
-    var s = Module.UTF8ToString(buf, len);
-    self.error(s);
-    Module.setValue(err, 0, 'i32');
+    var s = UTF8ToString(buf, len);
+    self.proc.error(s);
+    setValue(err, 0, 'i32');
     return s.length;
   } catch (e) {
-    Module.setValue(err, 1, 'i32');
+    setValue(err, 1, 'i32');
     return -1;
   }
 })
@@ -74,10 +74,10 @@ EM_JS(int, proc__error, (char* buf, int len, Error *err), {
 // proc__wait(int pid, Error *err)
 EM_JS(void, proc__wait, (int pid, Error *err), {
   try {
-    self.wait(pid);
-    Module.setValue(err, 0, 'i32');
+    self.proc.wait(pid);
+    setValue(err, 0, 'i32');
   } catch (e) {
-    Module.setValue(err, 1, 'i32');
+    setValue(err, 1, 'i32');
     return -1;
   }
 })
@@ -85,13 +85,12 @@ EM_JS(void, proc__wait, (int pid, Error *err), {
 // proc__create(char *buf, int len, Error *err)
 EM_JS(int, proc__create, (char *buf, int len, Error *err), {
   try {
-    var luaPath = Module.UTF8ToString(buf, len);
-    var createdPID = self.create(luaPath);
-    Module.setValue(err, 0, 'i32');
+    var luaPath = UTF8ToString(buf, len);
+    var createdPID = self.proc.create(luaPath);
+    setValue(err, 0, 'i32');
     return createdPID;
   } catch (e) {
-    console.log(e);
-    Module.setValue(err, 1, 'i32');
+    setValue(err, 1, 'i32');
     return -1;
   }
 })
@@ -99,19 +98,33 @@ EM_JS(int, proc__create, (char *buf, int len, Error *err), {
 // proc__kill(int pid)
 EM_JS(void, proc__kill, (int pid, Error *err), {
   try {
-    self.kill(pid);
-    Module.setValue(err, 0, 'i32');
+    self.proc.kill(pid);
+    setValue(err, 0, 'i32');
   } catch (e) {
-    Module.setValue(err, 1, 'i32');
+    setValue(err, 1, 'i32');
   }
 })
 
 EM_JS(Process*, proc__list, (Error* err), {
   try {
-    Module.setValue(err, 0, 'i32');
-    return self.list();
+    let procJSON = self.proc.list();
+    let heapAllocationSize = procJSON.length * 20; // C 'Process' struct is 16 bytes long
+    // WARNING: NEEDS TO BE FREED IN C
+    let memPointer = _malloc(heapAllocationSize);
+    let offsetCounter = 0;
+    procJSON.forEach((item, index) => {
+    console.log(`Proc ${index}`);
+      setValue(offsetCounter + memPointer, item.pid, 'i32');
+      setValue(offsetCounter + memPointer + 4, item.alive, 'i32');
+      setValue(offsetCounter + memPointer + 8, Number(BigInt(item.created) & 0xFFFFFFFFn), 'i32');
+      setValue(offsetCounter + memPointer + 12, Number((BigInt(item.created) >> 32n) & 0xFFFFFFFFn), 'i32');
+      setValue(offsetCounter + memPointer + 16, item.state, 'i32');
+      offsetCounter = index * 20;
+    });
+    setValue(err, 0, 'i32');
+    return memPointer;
   } catch (e) {
-    Module.setValue(err, 1, 'i32');
+    setValue(err, 1, 'i32');
     return -1;
   }
 })
@@ -120,7 +133,6 @@ void test(void) {
   Error err;
 
   char buffer[256]; // Allocate a buffer in C
-  int length = proc__inputLine(buffer, sizeof(buffer), &err); // Call JS, get input
 
   printf("Getting proc__list!\n");
   Process* proc_list = proc__list(&err);
@@ -134,21 +146,4 @@ void test(void) {
   printf("alive[0] -> %d\n", proc_list->alive);
   printf("state[0] -> %d\n", proc_list->state);
   free(proc_list);
-
-  int new_pid = proc__create("", 0, &err);
-
-
-  printf("Spun up process: %d\n", new_pid);
-
-  proc__kill(new_pid, &err);
-
-  printf("Killed process: %d\n", new_pid);
-
-  if (length > 0) {
-    char outbuffer[256];
-    sprintf(outbuffer, "Received: %s\n", buffer);
-    proc__output(outbuffer, strlen(outbuffer), &err);
-  } else {
-    printf("Error");
-  }
 }

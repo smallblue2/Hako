@@ -16,16 +16,36 @@ void export_stdlib(lua_State *L) {
 }
 
 int main(void) {
-  printf("Running EM_ASM\n");
-  printf("Finished EM_ASM\n");
-
   lua_State *L = luaL_newstate();
   luaL_openlibs(L);
 
   Error err;
+  char buff[256];
+  int pid = proc__create(buff, 0, &err);
+  if (err == 0) {
+    printf("Created pid: %d\n", pid);
+  }
+
   char sourceCode[256];
-  int pid = proc__create(sourceCode, 0, &err);
-  printf("created: %d\n", pid);
+  Process* proc_list = proc__list(&err);
+  if (err == 0) {
+    printf("Err: %d\n", err);
+    printf("pid[0] -> %d\n", proc_list->pid);
+    printf("created_low[0] -> %d\n", proc_list->created_low);
+    printf("created_high[0] -> %d\n", proc_list->created_high);
+    uint64_t created = proc_list->created_low | ((uint64_t)proc_list->created_high << 32);
+    printf("created -> %lld\n", created);
+    printf("alive[0] -> %d\n", proc_list->alive);
+    printf("state[0] -> %d\n", proc_list->state);
+  }
+  free(proc_list);
+
+  proc__kill(pid, &err);
+  if (err == 0) {
+    printf("Killed %d\n", pid);
+  } else {
+    printf("Couldn't kill %d\n", pid);
+  }
 
   char *src =
     "local func, ok = load(io.read('*a'))\n"
