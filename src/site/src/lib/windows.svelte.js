@@ -119,7 +119,7 @@ export function hideWindow(id) {
 export function showWindow(id) {
   getWindowByID(id).state.show = true;
   const el = document.getElementById(`window-${id}`);
-  el.style.display = "block";
+  el.style.display = "";
 }
 
 export function focusWindow(id) {

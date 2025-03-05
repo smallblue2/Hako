@@ -28,7 +28,7 @@
   /** @type {number} */
   let visibleAreaOff = 0; // The size of the resize areas margin
 
-  let min = 100;
+  let min = 150;
   let resizing = false;
 
   let maxY = undefined;
@@ -97,11 +97,9 @@
    * @param {MouseEvent} ev
    */
   function onDragResize(ev) {
-    // if (onResize(globalSect, ev.movementX, ev.movementY)) {
+    const [ dw, dh ] = lib.getResizeFromSect(globalSect, ev.movementX, ev.movementY);
+    onResize(dw, dh);
 
-    onResize(globalSect, ev.movementX, ev.movementY);
-
-    const dataRect = dataRef.getBoundingClientRect(); // we need to look at the child itself (so as to exclude margin etc).
     const rect = root.getBoundingClientRect();
 
     let dy = 0;
@@ -196,6 +194,7 @@
     let y = Math.floor((window.innerHeight - initHeight) / 2);
     root.style.top = y + "px";
     root.style.left = x + "px";
+
     visibleAreaOff = parseInt(window.getComputedStyle(evWrap).margin, 10);
   })
 </script>

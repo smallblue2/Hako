@@ -12,7 +12,7 @@
 
   let { id, wasmModule, layerFromId } = $props();
 
-  let min = 100;
+  let min = 150;
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -29,45 +29,10 @@
   let fitAddon;
 
   /**
-   * @param {number} sect
-   * @param {number} relX
-   * @param {number} relY
+   * @param {number} dw
+   * @param {number} dh
    */
-  function onResize(sect, relX, relY) {
-    let dw = 0;
-    let dh = 0;
-
-    switch (sect) {
-      case lib.BOTTOM_RIGHT_CORNER:
-        dw = relX;
-        dh = relY;
-        break;
-      case lib.RIGHT:
-        dw = relX;
-        break;
-      case lib.BOTTOM:
-        dh = relY;
-        break;
-      case lib.TOP_LEFT_CORNER:
-        dw = -relX;
-        dh = -relY;
-        break;
-      case lib.LEFT:
-        dw = -relX;
-        break;
-      case lib.TOP:
-        dh = -relY;
-        break;
-      case lib.TOP_RIGHT_CORNER:
-        dw = relX;
-        dh = -relY;
-        break;
-      case lib.BOTTOM_LEFT_CORNER:
-        dw = -relX;
-        dh = relY;
-        break;
-    }
-
+  function onResize(dw, dh) {
     width = lib.clamp(width + dw, min);
     height = lib.clamp(height + dh, min);
     root.style.width = width.toString() + "px";
