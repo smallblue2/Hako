@@ -28,7 +28,7 @@ int proc__error(char* buf, int len, Error *err);
 void proc__wait(int pid, Error *err);
 int proc__create(char *buf, int len, Error *err);
 void proc__kill(int pid, Error *err);
-
 Process* proc__list(Error* err);
+int proc__getPid(Error* err);
 
 #endif

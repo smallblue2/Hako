@@ -90,7 +90,7 @@ EM_JS(int, proc__create, (char *buf, int len, Error *err), {
     setValue(err, 0, 'i32');
     return createdPID;
   } catch (e) {
-    setValue(err, 1, 'i32');
+    setValue(err, e.errorCode, 'i32');
     return -1;
   }
 })
@@ -101,6 +101,7 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
     self.proc.kill(pid);
     setValue(err, 0, 'i32');
   } catch (e) {
+    console.error(`Kill Error: ${e}`);
     setValue(err, 1, 'i32');
   }
 })
@@ -128,6 +129,12 @@ EM_JS(Process*, proc__list, (Error* err), {
     return -1;
   }
 })
+
+EM_JS(int, proc__getPid, (Error* err), {
+  setValue(err, 0, 'i32');
+  return self.proc.pid;
+})
+
 
 void test(void) {
   Error err;

@@ -1,4 +1,4 @@
-import { ProcessStates } from "./common.js";
+import { ProcessStates, CustomError } from "./common.js";
 import Pipe from "./pipe.js";
 import Signal from "./signal.js";
 
@@ -64,7 +64,7 @@ export default class ProcessTable {
 
     // Table is full
     if (this.nextPID >= this.maxPIDs) {
-      throw new Error("No available PIDs. Process table is full.");
+      throw new CustomError(CustomError.symbols.PROC_TABLE_FULL);
     }
 
     // ============= Initialise Process Entry ============= 
@@ -142,7 +142,7 @@ export default class ProcessTable {
    */
   getProcess(pid) {
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      throw new Error(`Process ${pid} does not exist!`)
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
 
     return this.processTable[pid];
@@ -158,7 +158,7 @@ export default class ProcessTable {
   freeProcess(pid) {
     // Ensure valid pid
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      throw new Error(`Invalid or non-existent PID: ${pid}`);
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
 
     // TODO: Figure out if the process is running, don't free if it is
@@ -179,7 +179,7 @@ export default class ProcessTable {
    */
   changeProcessState(pid, newState) {
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      throw new Error(`Invalid or non-existent PID: ${pid}`);
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST)
     }
 
     this.processTable[pid].state = newState;

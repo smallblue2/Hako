@@ -20,32 +20,52 @@ int main(void) {
   luaL_openlibs(L);
 
   Error err;
-  char buff[256];
-  int pid = proc__create(buff, 0, &err);
-  if (err == 0) {
-    printf("Created pid: %d\n", pid);
-  }
 
-  char sourceCode[256];
-  Process* proc_list = proc__list(&err);
-  if (err == 0) {
-    printf("Err: %d\n", err);
-    printf("pid[0] -> %d\n", proc_list->pid);
-    printf("created_low[0] -> %d\n", proc_list->created_low);
-    printf("created_high[0] -> %d\n", proc_list->created_high);
-    uint64_t created = proc_list->created_low | ((uint64_t)proc_list->created_high << 32);
-    printf("created -> %lld\n", created);
-    printf("alive[0] -> %d\n", proc_list->alive);
-    printf("state[0] -> %d\n", proc_list->state);
-  }
-  free(proc_list);
-
-  proc__kill(pid, &err);
-  if (err == 0) {
-    printf("Killed %d\n", pid);
+  int current_pid = proc__getPid(&err);
+  if (err != 0) {
+    printf("Failed to get pid\n");
   } else {
-    printf("Couldn't kill %d\n", pid);
+    printf("Current proc pid: %d\n", current_pid);
   }
+  
+  if (current_pid == 1) {
+    char buff[256];
+    int new_pid = proc__create(buff, 0, &err);
+    if (err == 0) {
+      printf("Created new process (new PID: %d)\n", new_pid);
+    }
+
+    proc__kill(new_pid, &err);
+    if (err == 0) {
+      printf("Killed process %d\n", new_pid);
+    } else {
+      printf("Couldn't kill %d\n", new_pid);
+    }
+
+    char sourceCode[256];
+    Process* proc_list = proc__list(&err);
+    if (err == 0) {
+      printf("========= LISTING ONE PROCESS ========= ");
+      printf("pid[0] -> %d\n", proc_list->pid);
+      printf("created_low[0] -> %d\n", proc_list->created_low);
+      printf("created_high[0] -> %d\n", proc_list->created_high);
+      uint64_t created = proc_list->created_low | ((uint64_t)proc_list->created_high << 32);
+      printf("created -> %lld\n", created);
+      printf("alive[0] -> %d\n", proc_list->alive);
+      printf("state[0] -> %d\n", proc_list->state);
+      printf("========= END ========= ");
+      free(proc_list);
+    }
+
+    printf("Hello I am proc %d, waiting on proc %d\n", current_pid, new_pid);
+    proc__wait(current_pid, &err);
+    printf("I am proc %d and I think this is very sad :(\n", current_pid);
+  } else {
+    printf("HELLO I AM PROCESS %d I AM KILLING MYSELF :(\n", current_pid);
+    proc__kill(current_pid, &err);
+  }
+
+
 
   char *src =
     "local func, ok = load(io.read('*a'))\n"

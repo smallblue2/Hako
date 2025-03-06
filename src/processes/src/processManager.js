@@ -1,4 +1,5 @@
-import { ProcessOperations, StreamDescriptor } from "./common.js";
+import { ProcessOperations, StreamDescriptor, CustomError } from "./common.js";
+import Signal from "./signal.js";
 import ProcessTable from "./processTable.js";
 
 // The max number of PIDs available to our system
@@ -42,9 +43,9 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  async createProcess(slave=undefined, pipeStdin = false, pipeStdout = false) {
-    if (slave===undefined) {
-      throw new Error("Tried to create a process with no slave PTY!");
+  async createProcess({slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null}) {
+    if (slave===undefined && (pipeStdin == false || pipeStdout == false)) {
+      throw new CustomError(CustomError.symbols.PTY_PROCESS_NO_PTY);
     }
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
@@ -52,21 +53,19 @@ export default class ProcessManager {
     );
 
     // Enqueue process to be initialised
-    this.#processesToBeInitialised.push(pid);
-
-    // Set up communication from the Worker back to this manager
-    // `#handleSignalFromProcess()` will interpret messages from the process
-    // like 'CHANGE_STATE'.
-    // worker.onmessage = (e) => this.#handleSignalFromProcess(e, pid);
+    this.#processesToBeInitialised.push([pid, callerSignal]);
 
     // Return the PID for external reference
     return pid;
   }
 
   registerWorker(worker) {
-    let toRegister = this.#processesToBeInitialised.shift();
+    let [toRegister, callerSignal] = this.#processesToBeInitialised.shift();
     if (toRegister === undefined) {
-      throw new Error("No processes to register!");
+      let error = CustomError.symbols.NO_PROC_FOR_WORKER;
+      callerSignal.write(error)
+      callerSignal.wake();
+      throw new CustomError(error);
     }
     let start = this.#processesTable.registerWorker(toRegister, worker);
 
@@ -78,6 +77,11 @@ export default class ProcessManager {
     worker.onmessage = (e) => this.#handleSignalFromProcess(e, toRegister, proc);
 
     start();
+    // If a caller requested this process to be created, give it the PID and wake it up
+    if (callerSignal) {
+      callerSignal.write(toRegister);
+      callerSignal.wake();
+    }
   }
 
   /**
@@ -91,7 +95,7 @@ export default class ProcessManager {
     try {
       proc = this.#processesTable.getProcess(pid);
     } catch(e) {
-      console.error(`[PROC_MAN] Failed to get process: ${e}`)
+      throw CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
     return proc;
   }
@@ -107,9 +111,12 @@ export default class ProcessManager {
     // Kill the process
     let toKill = this.getProcess(pid);
     console.log(`toKill: ${toKill}`);
+    console.log(toKill);
     if (!toKill)  {
-      console.error("[PROC_MAN] Couldn't kill process, getProcess returned null");
-      return;
+      throw CustomError(CustomError.symbols.PROC_NO_EXIST);
+    }
+    if (toKill.worker === undefined) {
+      throw CustomError(CustomError.symbols.PROC_NO_WORKER);
     }
     toKill.worker.terminate();
     this.#processesTable.freeProcess(pid);
@@ -118,11 +125,11 @@ export default class ProcessManager {
     let waitingSet = this.#waitingProcesses.get(pid)
     if (waitingSet) {
       waitingSet.forEach(waitingPID => {
-        let toAwakeProcess = this.getProcess(waitingPID);
-        if (toAwakeProcess) {
-          toAwakeProcess.signal.wake()
-        } else {
-          console.error(`[PROC_MAN] Process ${waitingPID} was waiting on ${pid}, but Process ${waitingPID} couldn't be retrieved.`)
+        try {
+          let toAwakeProcess = this.getProcess(waitingPID);
+          toAwakeProcess.signal.wake();
+        } catch (e) {
+          throw CustomError(CustomError.symbols.WAITING_PROC_NO_EXIST);
         }
       })
     }
@@ -146,7 +153,7 @@ export default class ProcessManager {
           let newState = e.data.state;
           this.#processesTable.changeProcessState(pid, newState);
         } else {
-          throw new Error("State undefined for process state change");
+          throw new CustomError(CustomError.symbols.STATE_NO_EXIST);
         }
         break;
       }
@@ -164,20 +171,46 @@ export default class ProcessManager {
         break;
       }
       case ProcessOperations.CREATE_PROCESS: {
-        let requestor = this.getProcess(e.data.requestor);
-        let newPID = -1;
+        let sendBackSignal = new Signal(e.data.sendBackBuffer);
+        let requestor = null;
         try {
-          newPID = await this.createProcess(requestor.pty);
-        } catch (e) {
-          console.error(`[PROC_MAN] ${e}`);
+          requestor = this.getProcess(e.data.requestor);
+        } catch (err) {
+          if (!(err instanceof CustomError)) {
+            console.error(err);
+            sendBackSignal.write(CustomError.symbols.EXTERNAL_ERROR);
+          } else {
+            sendBackSignal.write(err.code);
+          }
         }
-        requestor.signal.write(newPID);
-        requestor.signal.wake();
+
+
+        try {
+          // TODO: How can we set up something to be piped?
+          await this.createProcess({slave: requestor.pty, callerSignal: sendBackSignal});
+          // INFO: PID is written to callerSignal after a process is registered to it
+        } catch (err) {
+          if (!(err instanceof CustomError)) {
+            console.error(err);
+            sendBackSignal.write(CustomError.symbols.EXTERNAL_ERROR);
+          } else {
+            sendBackSignal.write(err.code);
+          }
+        }
+        // INFO: Calling process is awoken in the processTable when the created process is
+        //       registered to an emscripten worker
         break;
       }
       case ProcessOperations.KILL_PROCESS: {
+        let sendBackSignal = new Signal(e.data.sendBackBuffer);
         let pidToKill = e.data.kill;
-        this.killProcess(pidToKill);
+        try {
+          this.killProcess(pidToKill);
+          sendBackSignal.write(0);
+        } catch (e) {
+          sendBackSignal.write(`${e}`);
+        }
+        sendBackSignal.wake();
         break;
       }
       case ProcessOperations.GET_PROCESS_LIST: {
