@@ -8,78 +8,48 @@
 
 // proc__input(char* buf, int len, Error *err)
 EM_JS(int, proc__input, (char* buf, int len, Error *err), {
-  try {
-    let s = self.proc.input(len);
-    stringToUTF8(s, buf, len);
-    setValue(err, 0, 'i32');
-    return s.length;
-  } catch (e) {
-      setValue(err, 1, 'i32');
-      return -1;
-  }
+  let s = self.proc.input(len);
+  stringToUTF8(s, buf, len);
+  setValue(err, 0, 'i32');
+  return s.length;
 })
 
 // proc__inputAll(char* buf, int len, Error *err)
 EM_JS(int, proc__inputAll, (char* buf, int len, Error *err), {
-  try {
-    var s = self.proc.inputAll();
-    stringToUTF8(s, buf, len);
-    setValue(err, 0, 'i32');
-    return s.length;
-  } catch (e) {
-    setValue(err, 1, 'i32');
-    return -1;
-  }
+  var s = self.proc.inputAll();
+  stringToUTF8(s, buf, len);
+  setValue(err, 0, 'i32');
+  return s.length;
 })
 
 // proc__inputLine(char* buf, int len, Error *err)
 EM_JS(int, proc__inputLine, (char* buf, int len, Error *err), {
-  try {
-    var s = self.proc.inputLine();
-    stringToUTF8(s, buf, len);
-    setValue(err, 0, 'i32');
-    return s.length;
-  } catch (e) {
-    setValue(err, 1, 'i32');
-    return -1;
-  }
+  var s = self.proc.inputLine();
+  stringToUTF8(s, buf, len);
+  setValue(err, 0, 'i32');
+  return s.length;
 })
 
 // proc__output(char* buf, int len, Error *err)
 EM_JS(int, proc__output, (char* buf, int len, Error *err), {
-  try {
-    var s = UTF8ToString(buf, len);
-    self.proc.output(s);
-    setValue(err, 0, 'i32');
-    return s.length;
-  } catch (e) {
-    setValue(err, 1, 'i32');
-    return -1;
-  }
+  var s = UTF8ToString(buf, len);
+  self.proc.output(s);
+  setValue(err, 0, 'i32');
+  return s.length;
 })
 
 // proc__error(char* buf, int len, Error *err)
 EM_JS(int, proc__error, (char* buf, int len, Error *err), {
-  try {
-    var s = UTF8ToString(buf, len);
-    self.proc.error(s);
-    setValue(err, 0, 'i32');
-    return s.length;
-  } catch (e) {
-    setValue(err, 1, 'i32');
-    return -1;
-  }
+  var s = UTF8ToString(buf, len);
+  self.proc.error(s);
+  setValue(err, 0, 'i32');
+  return s.length;
 })
 
 // proc__wait(int pid, Error *err)
 EM_JS(void, proc__wait, (int pid, Error *err), {
-  try {
-    self.proc.wait(pid);
-    setValue(err, 0, 'i32');
-  } catch (e) {
-    setValue(err, 1, 'i32');
-    return -1;
-  }
+  self.proc.wait(pid);
+  setValue(err, 0, 'i32');
 })
 
 // proc__create(char *buf, int len, int pipeStdin, int pipeStdout, Error *err)
@@ -119,7 +89,7 @@ EM_JS(Process*, proc__list, (Error* err), {
     setValue(err, 0, 'i32');
     return memPointer;
   } catch (e) {
-    setValue(err, 1, 'i32');
+    setValue(err, -1, 'i32');
     return -1;
   }
 })

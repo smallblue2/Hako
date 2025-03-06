@@ -30,7 +30,7 @@ int main(void) {
   
   if (current_pid == 1) {
     char sourceCode[256];
-    Process* proc_list = proc__list(&err);
+    Process *proc_list = proc__list(&err);
     if (err == 0) {
       printf("========= LISTING ONE PROCESS =========\n");
       printf("pid[0] -> %d\n", proc_list->pid);
