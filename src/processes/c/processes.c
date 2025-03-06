@@ -82,28 +82,22 @@ EM_JS(void, proc__wait, (int pid, Error *err), {
   }
 })
 
-// proc__create(char *buf, int len, Error *err)
-EM_JS(int, proc__create, (char *buf, int len, Error *err), {
-  try {
-    var luaPath = UTF8ToString(buf, len);
-    var createdPID = self.proc.create(luaPath);
-    setValue(err, 0, 'i32');
-    return createdPID;
-  } catch (e) {
-    setValue(err, e.errorCode, 'i32');
+// proc__create(char *buf, int len, int pipeStdin, int pipeStdout, Error *err)
+EM_JS(int, proc__create, (char *buf, int len, bool pipeStdin, bool pipeStdout, Error *err), {
+  var luaPath = UTF8ToString(buf, len);
+  var createdPID = self.proc.create(luaPath, pipeStdin, pipeStdout);
+  if (createdPID < 0) {
+    setValue(err, createdPID, 'i32');
     return -1;
   }
+  setValue(err, 0, 'i32');
+  return createdPID;
 })
 
 // proc__kill(int pid)
 EM_JS(void, proc__kill, (int pid, Error *err), {
-  try {
-    self.proc.kill(pid);
-    setValue(err, 0, 'i32');
-  } catch (e) {
-    console.error(`Kill Error: ${e}`);
-    setValue(err, 1, 'i32');
-  }
+  let errorCode = self.proc.kill(pid);
+  setValue(err, errorCode, 'i32');
 })
 
 EM_JS(Process*, proc__list, (Error* err), {

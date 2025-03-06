@@ -95,7 +95,7 @@ export default class ProcessManager {
     try {
       proc = this.#processesTable.getProcess(pid);
     } catch(e) {
-      throw CustomError(CustomError.symbols.PROC_NO_EXIST);
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
     return proc;
   }
@@ -110,25 +110,34 @@ export default class ProcessManager {
   killProcess(pid) {
     // Kill the process
     let toKill = this.getProcess(pid);
-    console.log(`toKill: ${toKill}`);
-    console.log(toKill);
     if (!toKill)  {
+      console.error("Trying to kill a non-existent process");
       throw CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
     if (toKill.worker === undefined) {
+      console.error("Trying to kill a process with no registered worker");
       throw CustomError(CustomError.symbols.PROC_NO_WORKER);
     }
     toKill.worker.terminate();
+    console.log("Killed process");
     this.#processesTable.freeProcess(pid);
+    console.log("Free'd process");
 
     // Check if anybody else was waiting on it
+    console.log(this.#waitingProcesses);
+    console.log(`Checking wait map for ${pid}`);
     let waitingSet = this.#waitingProcesses.get(pid)
+    console.log(waitingSet);
     if (waitingSet) {
       waitingSet.forEach(waitingPID => {
+        console.log(`Waiting PID: ${waitingPID}`);
         try {
           let toAwakeProcess = this.getProcess(waitingPID);
+          console.log("AWOKEN A WAITING PROCESS");
           toAwakeProcess.signal.wake();
         } catch (e) {
+          // INFO: Maybe this shouldn't throw an error, but just report it?
+          console.error("WAITING PROC NO EXIST");
           throw CustomError(CustomError.symbols.WAITING_PROC_NO_EXIST);
         }
       })
@@ -158,6 +167,7 @@ export default class ProcessManager {
         break;
       }
       case ProcessOperations.WAIT_ON_PID: {
+        console.log("GOT WAIT REQUEST");
         let requestor = e.data.requestor;
         let waiting_on = e.data.waiting_for;
       
@@ -168,10 +178,13 @@ export default class ProcessManager {
           this.#waitingProcesses.set(waiting_on, waitingSet);
         }
         waitingSet.add(requestor);
+        console.log("ADDED TO WAIT MAP");
         break;
       }
       case ProcessOperations.CREATE_PROCESS: {
         let sendBackSignal = new Signal(e.data.sendBackBuffer);
+        const pipeStdin = e.data.pipeStdin;
+        const pipeStdout = e.data.pipeStdout;
         let requestor = null;
         try {
           requestor = this.getProcess(e.data.requestor);
@@ -186,8 +199,7 @@ export default class ProcessManager {
 
 
         try {
-          // TODO: How can we set up something to be piped?
-          await this.createProcess({slave: requestor.pty, callerSignal: sendBackSignal});
+          await this.createProcess({slave: requestor.pty, pipeStdin, pipeStdout, callerSignal: sendBackSignal});
           // INFO: PID is written to callerSignal after a process is registered to it
         } catch (err) {
           if (!(err instanceof CustomError)) {
@@ -206,9 +218,15 @@ export default class ProcessManager {
         let pidToKill = e.data.kill;
         try {
           this.killProcess(pidToKill);
+          console.log("MURDERED PROCESS");
           sendBackSignal.write(0);
-        } catch (e) {
-          sendBackSignal.write(`${e}`);
+        } catch (err) {
+          if (!(err instanceof CustomError)) {
+            console.error(err);
+            sendBackSignal.write(CustomError.symbols.EXTERNAL_ERROR);
+          } else {
+            sendBackSignal.write(err.code);
+          }
         }
         sendBackSignal.wake();
         break;

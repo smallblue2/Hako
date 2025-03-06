@@ -1,4 +1,5 @@
 #ifndef PROCESSES_H
+#include <stdbool.h>
 #define PROCESSES_H
 
 #ifndef MAIN_H
@@ -26,7 +27,7 @@ int proc__inputLine(char* buf, int len, Error *err);
 int proc__output(char* buf, int len, Error *err);
 int proc__error(char* buf, int len, Error *err);
 void proc__wait(int pid, Error *err);
-int proc__create(char *buf, int len, Error *err);
+int proc__create(char *buf, int len, bool pipeStdin, bool pipeStdout, Error *err);
 void proc__kill(int pid, Error *err);
 Process* proc__list(Error* err);
 int proc__getPid(Error* err);

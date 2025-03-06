@@ -83,14 +83,15 @@ async function initWorkerForProcess(data) {
       self.proc.signal.sleep();
       changeState(ProcessStates.RUNNING);
     },
-    // RETURNS ERRORCODE
-    create: (luaPath) => {
+    create: (luaPath, pipeStdin = false, pipeStdout = false) => {
       // Tell the manager we'd like to create a process
       self.postMessage({
         op: ProcessOperations.CREATE_PROCESS,
         luaPath,
         sendBackBuffer: self.proc.signal.getBuffer(),
-        requestor: self.proc.pid
+        requestor: self.proc.pid,
+        pipeStdin,
+        pipeStdout
       });
       changeState(ProcessStates.SLEEPING);
       self.proc.signal.sleep();

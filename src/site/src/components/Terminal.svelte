@@ -108,7 +108,7 @@
     terminal.loadAddon(master);
     fitAddon.fit();
 
-    pid = await window.ProcessManager.createProcess(slave);
+    pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false});
     console.log(`PID: ${pid}`);
 
   })
