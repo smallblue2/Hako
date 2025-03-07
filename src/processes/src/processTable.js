@@ -84,7 +84,8 @@ export default class ProcessTable {
       state: ProcessStates.STARTING,
       pty: processData.slave,
       pipeStdin: processData.pipeStdin,
-      pipeStdout: processData.pipeStdout
+      pipeStdout: processData.pipeStdout,
+      start: processData.start
     }
 
     // Place the new process object in the table
@@ -117,9 +118,9 @@ export default class ProcessTable {
 
     console.log("Attached worker to registeredProcess:");
 
-    let start = () => {
-      worker.postMessage({
+    registeredProcess.startMsg = {
         cmd: "custom-init",
+        start: registeredProcess.start,
         pid: pid,
         emscriptenBuffer: registeredProcess.emscriptenBuffer,
         signal: registeredProcess.signal.getBuffer(),
@@ -128,10 +129,9 @@ export default class ProcessTable {
         stderr: registeredProcess.stderr.getBuffer(),
         pipeStdin: registeredProcess.pipeStdin,
         pipeStdout: registeredProcess.pipeStdout,
-      });
     }
 
-    return start;
+    return;
   }
 
   /**

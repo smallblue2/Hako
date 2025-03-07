@@ -41,11 +41,14 @@ async function initWorkerForProcess(data) {
     isInATTY: false,
     isOutATTY: false,
     isErrATTY: false,
+    StreamDescriptor,
     signal: new Signal(data.signal),
     // DOESNT RETURN AN ERRORCODE
     input: (amt) => {
       changeState(ProcessStates.SLEEPING);
+      console.log("reading... amt:", amt);
       let s = self.proc.stdin.read(amt);
+      console.log("read!");
       changeState(ProcessStates.RUNNING);
       return s;
     },
@@ -130,10 +133,40 @@ async function initWorkerForProcess(data) {
     isPipeable: (stream) => {
       switch (stream) {
         case StreamDescriptor.STDIN: return data.pipeStdin;
-        case StreamDescriptor.STDOUT: return data.pipeStdin;
+        case StreamDescriptor.STDOUT: return data.pipeStdout;
       }
+    },
+    pipe: (outPid, inPid) => {
+      // Tell the manager we'd like to create a process
+      self.postMessage({
+        op: ProcessOperations.PIPE_PROCESSES,
+        requestor: self.proc.pid,
+        sendBackBuffer: self.proc.signal.getBuffer(),
+        outPid,
+        inPid
+      });
+      changeState(ProcessStates.SLEEPING);
+      self.proc.signal.sleep();
+      changeState(ProcessStates.RUNNING);
+      // Returns errCode
+      let errCode = self.proc.signal.read();
+      return Number(errCode);
+    },
+    start: (pid) => {
+      console.log("TRYING TO START PID:", pid);
+      self.postMessage({
+        op: ProcessOperations.START_PROCESS,
+        pid,
+        sendBackBuffer: self.proc.signal.getBuffer(),
+      });
+      changeState(ProcessStates.SLEEPING);
+      self.proc.signal.sleep();
+      changeState(ProcessStates.RUNNING);
+      let errCode = self.proc.signal.read();
+      return Number(errCode);
     }
   }
+
 }
 
 // Function intercepts thread creation to add a MessageChannel
@@ -150,10 +183,12 @@ function interceptThreadCreation() {
   }
 
   self.onmessage = async (e) => {
-    if (e.data.cmd === "custom-init") {
+    switch (e.data.cmd) {
+    case "custom-init":
       await initWorkerForProcess(e.data);
       goBack();
-    } else {
+      break;
+    default:
       queue.push(e);
     }
   }

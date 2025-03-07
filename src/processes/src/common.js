@@ -15,7 +15,9 @@ export const ProcessOperations = Object.freeze({
   WAIT_ON_PID: "waitOnPID",
   CREATE_PROCESS: "createProcess",
   KILL_PROCESS: "killProcess",
-  GET_PROCESS_LIST: "getProcessList"
+  GET_PROCESS_LIST: "getProcessList",
+  PIPE_PROCESSES: "pipeProcesses",
+  START_PROCESS: "startProcess"
 });
 
 export class CustomError extends Error {
@@ -29,7 +31,13 @@ export class CustomError extends Error {
     NO_PROC_FOR_WORKER: -6,
     PROC_TABLE_FULL: -7,
     EXTERNAL_ERROR: -8,
-    UNKOWN_ERROR: -9
+    UNKOWN_ERROR: -9,
+    PROC_NOT_SET_TO_PIPE_STDOUT: -10,
+    PROC_NOT_SET_TO_PIPE_STDIN: -11,
+    STDIN_EMPTY: -12,
+    STDOUT_WRITE_FAIL: -13,
+    STDIN_FAIL_READ: -14,
+    PIPE_STARTED_PROC: -15
  });
 
   static #codeToMessageMap = Object.freeze({
@@ -41,7 +49,13 @@ export class CustomError extends Error {
     "-6": "No process to register a worker to",
     "-7": "No available PIDs - Process table is full",
     "-8": "External error",
-    "-9": "Unknown error"
+    "-9": "Unknown error",
+    "-10": "Process isn't set to pipe its stdout",
+    "-11": "Process isn't set to pipe its stdin",
+    "-12": "Stdin is empty",
+    "-13": "Failed to write to stdout",
+    "-14": "Failed to read stdin",
+    "-15": "Tried to pipe input into process that has already started"
   });
 
   constructor(code) {

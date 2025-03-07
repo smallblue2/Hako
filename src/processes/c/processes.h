@@ -21,15 +21,23 @@ typedef struct __attribute__((packed)) {
   ProcessStates state; // 16
 } Process; // 20
 
-int proc__input(char* buf, int len, Error *err);
-int proc__inputAll(char* buf, int len, Error *err);
-int proc__inputLine(char* buf, int len, Error *err);
-int proc__output(char* buf, int len, Error *err);
-int proc__error(char* buf, int len, Error *err);
+int proc__input_pipe(char* buf, int len, Error *err);
+int proc__input_all_pipe(char* buf, int len, Error *err);
+int proc__input_line_pipe(char* buf, int len, Error *err);
+int proc__output_pipe(char* buf, int len, Error *err);
+int proc__error_pipe(char* buf, int len, Error *err);
 void proc__wait(int pid, Error *err);
-int proc__create(char *buf, int len, bool pipeStdin, bool pipeStdout, Error *err);
+int proc__create(char *buf, int len, bool pipe_stdin, bool pipe_stdout, Error *err);
 void proc__kill(int pid, Error *err);
 Process* proc__list(Error* err);
-int proc__getPid(Error* err);
+int proc__get_pid(Error* err);
+void proc__pipe(int out_pid, int in_pid, Error* err);
+bool proc__is_stdout_pipe(Error* err);
+bool proc__is_stdin_pipe(Error* err);
+int proc__input(char* buf, int len, Error *err);
+int proc__input_all(char* buf, int len, Error *err);
+int proc__input_line(char* buf, int len, Error *err);
+int proc__output(char* buf, int len, Error *err);
+void proc__start(int pid, Error *err);
 
 #endif

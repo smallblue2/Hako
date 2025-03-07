@@ -108,8 +108,9 @@
     terminal.loadAddon(master);
     fitAddon.fit();
 
-    pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false});
-    console.log(`PID: ${pid}`);
+    // Create a process which will start straight away and wont have its streams piped
+    // INFO: This will be the shell when it's created
+    pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false, start: true});
 
   })
 
