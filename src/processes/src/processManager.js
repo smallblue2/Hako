@@ -44,13 +44,27 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  async createProcess({slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null, start = false}) {
+  async createProcess({luaPath = "/persistent/hello.lua", slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null, start = false}) {
     if (slave===undefined && (pipeStdin == false || pipeStdout == false)) {
       throw new CustomError(CustomError.symbols.PTY_PROCESS_NO_PTY);
     }
+
+    // TODO: Confirm its a lua file, maybe check for shebang or simply just the extension
+
+    // Check the filesystem for the luaPath
+    let luaCode = ''
+    let { error, fd } = window.Filesystem.open(luaPath, "r");
+    if (fd < 0) {
+      throw new CustomError(CustomError.symbols.LUA_FILE_NO_EXIST);
+    } else {
+      let readResp = window.Filesystem.readAll(fd);
+      luaCode = readResp.data;
+      window.Filesystem.close(fd);
+    }
+    
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
-      { slave, pipeStdin, pipeStdout, start }, // Defined behaviour for web-worker
+      { slave, pipeStdin, pipeStdout, start, luaCode }, // Defined behaviour for web-worker
     );
 
     // Enqueue process to be initialised
@@ -228,7 +242,7 @@ export default class ProcessManager {
         }
 
         try {
-          await this.createProcess({slave: requestor.pty, pipeStdin, pipeStdout, callerSignal: sendBackSignal});
+          await this.createProcess({luaPath: e.data.luaPath, slave: requestor.pty, pipeStdin, pipeStdout, callerSignal: sendBackSignal});
           // INFO: PID is written to callerSignal after a process is registered to it
         } catch (err) {
           if (!(err instanceof CustomError)) {

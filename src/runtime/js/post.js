@@ -17,8 +17,6 @@ async function initWorkerForProcess(data) {
     });
   }
 
-  self.luaCode = data.luaCode;
-
   self.proc = {
     pid: data.pid,
     stdin: new Pipe(0, data.stdin),
@@ -28,13 +26,12 @@ async function initWorkerForProcess(data) {
     isOutATTY: false,
     isErrATTY: false,
     StreamDescriptor,
+    luaCode: data.luaCode,
     signal: new Signal(data.signal),
     // DOESNT RETURN AN ERRORCODE
     input: (amt) => {
       changeState(ProcessStates.SLEEPING);
-      console.log("reading... amt:", amt);
       let s = self.proc.stdin.read(amt);
-      console.log("read!");
       changeState(ProcessStates.RUNNING);
       return s;
     },
@@ -139,7 +136,6 @@ async function initWorkerForProcess(data) {
       return Number(errCode);
     },
     start: (pid) => {
-      console.log("TRYING TO START PID:", pid);
       self.postMessage({
         op: ProcessOperations.START_PROCESS,
         pid,

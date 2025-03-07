@@ -37,6 +37,8 @@
       window.isFilesystemInitialised = true;
       window.Filesystem = Filesystem;
       window._FSM = Module;
+
+      window.Filesystem.initialiseFS();
     }).catch((err) => {
       console.error("Failed to define filesystem API:", err);
     });

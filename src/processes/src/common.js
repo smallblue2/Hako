@@ -37,7 +37,8 @@ export class CustomError extends Error {
     STDIN_EMPTY: -12,
     STDOUT_WRITE_FAIL: -13,
     STDIN_FAIL_READ: -14,
-    PIPE_STARTED_PROC: -15
+    PIPE_STARTED_PROC: -15,
+    LUA_FILE_NO_EXIST: -16
  });
 
   static #codeToMessageMap = Object.freeze({
@@ -55,7 +56,8 @@ export class CustomError extends Error {
     "-12": "Stdin is empty",
     "-13": "Failed to write to stdout",
     "-14": "Failed to read stdin",
-    "-15": "Tried to pipe input into process that has already started"
+    "-15": "Tried to pipe input into process that has already started",
+    "-16": "Lua file doesn't exist"
   });
 
   constructor(code) {

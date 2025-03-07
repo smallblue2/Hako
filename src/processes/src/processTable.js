@@ -79,6 +79,7 @@ export default class ProcessTable {
       stdin: stdinPipe,
       stdout: stdoutPipe,
       stderr: stderrPipe,
+      luaCode: processData.luaCode,
       signal: signal,
       time: Date.now(),
       state: ProcessStates.STARTING,
@@ -129,6 +130,7 @@ export default class ProcessTable {
         stderr: registeredProcess.stderr.getBuffer(),
         pipeStdin: registeredProcess.pipeStdin,
         pipeStdout: registeredProcess.pipeStdout,
+        luaCode: registeredProcess.luaCode
     }
 
     return;

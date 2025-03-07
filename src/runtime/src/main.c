@@ -47,14 +47,15 @@ int main(void) {
       }
 
       char buff[256];
-      int out_pid = proc__create(buff, 0, false, true, &err);
+      int len = snprintf(buff, sizeof(buff), "/persistent/hello.lua");
+      int out_pid = proc__create(buff, len, false, true, &err);
       if (err < 0) {
         printf("[1] Couldn't create process to pipe stdout (err %d)\n", err);
         return -1;
       }
       printf("[1] Created new process to pipe stdout (new PID: %d)\n", out_pid);
 
-      int in_pid = proc__create(buff, 0, true, false, &err);
+      int in_pid = proc__create(buff, len, true, false, &err);
       if (err < 0) {
         printf("[1] Couldn't create process to pipe stdin (err %d)\n", err);
         return -1;
@@ -133,14 +134,19 @@ int main(void) {
     }
   }
 
-  char *src =
-    "local func, ok = load(io.read('*a'))\n"
-    "local success, err = pcall(func)\n"
-    "if not success then\n"
-    "  print(err)\n"
-    "end";
+  char luaCodeBuffer[256];
+  proc__get_lua_code(luaCodeBuffer, sizeof(luaCodeBuffer), &err);
+  printf("Loaded code from FS: \n%s\n", luaCodeBuffer);
 
-  file__initialiseFS();
+  char src[256];
+  snprintf(src, sizeof(src), "local func, ok = load('%s')\nlocal success, err = pcall(func)\nif not success then\n  print(err)\nend", luaCodeBuffer);
+
+  // char *src =
+  //   "local func, ok = load(io.read('*a'))\n"
+  //   "local success, err = pcall(func)\n"
+  //   "if not success then\n"
+  //   "  print(err)\n"
+  //   "end";
 
   export_stdlib(L);
 

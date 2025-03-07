@@ -9,6 +9,7 @@
 
 #include "processes.h"
 
+
 // proc__input_pipe(char* buf, int len, Error *err)
 EM_JS(int, proc__input_pipe, (char* buf, int len, Error *err), {
   let s = self.proc.input(len);
@@ -204,6 +205,13 @@ int proc__output(char* buf, int len, Error *err) {
 EM_JS(void, proc__start, (int pid, Error *err), {
   let errCode = self.proc.start(pid);
   setValue(err, errCode, 'i32');
+})
+
+// proc__get_lua_code(char *buf, int len, Error *err)
+EM_JS(int, proc__get_lua_code, (char *buf, int len, Error *err), {
+  stringToUTF8(self.proc.luaCode, buf, len);
+  setValue(err, 0, 'i32');
+  return self.proc.luaCode.length;
 })
 
 void test(void) {

@@ -39,5 +39,6 @@ int proc__input_all(char* buf, int len, Error *err);
 int proc__input_line(char* buf, int len, Error *err);
 int proc__output(char* buf, int len, Error *err);
 void proc__start(int pid, Error *err);
+int proc__get_lua_code(char *buf, int len, Error *err);
 
 #endif
