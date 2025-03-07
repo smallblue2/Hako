@@ -17,6 +17,10 @@ if host_machine.system() == 'emscripten'
   configure_file(input: '../../build/processes/processTable.js', output: 'processTable.js', copy: true)
   configure_file(input: '../../build/processes/processManager.js', output: 'processManager.js', copy: true)
   configure_file(input: '../../build/processes/process.js', output: 'process.js', copy: true)
+  configure_file(input: '../../build/filesystem/api.js', output: 'api.js', copy: true)
+  configure_file(input: '../../build/filesystem/definitions.js', output: 'definitions.js', copy: true)
+  configure_file(input: '../../build/filesystem/filesystem.js', output: 'filesystem.js', copy: true)
+  configure_file(input: '../../build/filesystem/filesystem.wasm', output: 'filesystem.wasm', copy: true)
 else
   configure_file(input: '../../build-native/filesystem/libfilesystem.a', output: 'libfilesystem.a', copy: true)
 endif

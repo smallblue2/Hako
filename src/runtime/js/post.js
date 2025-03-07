@@ -17,21 +17,7 @@ async function initWorkerForProcess(data) {
     });
   }
 
-  // Attach process constructs to worker global scope
-  self.emscriptenMemory = {
-    HEAP8: new Int8Array(data.emscriptenBuffer),
-    HEAP16: new Int16Array(data.emscriptenBuffer),
-    HEAPU8: new Uint8Array(data.emscriptenBuffer),
-    HEAPU16: new Uint16Array(data.emscriptenBuffer),
-    HEAP32: new Int32Array(data.emscriptenBuffer),
-    HEAPU32: new Uint32Array(data.emscriptenBuffer),
-    HEAPF32: new Float32Array(data.emscriptenBuffer),
-    HEAPF64: new Float64Array(data.emscriptenBuffer)
-  }
-
-  self.emscriptenFuncs = {
-    
-  }
+  self.luaCode = data.luaCode;
 
   self.proc = {
     pid: data.pid,

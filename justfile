@@ -55,17 +55,16 @@ processes:
 exported-runtime: runtime
   cp ../../build/runtime/runtime.js static/
   cp ../../build/runtime/runtime.wasm static/
-
-  cp ../../build/runtime/runtime.js static/
-  cp ../../build/runtime/runtime.wasm static/
-
   cp ../../build/runtime/signal.js static/
   cp ../../build/runtime/common.js static/
   cp ../../build/runtime/pipe.js static/
   cp ../../build/runtime/processTable.js static/
   cp ../../build/runtime/processManager.js static/
   cp ../../build/runtime/process.js static/
-
+  cp ../../build/filesystem/api.js static/
+  cp ../../build/filesystem/definitions.js static/
+  cp ../../build/filesystem/filesystem.js static/
+  cp ../../build/filesystem/filesystem.wasm static/
 
 [working-directory('src/site')]
 site: exported-runtime
