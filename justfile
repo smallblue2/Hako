@@ -5,7 +5,7 @@ default: build
 
 build: exported-runtime
 build-native: runtime-native
-test: test-filesystem test-runtime
+test: test-filesystem test-runtime test-processes
 
 reconfigure: reconfigure-filesystem reconfigure-processes reconfigure-runtime
 
@@ -18,7 +18,7 @@ reconfigure-processes:
   meson setup --cross-file ../emscripten.ini ../../build/processes
 
 [working-directory('src/runtime')]
-reconfigure-runtime: filesystem
+reconfigure-runtime: processes filesystem
   meson setup --cross-file ../emscripten.ini ../../build/runtime --wrap-mode=forcefallback
 
 # Native compilation is used for running tests, just so we don't need to run
@@ -55,6 +55,16 @@ processes:
 exported-runtime: runtime
   cp ../../build/runtime/runtime.js static/
   cp ../../build/runtime/runtime.wasm static/
+  cp ../../build/runtime/signal.js static/
+  cp ../../build/runtime/common.js static/
+  cp ../../build/runtime/pipe.js static/
+  cp ../../build/runtime/processTable.js static/
+  cp ../../build/runtime/processManager.js static/
+  cp ../../build/runtime/process.js static/
+  cp ../../build/filesystem/api.js static/
+  cp ../../build/filesystem/definitions.js static/
+  cp ../../build/filesystem/filesystem.js static/
+  cp ../../build/filesystem/filesystem.wasm static/
 
 [working-directory('src/site')]
 site: exported-runtime
@@ -81,8 +91,5 @@ site-run-dev:
   deno run dev
 
 clean:
-  rm -rf build/filesystem
-  rm -rf build/runtime
-  rm -rf build-native/filesystem
-  rm -rf build-native/runtime
-  rm -rf build/site
+  rm -rf build/
+  rm -rf build-native/

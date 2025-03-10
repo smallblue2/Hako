@@ -57,13 +57,14 @@ void file__pullFromPersist() {
 #ifdef __EMSCRIPTEN__
   MAIN_THREAD_EM_ASM({
     // Force an initial sync - despite `autoPersist` flag
-    FS.syncfs(true, function (err) {
-      if (err) {
-        console.error("[JS] Error during sync:", err);
-      } else {
-        console.log("[JS] Sync completed succesfully!");
-      }
-    });
+    FS.syncfs(
+        true, function(err) {
+          if (err) {
+            console.error("[JS] Error during sync:", err);
+          } else {
+            console.log("[JS] Sync completed succesfully!");
+          }
+        });
   });
 #endif
   return;
@@ -114,6 +115,24 @@ void file__initialiseFS() {
         }
       },
       PERSISTENT_ROOT_NAME);
+
+  // Write the shell file
+  EM_ASM({
+    try {
+      FS.writeFile('/persistent/hello.lua', 'print("Hello from Lua!")');
+
+      // Force sync back to IndexedDB
+      FS.syncfs(
+          false, function(err) {
+            if (err)
+              console.error("Error syncing to IndexedDB:", err);
+            else
+              console.log("File written and synced to IndexedDB.");
+          });
+    } catch (e) {
+      console.error("Error writing file:", e);
+    }
+  });
 #endif
 
   file__pullFromPersist();
@@ -185,7 +204,6 @@ void file__close(int fd, Error *err) {
 
 void file__write(int fd, const char *content, Error *err) {
   // NOTE: no perm checks as the user already has the file descriptor
-
 
   int contentLength = strlen(content);
   printf("[C] Passed in fd: %d\n", fd);
@@ -328,7 +346,7 @@ void file__shift(int fd, int amt, Error *err) {
 // Places the file offset to `pos`
 void file__goto(int fd, int pos, Error *err) {
   // NOTE: No permission checks here - they already obtained fd
-  
+
   int moved_bytes = lseek(fd, pos, SEEK_SET);
   if (moved_bytes < 0) {
     *err = translate_errors(errno);
@@ -357,7 +375,6 @@ void file__remove(const char *path, Error *err) {
     *err = translate_errors(EROFS);
     return;
   }
-
 
   int error = unlink(path);
   if (error < 0) {
@@ -554,7 +571,8 @@ void file__change_dir(const char *path, Error *err) {
   return;
 }
 
-// Changes FILE permissions (only for user - single user OS, 0[use][ignore][ignore])
+// Changes FILE permissions (only for user - single user OS,
+// 0[use][ignore][ignore])
 void file__permit(const char *path, int flags, Error *err) {
   // permissions check
   struct stat st;

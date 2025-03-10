@@ -22,6 +22,9 @@
 
   let terminal;
 
+  // PID attached to terminal
+  let pid = -1;
+
   /** @type {FitAddon} */
   let fitAddon;
 
@@ -92,8 +95,6 @@
   });
 
   $effect(async () => {
-    let { default: initEmscripten } = await import(wasmModule);
-
     terminal = new Terminal({ fontFamily: "JetBrainsMono-Regular" });
     terminal.open(root);
 
@@ -107,10 +108,16 @@
     terminal.loadAddon(master);
     fitAddon.fit();
 
-    await initEmscripten({
-      pty: slave
-    });
+    // Create a process which will start straight away and wont have its streams piped
+    // INFO: This will be the shell when it's created
+    pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false, start: true});
+
   })
+
+  function onClose() {
+    console.log(`Terminal with PID ${pid} is closing.`);
+    window.ProcessManager.killProcess(pid);
+  }
 
   onMount(() => {
     window.addEventListener("resize", () => {
@@ -121,7 +128,7 @@
   })
 </script>
 
-<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root}>
+<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root} {onClose}>
   {#snippet data()}
     <div bind:this={root} class="contents"></div>
   {/snippet}

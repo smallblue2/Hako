@@ -1,5 +1,7 @@
-import { ProcessOperations } from "./common.js";
+import { ProcessOperations, StreamDescriptor, CustomError } from "./common.js";
+import Signal from "./signal.js";
 import ProcessTable from "./processTable.js";
+import Pipe from "./pipe.js";
 
 // The max number of PIDs available to our system
 const MAX_PID = 128;
@@ -18,6 +20,7 @@ export default class ProcessManager {
    */
   #processesTable;
   #waitingProcesses;
+  #processesToBeInitialised
 
   /**
    * Creates a new ProcessManager instance with a maximum PID capacity.
@@ -29,6 +32,7 @@ export default class ProcessManager {
      */
     this.#processesTable = new ProcessTable(MAX_PID);
     this.#waitingProcesses = new Map();
+    this.#processesToBeInitialised = [];
   }
 
   /**
@@ -40,22 +44,66 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  createProcess(sourceCode = "", processScript = "src/process.js") {
+  async createProcess({luaPath = "/persistent/hello.lua", slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null, start = false}) {
+    if (slave===undefined && (pipeStdin == false || pipeStdout == false)) {
+      throw new CustomError(CustomError.symbols.PTY_PROCESS_NO_PTY);
+    }
+
+    // TODO: Confirm its a lua file, maybe check for shebang or simply just the extension
+
+    // Check the filesystem for the luaPath
+    let luaCode = ''
+    let { error, fd } = window.Filesystem.open(luaPath, "r");
+    if (fd < 0) {
+      throw new CustomError(CustomError.symbols.LUA_FILE_NO_EXIST);
+    } else {
+      let readResp = window.Filesystem.readAll(fd);
+      luaCode = readResp.data;
+      window.Filesystem.close(fd);
+    }
+    
     // Allocate space in the process table and retrieve references to the worker and channels
-    let { pid, stdin, stdout, stderr, worker, start } = this.#processesTable.allocateProcess(
-      { processScript, sourceCode }, // Defined behaviour for web-worker
+    let { pid } = await this.#processesTable.allocateProcess(
+      { slave, pipeStdin, pipeStdout, start, luaCode }, // Defined behaviour for web-worker
     );
 
-    // Set up communication from the Worker back to this manager
-    // `#handleSignalFromProcess()` will interpret messages from the process
-    // like 'CHANGE_STATE'.
-    worker.onmessage = (e) => this.#handleSignalFromProcess(e, pid);
-
-    // Actually start the Worker via closure
-    start();
+    // Enqueue process to be initialised
+    this.#processesToBeInitialised.push([pid, callerSignal]);
 
     // Return the PID for external reference
     return pid;
+  }
+
+  registerWorker(worker) {
+    let [toRegister, callerSignal] = this.#processesToBeInitialised.shift();
+    if (toRegister === undefined) {
+      let error = CustomError.symbols.NO_PROC_FOR_WORKER;
+      callerSignal.write(error)
+      callerSignal.wake();
+      throw new CustomError(error);
+    }
+    this.#processesTable.registerWorker(toRegister, worker);
+
+    // Save emscripten's onmessage in the process
+    let proc = this.getProcess(toRegister);
+    proc.emscriptenOnMessage = worker.onmessage;
+
+    // Override worker's omessage
+    worker.onmessage = (e) => this.#handleSignalFromProcess(e, toRegister, proc);
+
+
+    // If the process is to be started straight away, start it
+    if (proc.start) {
+      proc.worker.postMessage(
+        proc.startMsg
+      )
+    }
+
+    // If there is a caller, tell it the PID & wake it up
+    if (callerSignal != null) {
+      callerSignal.write(toRegister);
+      callerSignal.wake();
+    }
   }
 
   /**
@@ -65,7 +113,13 @@ export default class ProcessManager {
    * @returns {Object|null} - The process object, or null if the PID is invalid or free.
    */
   getProcess(pid) {
-    return this.#processesTable.getProcess(pid);
+    let proc = null;
+    try {
+      proc = this.#processesTable.getProcess(pid);
+    } catch(e) {
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
+    }
+    return proc;
   }
 
   /**
@@ -78,8 +132,11 @@ export default class ProcessManager {
   killProcess(pid) {
     // Kill the process
     let toKill = this.getProcess(pid);
-    if (!toKill) {
-      throw new Error("Process does not exist!");
+    if (!toKill)  {
+      throw CustomError(CustomError.symbols.PROC_NO_EXIST);
+    }
+    if (toKill.worker === undefined) {
+      throw CustomError(CustomError.symbols.PROC_NO_WORKER);
     }
     toKill.worker.terminate();
     this.#processesTable.freeProcess(pid);
@@ -88,12 +145,50 @@ export default class ProcessManager {
     let waitingSet = this.#waitingProcesses.get(pid)
     if (waitingSet) {
       waitingSet.forEach(waitingPID => {
-        let toAwakeProcess = this.getProcess(waitingPID);
-        if (toAwakeProcess) {
-          toAwakeProcess.signal.wake()
+        try {
+          let toAwakeProcess = this.getProcess(waitingPID);
+          toAwakeProcess.signal.wake();
+        } catch (e) {
+          // INFO: Maybe this shouldn't throw an error, but just report it?
+          throw CustomError(CustomError.symbols.WAITING_PROC_NO_EXIST);
         }
       })
     }
+  }
+
+  // Pipes the stdout of the first argument to the stdin of the second argument
+  pipe(outPid, inPid) {
+    // Get first process's stdout buffer
+    // Replace second process's stdin buffer
+    let outProc = null;
+    let inProc = null;
+    try {
+      outProc = this.getProcess(outPid);
+      inProc = this.getProcess(inPid);
+    } catch (err) {
+      throw err;
+    }
+
+    if (!outProc.pipeStdout) {
+      throw new CustomError(CustomError.symbols.PROC_NOT_SET_TO_PIPE_STDOUT);
+    }
+    if (!inProc.pipeStdin) {
+      throw new CustomError(CustomError.symbols.PROC_NOT_SET_TO_PIPE_STDIN);
+    }
+
+    // If the process to be piped into has already started, throw an error
+    if (inProc.start) {
+      throw new CustomError(CustomError.symbols.PIPE_STARTED_PROC);
+    }
+    
+    // Get the stdout buffer from the first process
+    let outBuff = outProc.stdout.getBuffer();
+    delete inProc.stdin;
+
+    // Update our reference to the inProc's stdin
+    inProc.stdin = new Pipe(0, outBuff);
+    // Update the stdin buffer we're sending to the process on start
+    inProc.startMsg.stdin = outBuff;
   }
 
   /**
@@ -105,7 +200,7 @@ export default class ProcessManager {
    * @param {MessageEvent} e - The message event from the Worker.
    * @param {number} pid - The PID of the Worker that sent this message.
    */
-  #handleSignalFromProcess(e, pid) {
+  async #handleSignalFromProcess(e, pid, proc) {
     const operation = e.data.op;
     switch (operation) {
       case ProcessOperations.CHANGE_STATE: {
@@ -113,7 +208,7 @@ export default class ProcessManager {
           let newState = e.data.state;
           this.#processesTable.changeProcessState(pid, newState);
         } else {
-          throw new Error("State undefined for process state change");
+          throw new CustomError(CustomError.symbols.STATE_NO_EXIST);
         }
         break;
       }
@@ -131,15 +226,51 @@ export default class ProcessManager {
         break;
       }
       case ProcessOperations.CREATE_PROCESS: {
-        let newPID = this.createProcess(e.data.luaPath);
-        let requestor = this.getProcess(e.data.requestor);
-        requestor.signal.write(newPID);
-        requestor.signal.wake();
+        let sendBackSignal = new Signal(e.data.sendBackBuffer);
+        const pipeStdin = e.data.pipeStdin;
+        const pipeStdout = e.data.pipeStdout;
+        let requestor = null;
+        try {
+          requestor = this.getProcess(e.data.requestor);
+        } catch (err) {
+          if (!(err instanceof CustomError)) {
+            console.error(err);
+            sendBackSignal.write(CustomError.symbols.EXTERNAL_ERROR);
+          } else {
+            sendBackSignal.write(err.code);
+          }
+        }
+
+        try {
+          await this.createProcess({luaPath: e.data.luaPath, slave: requestor.pty, pipeStdin, pipeStdout, callerSignal: sendBackSignal});
+          // INFO: PID is written to callerSignal after a process is registered to it
+        } catch (err) {
+          if (!(err instanceof CustomError)) {
+            console.error(err);
+            sendBackSignal.write(CustomError.symbols.EXTERNAL_ERROR);
+          } else {
+            sendBackSignal.write(err.code);
+          }
+        }
+        // INFO: Calling process is awoken in the processTable when the created process is
+        //       registered to an emscripten worker
         break;
       }
       case ProcessOperations.KILL_PROCESS: {
+        let sendBackSignal = new Signal(e.data.sendBackBuffer);
         let pidToKill = e.data.kill;
-        this.killProcess(pidToKill);
+        try {
+          this.killProcess(pidToKill);
+          sendBackSignal.write(0);
+        } catch (err) {
+          if (!(err instanceof CustomError)) {
+            console.error(err);
+            sendBackSignal.write(CustomError.symbols.EXTERNAL_ERROR);
+          } else {
+            sendBackSignal.write(err.code);
+          }
+        }
+        sendBackSignal.wake();
         break;
       }
       case ProcessOperations.GET_PROCESS_LIST: {
@@ -149,8 +280,46 @@ export default class ProcessManager {
         requestor.signal.wake();
         break;
       }
+      case ProcessOperations.PIPE_PROCESSES: {
+        let sendBackSignal = new Signal(e.data.sendBackBuffer);
+        try {
+          this.pipe(e.data.outPid, e.data.inPid);
+        } catch (err) {
+          if (!(err instanceof CustomError)) {
+            console.error(err);
+            sendBackSignal.write(CustomError.symbols.EXTERNAL_ERROR);
+          } else {
+            sendBackSignal.write(err.code);
+          }
+        }
+        sendBackSignal.wake();
+        break;
+      }
+      case ProcessOperations.START_PROCESS: {
+        let sendBackSignal = new Signal(e.data.sendBackBuffer);
+        try {
+          let procToStart = this.getProcess(e.data.pid);
+          // Send start message to worker to start it
+          procToStart.worker.postMessage(procToStart.startMsg);
+          // All executed well
+          sendBackSignal.write(0);
+        } catch (err) {
+          if (!(err instanceof CustomError)) {
+            console.error(err);
+            sendBackSignal.write(CustomError.symbols.EXTERNAL_ERROR);
+          } else {
+            sendBackSignal.write(err.code);
+          }
+        }
+
+        // Wake up calling process
+        sendBackSignal.wake();
+        break;
+      }
+
       default:
-        throw new Error(`Unknown operation: ${operation}`);
+        // Unknown request, forward onto emscripten's onmessage - as we're intercepting
+        proc.emscriptenOnMessage(e);
     }
   }
 }

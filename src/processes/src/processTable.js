@@ -1,4 +1,4 @@
-import { ProcessStates } from "./common.js";
+import { ProcessStates, CustomError } from "./common.js";
 import Pipe from "./pipe.js";
 import Signal from "./signal.js";
 
@@ -56,7 +56,7 @@ export default class ProcessTable {
    *
    * @throws {Error} If no available PIDs remain.
    */
-  allocateProcess(processData) {
+  async allocateProcess(processData) {
     // Find the next available PID
     while (this.nextPID < this.maxPIDs && this.processTable[this.nextPID] !== null) {
       this.nextPID++;
@@ -64,7 +64,7 @@ export default class ProcessTable {
 
     // Table is full
     if (this.nextPID >= this.maxPIDs) {
-      throw new Error("No available PIDs. Process table is full.");
+      throw new CustomError(CustomError.symbols.PROC_TABLE_FULL);
     }
 
     // ============= Initialise Process Entry ============= 
@@ -76,48 +76,64 @@ export default class ProcessTable {
     const signal = new Signal();
 
     const process = {
-      worker: null, // Will be set below
       stdin: stdinPipe,
       stdout: stdoutPipe,
       stderr: stderrPipe,
+      luaCode: processData.luaCode,
       signal: signal,
       time: Date.now(),
-      state: ProcessStates.STARTING
+      state: ProcessStates.STARTING,
+      pty: processData.slave,
+      pipeStdin: processData.pipeStdin,
+      pipeStdout: processData.pipeStdout,
+      start: processData.start
     }
 
     // Place the new process object in the table
     this.processTable[this.nextPID] = process;
 
-    // Create worker
-    const worker = new Worker(processData.processScript, { type: "module" });
-    worker.onerror = (event) => { console.error(`Error in worker: ${event.message} at ${event.filename}:${event.lineno}:${event.colno}`); };
-    process.worker = worker; // Attach it to the process record
-
     let newProcessPID = this.nextPID++;
 
-    // Start closure to actually kick-off the process
-    let start = () => {
-      worker.postMessage(
-        {
-          pid: newProcessPID,
-          stdin: stdinPipe.getBuffer(),
-          stdout: stdoutPipe.getBuffer(),
-          stderr: stderrPipe.getBuffer(),
-          signal: signal.getBuffer(),
-          sourceCode: processData.sourceCode
-        });
-    }
+    const { default: initEmscripten } = await import("/runtime.js?url");
 
+    const Module = await initEmscripten({
+      onRuntimeInitialized: () => {
+        console.log("Runtime emscripten module loaded");
+      },
+      pty: processData.slave,
+      pid: newProcessPID
+    })
+
+    process.emscriptenBuffer = Module.wasmMemory.buffer;
+
+    // Attach Module to process
     // Return the allocated PID and increment it
     return {
       pid: newProcessPID,
-      stdin: stdinPipe,
-      stdout: stdoutPipe,
-      stderr: stderrPipe,
-      signal,
-      worker,
-      start
     };
+  }
+
+  registerWorker(pid, worker) {
+    let registeredProcess = this.processTable[pid];
+    registeredProcess.worker = worker;
+
+    console.log("Attached worker to registeredProcess:");
+
+    registeredProcess.startMsg = {
+        cmd: "custom-init",
+        start: registeredProcess.start,
+        pid: pid,
+        emscriptenBuffer: registeredProcess.emscriptenBuffer,
+        signal: registeredProcess.signal.getBuffer(),
+        stdin: registeredProcess.stdin.getBuffer(),
+        stdout: registeredProcess.stdout.getBuffer(),
+        stderr: registeredProcess.stderr.getBuffer(),
+        pipeStdin: registeredProcess.pipeStdin,
+        pipeStdout: registeredProcess.pipeStdout,
+        luaCode: registeredProcess.luaCode
+    }
+
+    return;
   }
 
   /**
@@ -128,7 +144,7 @@ export default class ProcessTable {
    */
   getProcess(pid) {
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      throw new Error(`Process ${pid} does not exist!`)
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
 
     return this.processTable[pid];
@@ -144,7 +160,7 @@ export default class ProcessTable {
   freeProcess(pid) {
     // Ensure valid pid
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      throw new Error(`Invalid or non-existent PID: ${pid}`);
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
 
     // TODO: Figure out if the process is running, don't free if it is
@@ -165,7 +181,7 @@ export default class ProcessTable {
    */
   changeProcessState(pid, newState) {
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      throw new Error(`Invalid or non-existent PID: ${pid}`);
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST)
     }
 
     this.processTable[pid].state = newState;

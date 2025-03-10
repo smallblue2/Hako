@@ -16,12 +16,12 @@ configure_file(input: 'src/processTable.js', output: 'processTable.js', copy: tr
 configure_file(input: 'src/processManager.js', output: 'processManager.js', copy: true)
 configure_file(input: 'src/process.js', output: 'process.js', copy: true)
 
-sources = files('c/main.c')
+sources = files('c/processes.c')
 
 if host_machine.system() == 'emscripten'
   executable('processes', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra'], link_args: ['-sEXPORTED_FUNCTIONS=_malloc', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue', '-pthread', '-sEXPORT_ES6', '-sENVIRONMENT=web,worker', '-sMODULARIZE=1'])
 
-  library('processes', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra'], link_args: ['-sEXPORT_ES6'], install: true)
+  library('processes', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra'], link_args: ['-sEXPORTED_FUNCTIONS=_malloc', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue', '-sEXPORT_ES6', '-sENVIRONMENT=web,worker'], install: true)
 else
   library('processes', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], install: true)
 endif

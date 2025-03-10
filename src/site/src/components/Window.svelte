@@ -3,7 +3,21 @@
   import * as windows from "$lib/windows.svelte.js";
   import { onMount } from "svelte";
 
-  let { id, maximized = $bindable(), onResize, data, dataRef, layerFromId, title } = $props();
+  /**
+   * @typedef Props
+   * 
+   * @property {number} id A unique identifying number for the window
+   * @property {boolean} maximized 
+   * @property {function} onResize
+   * @property {any} data
+   * @property {HTMLElement} dataRef
+   * @property {Object.<number, number>} layerFromId
+   * @property {string} title
+   * @property {function} onClose a function 
+   */
+
+  /** @type {Props} */
+  let { id, maximized = $bindable(), onResize, data, dataRef, onClose, layerFromId, title } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -167,6 +181,11 @@
     ev.stopPropagation();
   }
 
+  function closeWindow() {
+    windows.closeWindow(id);
+    onClose();
+  }
+
   $effect(() => {
     root.style.zIndex = layerFromId[id];
   })
@@ -200,7 +219,7 @@
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
         </button>
-        <button title="Close" class="btn" onmousedown={noProp} onclick={() => windows.closeWindow(id)}>
+        <button title="Close" class="btn" onmousedown={noProp} onclick={() => closeWindow()}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
         </button>
       </div>
