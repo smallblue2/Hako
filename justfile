@@ -73,6 +73,7 @@ site: exported-runtime
 [working-directory('src/filesystem')]
 test-filesystem: filesystem
   #!/bin/sh
+  set -e
   export NQDIR=../../build
   job=$(nq npm run start-server)
   npm run test
@@ -84,6 +85,7 @@ test-runtime: runtime-native
 [working-directory('src/processes')]
 test-processes: processes
   #!/bin/sh
+  set -e
   npm run test
 
 [working-directory('src/site')]
