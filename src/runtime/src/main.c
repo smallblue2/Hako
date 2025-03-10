@@ -30,8 +30,13 @@ int main(void) {
   printf("Loaded code from FS: \n%s\n", luaCodeBuffer);
 
   char src[256];
-  snprintf(src, sizeof(src), "local func, ok = load([[%s]])\nlocal success, err = pcall(func)\nif not success then\n  print(err)\nend", luaCodeBuffer);
-
+  snprintf(src, sizeof(src),
+      "local src = [[ %s ]]\n"
+      "local func, ok = load(src)\n"
+      "local success, err = pcall(func)\n"
+      "if not success then\n"
+      "  print(err)\n"
+      "end", luaCodeBuffer);
 
   export_stdlib(L);
 

@@ -75,7 +75,7 @@ void file__pushToPersist() {
   MAIN_THREAD_EM_ASM({
     // Force an initial sync - despite `autoPersist` flag
     FS.syncfs(
-        true, function(err) {
+        false, function(err) {
           if (err) {
             console.error("[JS] Error during sync:", err);
           } else {
@@ -92,6 +92,8 @@ void file__pushToPersist() {
 void file__initialiseFS() {
   printf("[C] Starting up persistent filesystem at '%s'...\n",
          PERSISTENT_ROOT_NAME);
+
+  file__pullFromPersist();
 
 #ifdef __EMSCRIPTEN__
   MAIN_THREAD_EM_ASM(
@@ -170,7 +172,6 @@ void file__initialiseFS() {
       },
       PERSISTENT_ROOT_NAME);
 #endif
-
   return;
 }
 

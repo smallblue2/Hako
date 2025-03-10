@@ -102,7 +102,8 @@ export default class ProcessTable {
         console.log("Runtime emscripten module loaded");
       },
       pty: processData.slave,
-      pid: newProcessPID
+      pid: newProcessPID,
+      noExitRuntime: false // ensures exit when pthread finishes
     })
 
     process.emscriptenBuffer = Module.wasmMemory.buffer;
