@@ -44,8 +44,8 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  async createProcess({luaPath = "/persistent/hello.lua", slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null, start = false}) {
-    if (slave===undefined && (pipeStdin == false || pipeStdout == false)) {
+  async createProcess({ luaPath = "/persistent/hello.lua", slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null, start = false }) {
+    if (slave === undefined && (pipeStdin == false || pipeStdout == false)) {
       throw new CustomError(CustomError.symbols.PTY_PROCESS_NO_PTY);
     }
 
@@ -61,7 +61,7 @@ export default class ProcessManager {
       luaCode = readResp.data;
       window.Filesystem.close(fd);
     }
-    
+
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
       { slave, pipeStdin, pipeStdout, start, luaCode }, // Defined behaviour for web-worker
@@ -116,7 +116,7 @@ export default class ProcessManager {
     let proc = null;
     try {
       proc = this.#processesTable.getProcess(pid);
-    } catch(e) {
+    } catch (e) {
       throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
     return proc;
@@ -131,19 +131,18 @@ export default class ProcessManager {
 
   killProcess(pid) {
     this.#stopAndCleanupProcess(pid);
-    this.#wakeAwaitingProcesses(ProcessExitCodeConventions.KILLED);
+    this.#wakeAwaitingProcesses(pid, ProcessExitCodeConventions.KILLED);
   }
 
   #exitProcess(pid, exitCode) {
     this.#stopAndCleanupProcess(pid);
-    this.#wakeAwaitingProcesses(exitCode);
+    this.#wakeAwaitingProcesses(pid, exitCode);
   }
 
   #stopAndCleanupProcess(pid) {
-    
     // Kill the process
     let toKill = this.getProcess(pid);
-    if (!toKill)  {
+    if (!toKill) {
       throw CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
     if (toKill.worker === undefined) {
@@ -195,7 +194,7 @@ export default class ProcessManager {
     if (inProc.start) {
       throw new CustomError(CustomError.symbols.PIPE_STARTED_PROC);
     }
-    
+
     // Get the stdout buffer from the first process
     let outBuff = outProc.stdout.getBuffer();
     delete inProc.stdin;
@@ -230,7 +229,7 @@ export default class ProcessManager {
       case ProcessOperations.WAIT_ON_PID: {
         let requestor = e.data.requestor;
         let waiting_on = e.data.waiting_for;
-      
+
         // Store (waiting_for: Set{ requestor })
         let waitingSet = this.#waitingProcesses.get(waiting_on);
         if (!waitingSet) {
@@ -257,7 +256,7 @@ export default class ProcessManager {
         }
 
         try {
-          await this.createProcess({luaPath: e.data.luaPath, slave: requestor.pty, pipeStdin, pipeStdout, callerSignal: sendBackSignal});
+          await this.createProcess({ luaPath: e.data.luaPath, slave: requestor.pty, pipeStdin, pipeStdout, callerSignal: sendBackSignal });
           // INFO: PID is written to callerSignal after a process is registered to it
         } catch (err) {
           if (!(err instanceof CustomError)) {
@@ -334,7 +333,7 @@ export default class ProcessManager {
       case ProcessOperations.EXIT_PROCESS: {
         let exitCode = e.data.exitCode;
         let pid = e.data.pid;
-        this.#exitProcess(pid,exitCode);
+        this.#exitProcess(pid, exitCode);
       }
       default:
         // Unknown request, forward onto emscripten's onmessage - as we're intercepting

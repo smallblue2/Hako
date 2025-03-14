@@ -152,7 +152,7 @@ async function initWorkerForProcess(data) {
     exit: (exitCode) => {
       self.postMessage({
         op: ProcessOperations.EXIT_PROCESS,
-        pid,
+        pid: self.proc.pid,
         exitCode
       })
     }
