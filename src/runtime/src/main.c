@@ -2,6 +2,7 @@
 #include <lua.h>
 #include <lualib.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "../../filesystem/src/main.h"
