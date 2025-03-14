@@ -17,8 +17,16 @@ export const ProcessOperations = Object.freeze({
   KILL_PROCESS: "killProcess",
   GET_PROCESS_LIST: "getProcessList",
   PIPE_PROCESSES: "pipeProcesses",
-  START_PROCESS: "startProcess"
+  START_PROCESS: "startProcess",
+  EXIT_PROCESS: "exitProcess"
 });
+
+export const ProcessExitCodeConventions = Object.freeze({
+  SUCCESS: 0,
+  GENERAL_ERROR: 1,
+  INCORRECT_USAGE: 2,
+  KILLED: 137
+})
 
 export class CustomError extends Error {
 

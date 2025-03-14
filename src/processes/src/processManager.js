@@ -1,4 +1,4 @@
-import { ProcessOperations, StreamDescriptor, CustomError } from "./common.js";
+import { ProcessOperations, StreamDescriptor, CustomError, ProcessExitCodeConventions } from "./common.js";
 import Signal from "./signal.js";
 import ProcessTable from "./processTable.js";
 import Pipe from "./pipe.js";
@@ -130,6 +130,17 @@ export default class ProcessManager {
   }
 
   killProcess(pid) {
+    this.#stopAndCleanupProcess(pid);
+    this.#wakeAwaitingProcesses(ProcessExitCodeConventions.KILLED);
+  }
+
+  #exitProcess(pid, exitCode) {
+    this.#stopAndCleanupProcess(pid);
+    this.#wakeAwaitingProcesses(exitCode);
+  }
+
+  #stopAndCleanupProcess(pid) {
+    
     // Kill the process
     let toKill = this.getProcess(pid);
     if (!toKill)  {
@@ -140,13 +151,17 @@ export default class ProcessManager {
     }
     toKill.worker.terminate();
     this.#processesTable.freeProcess(pid);
+  }
 
+  #wakeAwaitingProcesses(pid, exitCode) {
     // Check if anybody else was waiting on it
     let waitingSet = this.#waitingProcesses.get(pid)
     if (waitingSet) {
       waitingSet.forEach(waitingPID => {
         try {
           let toAwakeProcess = this.getProcess(waitingPID);
+          // return exit code before awaking
+          toAwakeProcess.signal.write(exitCode);
           toAwakeProcess.signal.wake();
         } catch (e) {
           // INFO: Maybe this shouldn't throw an error, but just report it?
@@ -316,7 +331,11 @@ export default class ProcessManager {
         sendBackSignal.wake();
         break;
       }
-
+      case ProcessOperations.EXIT_PROCESS: {
+        let exitCode = e.data.exitCode;
+        let pid = e.data.pid;
+        this.#exitProcess(pid,exitCode);
+      }
       default:
         // Unknown request, forward onto emscripten's onmessage - as we're intercepting
         proc.emscriptenOnMessage(e);
