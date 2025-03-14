@@ -2,6 +2,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "../../filesystem/src/main.h"
@@ -9,19 +10,47 @@
 
 #include "lib.h"
 
-void export_stdlib(lua_State *L) {
+typedef struct {
+  char data[8];
+} u64;
+
+void export_custom_apis(lua_State *L) {
   luaL_newlib(L, file_module);
   lua_setglobal(L, "file");
   luaL_newlib(L, errors_module);
   lua_setglobal(L, "errors");
+  luaL_newlib(L, process_module);
+  lua_setglobal(L, "process");
+
+  // TODO set global aliases like `output` and `input`
+}
+
+// Removes the builtin global io functions
+static const char *excluded_globals[] = {"print", "dofile", "load", "loadfile"};
+void exclude_globals(lua_State *L) {
+  for (size_t i = 0; i < sizeof(excluded_globals) / sizeof(const char *); i++) {
+    lua_pushnil(L);
+    lua_setglobal(L, excluded_globals[i]);
+  }
 }
 
 int main(void) {
   lua_State *L = luaL_newstate();
-  luaL_openlibs(L);
+
+  // We want to have control over what builtin
+  // lua functions we expose, so we very clearly
+  // only expose those that are not platform dependant
+  luaL_requiref(L, LUA_STRLIBNAME, luaopen_string, 1);
+  luaL_requiref(L, LUA_TABLIBNAME, luaopen_table, 1);
+  luaL_requiref(L, LUA_MATHLIBNAME, luaopen_math, 1);
+  luaL_requiref(L, LUA_GNAME, luaopen_base, 1);
+  exclude_globals(L);
+
+  export_custom_apis(L);
 
   Error err;
 
+<<<<<<< HEAD
   char luaCodeBuffer[256];
   proc__get_lua_code(luaCodeBuffer, sizeof(luaCodeBuffer), &err);
   if (err < 0) {
@@ -52,7 +81,10 @@ int main(void) {
     printf("BOOTSTRAP PROCESS ERROR: %s\n", err);
   }
 
+  free(luaCodeBuffer);
   fflush(stdout);
+
+  proc__kill(current_pid, &err);
 
   lua_close(L);
   return 0;

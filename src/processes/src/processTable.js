@@ -82,7 +82,7 @@ export default class ProcessTable {
       stderr: stderrPipe,
       luaCode: processData.luaCode,
       signal: signal,
-      time: Date.now(),
+      time: Date.now() / 1000,
       state: ProcessStates.STARTING,
       pty: processData.slave,
       pipeStdin: processData.pipeStdin,
@@ -201,7 +201,7 @@ export default class ProcessTable {
         out.push({
           pid: index,
           created: entry.time,
-          alive: Date.now() - entry.time,
+          alive: (Date.now() / 1000) - entry.time,
           state: entry.state
         });
       }
@@ -219,7 +219,7 @@ export default class ProcessTable {
   processToString(process, pid) {
     return `Process {
         PID: ${pid},
-        Created at: ${new Date(process.time).toISOString()},
+        Created at: ${new Date(process.time * 1000).toISOString()},
         Time alive: ${(Date.now() - process.time)} ms,
         State: ${process.state},
       }`

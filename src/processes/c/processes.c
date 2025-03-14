@@ -11,7 +11,7 @@
 
 
 // proc__input_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__input_pipe, (char* buf, int len, Error *err), {
+EM_JS(int, proc__input_pipe, (char *buf, int len, Error *err), {
   let s = self.proc.input(len);
   stringToUTF8(s, buf, len);
   setValue(err, 0, 'i32');
@@ -19,7 +19,7 @@ EM_JS(int, proc__input_pipe, (char* buf, int len, Error *err), {
 })
 
 // proc__input_all_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__input_all_pipe, (char* buf, int len, Error *err), {
+EM_JS(int, proc__input_all_pipe, (char *buf, int len, Error *err), {
   var s = self.proc.inputAll();
   stringToUTF8(s, buf, len);
   setValue(err, 0, 'i32');
@@ -27,7 +27,7 @@ EM_JS(int, proc__input_all_pipe, (char* buf, int len, Error *err), {
 })
 
 // proc__input_line_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__input_line_pipe, (char* buf, int len, Error *err), {
+EM_JS(int, proc__input_line_pipe, (char *buf, int len, Error *err), {
   var s = self.proc.inputLine();
   stringToUTF8(s, buf, len);
   setValue(err, 0, 'i32');
@@ -35,15 +35,14 @@ EM_JS(int, proc__input_line_pipe, (char* buf, int len, Error *err), {
 })
 
 // proc__output_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__output_pipe, (char* buf, int len, Error *err), {
+EM_JS(void, proc__output_pipe, (const char *buf, int len, Error *err), {
   var s = UTF8ToString(buf, len);
   self.proc.output(s);
   setValue(err, 0, 'i32');
-  return s.length;
 })
 
 // proc__error_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__error_pipe, (char* buf, int len, Error *err), {
+EM_JS(int, proc__error_pipe, (const char *buf, int len, Error *err), {
   var s = UTF8ToString(buf, len);
   self.proc.error(s);
   setValue(err, 0, 'i32');
@@ -58,7 +57,7 @@ EM_JS(int, proc__wait, (int pid, Error *err), {
 })
 
 // proc__create(char *buf, int len, int pipe_stdin, int pipe_stdout, Error *err)
-EM_JS(int, proc__create, (char *buf, int len, bool pipe_stdin, bool pipe_stdout, Error *err), {
+EM_JS(int, proc__create, (const char *buf, int len, bool pipe_stdin, bool pipe_stdout, Error *err), {
   var luaPath = UTF8ToString(buf, len);
   var createdPID = self.proc.create(luaPath, pipe_stdin, pipe_stdout);
   if (createdPID < 0) {
@@ -86,10 +85,9 @@ EM_JS(Process*, proc__list, (Error *err), {
     procJSON.forEach((item, index) => {
       setValue(offsetCounter + memPointer, item.pid, 'i32');
       setValue(offsetCounter + memPointer + 4, item.alive, 'i32');
-      setValue(offsetCounter + memPointer + 8, Number(BigInt(item.created) & 0xFFFFFFFFn), 'i32');
-      setValue(offsetCounter + memPointer + 12, Number((BigInt(item.created) >> 32n) & 0xFFFFFFFFn), 'i32');
-      setValue(offsetCounter + memPointer + 16, item.state, 'i32');
-      offsetCounter = index * 20;
+      setValue(offsetCounter + memPointer + 8, item.created, 'i32');
+      setValue(offsetCounter + memPointer + 12, item.state, 'i32');
+      offsetCounter = index * 16;
     });
     setValue(err, 0, 'i32');
     return memPointer;
@@ -123,7 +121,7 @@ EM_JS(bool, proc__is_stdout_pipe, (Error* err), {
   return self.proc.isPipeable(self.proc.StreamDescriptor.STDOUT);
 })
 
-int proc__input(char* buf, int len, Error *err) {
+int proc__input(char *buf, int len, Error *err) {
   if (proc__is_stdin_pipe(err)) {
     if (*err < 0) {
       printf("FAIL\n");
@@ -137,7 +135,7 @@ int proc__input(char* buf, int len, Error *err) {
   return bytesRead;
 }
 
-int proc__input_all(char* buf, int len, Error *err) {
+int proc__input_all(char *buf, int len, Error *err) {
   if (proc__is_stdin_pipe(err)) {
     if (*err != 0) {
       printf("FAIL\n");
@@ -165,7 +163,7 @@ int proc__input_all(char* buf, int len, Error *err) {
   return bytesRead;
 }
 
-int proc__input_line(char* buf, int len, Error *err) {
+int proc__input_line(char *buf, int len, Error *err) {
   if (proc__is_stdin_pipe(err)) {
     if (*err != 0) {
       printf("FAIL\n");
@@ -184,22 +182,22 @@ int proc__input_line(char* buf, int len, Error *err) {
   return strlen(buf);
 }
 
-int proc__output(char* buf, int len, Error *err) {
+void proc__output(const char *buf, int len, Error *err) {
   if (proc__is_stdout_pipe(err)) {
     if (*err != 0) {
-      return -1;
+      return;
     }
-    return proc__output_pipe(buf, len, err);
+    proc__output_pipe(buf, len, err);
+    return;
   }
 
   int num_written = fwrite(buf, 1, len, stdout);
   if (num_written < len) {
     *err = -13; // Failed to write to stdout (processes.js/js/common.js)
-    return -1;
+    return;
   }
   fflush(stdout);
   *err = 0;
-  return num_written;
 }
 
 // void proc__start(int pid, Error *err)
@@ -208,11 +206,14 @@ EM_JS(void, proc__start, (int pid, Error *err), {
   setValue(err, errCode, 'i32');
 })
 
-// proc__get_lua_code(char *buf, int len, Error *err)
-EM_JS(int, proc__get_lua_code, (char *buf, int len, Error *err), {
-  stringToUTF8(self.proc.luaCode, buf, len);
-  setValue(err, 0, 'i32');
-  return self.proc.luaCode.length;
+// const char *proc__get_lua_code(char *buf, int len, Error *err)
+EM_JS(char *, proc__get_lua_code, (Error *err), {
+  const ptr = stringToNewUTF8(self.proc.luaCode);
+  if (!ptr) {
+    setValue(err, ERROR_CODES.ENOMEM, 'i32');
+    return null;
+  }
+  return ptr;
 })
 
 EM_JS(void, proc__exit, (int exit_code, Error *err), {

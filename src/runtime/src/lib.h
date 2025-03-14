@@ -3,6 +3,7 @@
 
 #include <lua.h>
 #include "file.h"
+#include "process.h"
 #include "errors.h"
 #include "lauxlib.h"
 
@@ -23,6 +24,14 @@ static const luaL_Reg file_module[] = {
   {"stat", lfile__stat},
   {"fdstat", lfile__fdstat},
   {"permit", lfile__permit},
+  {NULL, NULL},
+};
+
+static const luaL_Reg process_module[] = {
+  {"create", lprocess__create},
+  {"start", lprocess__start},
+  {"wait", lprocess__wait},
+  {"output", lprocess__output},
   {NULL, NULL},
 };
 
