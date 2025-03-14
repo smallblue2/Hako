@@ -79,7 +79,7 @@ test-filesystem: filesystem
   kill ${job#*.}
 
 test-runtime: runtime-native
-  meson test -C build-native/runtime --print-errorlogs
+  meson test -C build-native/runtime --print-errorlogs -i
 
 [working-directory('src/processes')]
 test-processes: processes
