@@ -15,14 +15,25 @@ typedef struct {
 } u64;
 
 void export_custom_apis(lua_State *L) {
-  luaL_newlib(L, file_module);
-  lua_setglobal(L, "file");
-  luaL_newlib(L, errors_module);
-  lua_setglobal(L, "errors");
-  luaL_newlib(L, process_module);
-  lua_setglobal(L, "process");
+  int top = lua_gettop(L);
 
-  // TODO set global aliases like `output` and `input`
+  luaL_newlib(L, file_module);
+  lua_setglobal(L, FILE_MODULE_NAME);
+  luaL_newlib(L, errors_module);
+  lua_setglobal(L, ERRORS_MODULE_NAME);
+  luaL_newlib(L, process_module);
+  lua_setglobal(L, PROCESS_MODULE_NAME);
+
+  const Namespaced_Function* it = globals;
+  while (it->namespace != NULL) {
+    lua_getglobal(L, it->namespace);
+    lua_getfield(L, -1, it->function);
+    lua_setglobal(L, it->function);
+    lua_pop(L, 1); // pop global we pushed onto stack
+    it++;
+  }
+
+  lua_settop(L, top); // restore stack
 }
 
 // Removes the builtin global io functions
