@@ -26,7 +26,7 @@ int proc__input_all_pipe(char* buf, int len, Error *err);
 int proc__input_line_pipe(char* buf, int len, Error *err);
 int proc__output_pipe(char* buf, int len, Error *err);
 int proc__error_pipe(char* buf, int len, Error *err);
-void proc__wait(int pid, Error *err);
+int proc__wait(int pid, Error *err);
 int proc__create(char *buf, int len, bool pipe_stdin, bool pipe_stdout, Error *err);
 void proc__kill(int pid, Error *err);
 Process* proc__list(Error* err);
@@ -40,5 +40,6 @@ int proc__input_line(char* buf, int len, Error *err);
 int proc__output(char* buf, int len, Error *err);
 void proc__start(int pid, Error *err);
 int proc__get_lua_code(char *buf, int len, Error *err);
+void proc__exit(int exit_code, Error *err);
 
 #endif

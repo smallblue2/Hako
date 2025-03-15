@@ -31,103 +31,39 @@ int main(void) {
 
   switch (current_pid) {
     case 1: {
-      char sourceCode[256];
-      Process *proc_list = proc__list(&err);
-      if (err == 0) {
-        printf("========= LISTING ONE PROCESS =========\n");
-        printf("pid[0] -> %d\n", proc_list->pid);
-        printf("created_low[0] -> %d\n", proc_list->created_low);
-        printf("created_high[0] -> %d\n", proc_list->created_high);
-        uint64_t created = proc_list->created_low | ((uint64_t)proc_list->created_high << 32);
-        printf("created -> %lld\n", created);
-        printf("alive[0] -> %d\n", proc_list->alive);
-        printf("state[0] -> %d\n", proc_list->state);
-        printf("========= END =========\n");
-        free(proc_list);
-      }
-
       char buff[256];
       int len = snprintf(buff, sizeof(buff), "/persistent/hello.lua");
-      int out_pid = proc__create(buff, len, false, true, &err);
+      int new_pid = proc__create(buff, len, false, false, &err);
       if (err < 0) {
-        printf("[1] Couldn't create process to pipe stdout (err %d)\n", err);
+        printf("[1] Couldn't create process (err %d)\n", err);
         return -1;
       }
-      printf("[1] Created new process to pipe stdout (new PID: %d)\n", out_pid);
+      printf("[1] Created new process (new PID: %d)\n", new_pid);
 
-      int in_pid = proc__create(buff, len, true, false, &err);
-      if (err < 0) {
-        printf("[1] Couldn't create process to pipe stdin (err %d)\n", err);
-        return -1;
-      }
-      printf("[1] Created new process to pipe stdin (new PID: %d)\n", in_pid);
-
-      proc__start(out_pid, &err);
+      proc__start(new_pid, &err);
       if (err < 0) {
         printf("[1] Couldn't start out_pid (err: %d)\n!", err);
       }
 
-      proc__pipe(out_pid, in_pid, &err);
+      printf("[1] Waiting on pid: %d\n", new_pid);
+      int exit_code = proc__wait(new_pid, &err);
       if (err < 0) {
-        printf("[1] Failed to pipe processes (err: %d)\n", err);
+        printf("[1] Waiting on pid: %d failed!\n", new_pid);
         return -1;
       }
-
-      proc__start(in_pid, &err);
-      if (err < 0) {
-        printf("[1] Couldn't start in_pid (err: %d)\n!", err);
-      }
-
+      printf("[1] Finished waiting on pid: %d (Exit code: %d)!\n", new_pid);
+      printf("[1] Process returned exit code: %d!\n", exit_code);
       break;
     }
     case 2: {
+      printf("[2] I AM ALIVE!\n");
+      printf("[2] But only for a short while :(");
+      printf("[2] Exiting...");
       Error err;
-      char buf[256];
-      int len = snprintf(buf, sizeof(buf), "[2] Proc %d here!\n", current_pid);
-      proc__output(buf, len, &err);
+      proc__exit(0, &err);
       if (err < 0) {
-        printf("[2] Couldn't output");
-      }
-
-      len = snprintf(buf, sizeof(buf), "[2] Proc %d here! Piping into proc 3! (hopefully)\n", current_pid);
-      proc__output(buf, len, &err);
-      if (err < 0) {
-        printf("[2] Couldn't output");
-      }
-
-      break;
-    }
-    case 3: {
-      Error err;
-      char buf[256];
-      int len = snprintf(buf, sizeof(buf), "[3] Proc %d here!\n", current_pid);
-      proc__output(buf, len, &err);
-      if (err < 0) {
-        printf("[3] Couldn't output");
-      }
-
-      len = snprintf(buf, sizeof(buf), "[3] Proc %d reading from stdin...\n", current_pid);
-      proc__output(buf, len, &err);
-      if (err < 0) {
-        printf("[3] Couldn't output");
-      }
-
-      len = proc__input_all(buf, sizeof(buf), &err);
-      if (err < 0) {
-        printf("[3] Couldn't read input");
-      }
-
-      char bufout[256];
-      len = snprintf(bufout, sizeof(buf), "[3] Read: %s\n", buf);
-      proc__output(bufout, len, &err);
-      if (err < 0) {
-        printf("[3] Couldn't output");
-      }
-
-      len = snprintf(buf, sizeof(buf), "[3] Proc %d read from stdin!\n", current_pid);
-      proc__output(buf, len, &err);
-      if (err < 0) {
-        printf("[3] Couldn't output");
+        printf("[2] Failed to exit");
+        return -1;
       }
 
       break;

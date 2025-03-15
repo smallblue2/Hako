@@ -67,7 +67,9 @@ async function initWorkerForProcess(data) {
       });
       changeState(ProcessStates.SLEEPING);
       self.proc.signal.sleep();
+      let exitCode = self.proc.signal.read();
       changeState(ProcessStates.RUNNING);
+      return exitCode;
     },
     create: (luaPath, pipeStdin = false, pipeStdout = false) => {
       // Tell the manager we'd like to create a process
@@ -146,6 +148,13 @@ async function initWorkerForProcess(data) {
       changeState(ProcessStates.RUNNING);
       let errCode = self.proc.signal.read();
       return Number(errCode);
+    },
+    exit: (exitCode) => {
+      self.postMessage({
+        op: ProcessOperations.EXIT_PROCESS,
+        pid: self.proc.pid,
+        exitCode
+      })
     }
   }
 

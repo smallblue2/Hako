@@ -51,9 +51,10 @@ EM_JS(int, proc__error_pipe, (char* buf, int len, Error *err), {
 })
 
 // proc__wait(int pid, Error *err)
-EM_JS(void, proc__wait, (int pid, Error *err), {
-  self.proc.wait(pid);
+EM_JS(int, proc__wait, (int pid, Error *err), {
+  let exitCode = self.proc.wait(pid);
   setValue(err, 0, 'i32');
+  return exitCode;
 })
 
 // proc__create(char *buf, int len, int pipe_stdin, int pipe_stdout, Error *err)
@@ -213,6 +214,11 @@ EM_JS(int, proc__get_lua_code, (char *buf, int len, Error *err), {
   setValue(err, 0, 'i32');
   return self.proc.luaCode.length;
 })
+
+EM_JS(void, proc__exit, (int exit_code, Error *err), {
+  self.proc.exit(exit_code);
+  setValue(err, 0, 'i32');
+});
 
 void test(void) {
   Error err;
