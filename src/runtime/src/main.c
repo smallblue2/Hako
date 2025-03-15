@@ -2,17 +2,13 @@
 #include <lualib.h>
 #include <lauxlib.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 
 #include "../../filesystem/src/main.h"
 #include "../../processes/c/processes.h"
 
 #include "lib.h"
-
-typedef struct {
-  char data[8];
-} u64;
+#include "unistd.h"
 
 void export_custom_apis(lua_State *L) {
   int top = lua_gettop(L);
@@ -32,6 +28,12 @@ void export_custom_apis(lua_State *L) {
     lua_pop(L, 1); // pop global we pushed onto stack
     it++;
   }
+
+  // Set stdin and stdout globals
+  lua_pushnumber(L, STDIN_FILENO);
+  lua_setglobal(L, "STDIN");
+  lua_pushnumber(L, STDOUT_FILENO);
+  lua_setglobal(L, "STDOUT");
 
   lua_settop(L, top); // restore stack
 }
@@ -59,7 +61,14 @@ int main(void) {
 
   export_custom_apis(L);
 
-  Error err;
+  // This loads third-party inspect module, to allow users to visualize lua data
+  // structures more clearly
+  if (luaL_dofile(L, "/static/inspect.lua") != LUA_OK) {
+    printf("Failed to load static module: %s\n", lua_tostring(L, -1));
+  }
+  lua_setglobal(L, "inspect");
+
+  Error err = 0;
 
 <<<<<<< HEAD
   char luaCodeBuffer[256];
@@ -85,11 +94,11 @@ int main(void) {
       lua_pop(L, lua_gettop(L));
     } else {
       const char *err = lua_tostring(L, -1);
-      printf("BOOTSTRAP PROCESS ERROR: %s\n", err);
+      printf("process failed: %s\n", err);
     }
   } else {
     const char *err = lua_tostring(L, -1);
-    printf("BOOTSTRAP PROCESS ERROR: %s\n", err);
+    printf("process failed: %s\n", err);
   }
 
   free(luaCodeBuffer);

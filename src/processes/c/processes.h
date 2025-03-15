@@ -6,17 +6,17 @@
 typedef int Error;
 #endif
 
-typedef enum : int { READY, RUNNING, SLEEPING, TERMINATING } ProcessStates;
+typedef enum : int { READY, RUNNING, SLEEPING, TERMINATING, STARTING } ProcessState;
 
 typedef struct __attribute__((packed)) {
   int pid;             // 0
   int alive;           // 4
   int created;         // 8
-  ProcessStates state; // 12
+  ProcessState state; // 12
 } Process;             // 16
 
 int proc__input_pipe(char *buf, int len, Error *err);
-int proc__input_all_pipe(char *buf, int len, Error *err);
+char *proc__input_all_pipe(Error *err);
 int proc__input_line_pipe(char *buf, int len, Error *err);
 void proc__output_pipe(const char *buf, int len, Error *err);
 int proc__error_pipe(const char *buf, int len, Error *err);
@@ -24,7 +24,7 @@ int proc__wait(int pid, Error *err);
 int proc__create(const char *buf, int len, bool pipe_stdin, bool pipe_stdout,
                  Error *err);
 void proc__kill(int pid, Error *err);
-Process *proc__list(Error *err);
+Process *proc__list(int *length, Error *err);
 int proc__get_pid(Error *err);
 void proc__pipe(int out_pid, int in_pid, Error *err);
 bool proc__is_stdout_pipe(Error *err);

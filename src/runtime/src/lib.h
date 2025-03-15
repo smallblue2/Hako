@@ -34,6 +34,12 @@ static const luaL_Reg process_module[] = {
   {"start", lprocess__start},
   {"wait", lprocess__wait},
   {"output", lprocess__output},
+  {"kill", lprocess__kill},
+  {"get_pid", lprocess__get_pid},
+  {"list", lprocess__list},
+  {"pipe", lprocess__pipe},
+  {"isatty", lprocess__isatty},
+  {"input", lprocess__input},
   {NULL, NULL},
 };
 
@@ -51,6 +57,7 @@ typedef struct {
 // Put functions you want to alias to the global namespace in here
 static const Namespaced_Function globals[] = {
   {PROCESS_MODULE_NAME, "output"},
+  {PROCESS_MODULE_NAME, "input"},
   {NULL, NULL}
 };
 

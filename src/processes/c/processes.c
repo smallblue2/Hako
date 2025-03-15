@@ -19,11 +19,10 @@ EM_JS(int, proc__input_pipe, (char *buf, int len, Error *err), {
 })
 
 // proc__input_all_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__input_all_pipe, (char *buf, int len, Error *err), {
+EM_JS(char *, proc__input_all_pipe, (Error *err), {
   var s = self.proc.inputAll();
-  stringToUTF8(s, buf, len);
   setValue(err, 0, 'i32');
-  return s.length;
+  return stringToNewUTF8(s)
 })
 
 // proc__input_line_pipe(char* buf, int len, Error *err)
@@ -75,24 +74,25 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
 })
 
 // proc__list(Error *err)
-EM_JS(Process*, proc__list, (Error *err), {
+EM_JS(Process*, proc__list, (int *length, Error *err), {
   try {
     let procJSON = self.proc.list();
-    let heapAllocationSize = procJSON.length * 20; // C 'Process' struct is 20 bytes long
+    let heapAllocationSize = procJSON.length * 16; // C 'Process' struct is 16 bytes long
     // WARNING: NEEDS TO BE FREED IN C
     let memPointer = _malloc(heapAllocationSize);
-    let offsetCounter = 0;
     procJSON.forEach((item, index) => {
-      setValue(offsetCounter + memPointer, item.pid, 'i32');
-      setValue(offsetCounter + memPointer + 4, item.alive, 'i32');
-      setValue(offsetCounter + memPointer + 8, item.created, 'i32');
-      setValue(offsetCounter + memPointer + 12, item.state, 'i32');
-      offsetCounter = index * 16;
+      const off = index * 16;
+      setValue(memPointer + off, item.pid, 'i32');
+      setValue(memPointer + off + 4, item.alive, 'i32');
+      setValue(memPointer + off + 8, item.created, 'i32');
+      setValue(memPointer + off + 12, item.state, 'i32');
     });
     setValue(err, 0, 'i32');
+    setValue(length, procJSON.length, 'i32');
     return memPointer;
   } catch (e) {
     setValue(err, -1, 'i32');
+    setValue(length, 0, 'i32');
     return -1;
   }
 })
@@ -135,7 +135,7 @@ int proc__input(char *buf, int len, Error *err) {
   return bytesRead;
 }
 
-int proc__input_all(char *buf, int len, Error *err) {
+char *proc__input_all(Error *err) {
   if (proc__is_stdin_pipe(err)) {
     if (*err != 0) {
       printf("FAIL\n");
