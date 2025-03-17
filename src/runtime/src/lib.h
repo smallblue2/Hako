@@ -39,7 +39,7 @@ static const luaL_Reg process_module[] = {
   {"list", lprocess__list},
   {"pipe", lprocess__pipe},
   {"isatty", lprocess__isatty},
-  {"input", lprocess__input},
+  // {"input", lprocess__input},
   {NULL, NULL},
 };
 

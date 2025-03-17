@@ -229,21 +229,21 @@ int lprocess__isatty(lua_State *L) {
 }
 
 // +1 for sentinal '\0'
-static char input_buf[BUFSIZ + 1] = {0};
-
-int lprocess__input(lua_State *L) {
-  Error err = 0;
-  int input_read = proc__input(input_buf, BUFSIZ, &err);
-  if (err != 0) {
-    lua_pushnil(L);
-    lua_pushnumber(L, err);
-    return 2;
-  }
-  input_buf[input_read] = '\0';
-  lua_pushstring(L, input_buf);
-  lua_pushnil(L);
-  return 2;
-}
+// static char input_buf[BUFSIZ + 1] = {0};
+//
+// int lprocess__input(lua_State *L) {
+//   Error err = 0;
+//   int input_read = proc__input(input_buf, BUFSIZ, &err);
+//   if (err != 0) {
+//     lua_pushnil(L);
+//     lua_pushnumber(L, err);
+//     return 2;
+//   }
+//   input_buf[input_read] = '\0';
+//   lua_pushstring(L, input_buf);
+//   lua_pushnil(L);
+//   return 2;
+// }
 
 // int proc__input_all(char *buf, int len, Error *err);
 // int proc__input_line(char *buf, int len, Error *err);

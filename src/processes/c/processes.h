@@ -15,9 +15,9 @@ typedef struct __attribute__((packed)) {
   ProcessState state; // 12
 } Process;             // 16
 
-int proc__input_pipe(char *buf, int len, Error *err);
-char *proc__input_all_pipe(Error *err);
-int proc__input_line_pipe(char *buf, int len, Error *err);
+// int proc__input_pipe(char *buf, int len, Error *err);
+// char *proc__input_all_pipe(Error *err);
+// int proc__input_line_pipe(char *buf, int len, Error *err);
 void proc__output_pipe(const char *buf, int len, Error *err);
 int proc__error_pipe(const char *buf, int len, Error *err);
 int proc__wait(int pid, Error *err);
@@ -29,9 +29,9 @@ int proc__get_pid(Error *err);
 void proc__pipe(int out_pid, int in_pid, Error *err);
 bool proc__is_stdout_pipe(Error *err);
 bool proc__is_stdin_pipe(Error *err);
-int proc__input(char *buf, int len, Error *err);
-int proc__input_all(char *buf, int len, Error *err);
-int proc__input_line(char *buf, int len, Error *err);
+// int proc__input(char *buf, int len, Error *err);
+// int proc__input_all(char *buf, int len, Error *err);
+// int proc__input_line(char *buf, int len, Error *err);
 void proc__output(const char *buf, int len, Error *err);
 void proc__start(int pid, Error *err);
 void proc__exit(int exit_code, Error *err);

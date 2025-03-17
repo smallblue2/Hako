@@ -10,28 +10,28 @@
 #include "processes.h"
 
 
-// proc__input_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__input_pipe, (char *buf, int len, Error *err), {
-  let s = self.proc.input(len);
-  stringToUTF8(s, buf, len);
-  setValue(err, 0, 'i32');
-  return s.length;
-})
-
-// proc__input_all_pipe(char* buf, int len, Error *err)
-EM_JS(char *, proc__input_all_pipe, (Error *err), {
-  var s = self.proc.inputAll();
-  setValue(err, 0, 'i32');
-  return stringToNewUTF8(s)
-})
-
-// proc__input_line_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__input_line_pipe, (char *buf, int len, Error *err), {
-  var s = self.proc.inputLine();
-  stringToUTF8(s, buf, len);
-  setValue(err, 0, 'i32');
-  return s.length;
-})
+// // proc__input_pipe(char* buf, int len, Error *err)
+// EM_JS(int, proc__input_pipe, (char *buf, int len, Error *err), {
+//   let s = self.proc.input(len);
+//   stringToUTF8(s, buf, len);
+//   setValue(err, 0, 'i32');
+//   return s.length;
+// })
+//
+// // proc__input_all_pipe(char* buf, int len, Error *err)
+// EM_JS(char *, proc__input_all_pipe, (Error *err), {
+//   var s = self.proc.inputAll();
+//   setValue(err, 0, 'i32');
+//   return stringToNewUTF8(s)
+// })
+//
+// // proc__input_line_pipe(char* buf, int len, Error *err)
+// EM_JS(int, proc__input_line_pipe, (char *buf, int len, Error *err), {
+//   var s = self.proc.inputLine();
+//   stringToUTF8(s, buf, len);
+//   setValue(err, 0, 'i32');
+//   return s.length;
+// })
 
 // proc__output_pipe(char* buf, int len, Error *err)
 EM_JS(void, proc__output_pipe, (const char *buf, int len, Error *err), {
@@ -121,66 +121,66 @@ EM_JS(bool, proc__is_stdout_pipe, (Error* err), {
   return self.proc.isPipeable(self.proc.StreamDescriptor.STDOUT);
 })
 
-int proc__input(char *buf, int len, Error *err) {
-  if (proc__is_stdin_pipe(err)) {
-    if (*err < 0) {
-      printf("FAIL\n");
-      return -1;
-    }
-    return proc__input_pipe(buf, len, err);
-  }
-  int bytesRead = fread(buf, 1, len - 1, stdin);
-  // TODO: Maybe perform length checks here for edge case where len > buf size
-  buf[bytesRead] = '\0';
-  return bytesRead;
-}
-
-char *proc__input_all(Error *err) {
-  if (proc__is_stdin_pipe(err)) {
-    if (*err != 0) {
-      printf("FAIL\n");
-      return -1;
-    }
-    return proc__input_all_pipe(buf, len, err);
-  }
-  int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-  fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
-
-  // Attempt to read up to BUFFER_SIZE bytes
-  int bytesRead = read(STDIN_FILENO, buf, len - 1);
-  if (bytesRead > 0) {
-    buf[bytesRead] = '\0';
-  } else if (bytesRead == -1 && errno == EAGAIN) {
-    // Nothing in stdin
-    buf[0] = '\0';
-  } else {
-    // Read failed
-    *err = -12; // Stdin is empty (processes.js/js/common.js)
-    return -1;
-  }
-
-  *err = 0;
-  return bytesRead;
-}
-
-int proc__input_line(char *buf, int len, Error *err) {
-  if (proc__is_stdin_pipe(err)) {
-    if (*err != 0) {
-      printf("FAIL\n");
-      return -1;
-    }
-    return proc__input_line_pipe(buf, len, err);
-  }
-
-  if (fgets(buf, len, stdin) == NULL) {
-    // line read failed
-    *err = -14; // Failed to read stdin (processes.js/js/common.js)
-    return -1;
-  }
-
-  *err = 0;
-  return strlen(buf);
-}
+// int proc__input(char *buf, int len, Error *err) {
+//   if (proc__is_stdin_pipe(err)) {
+//     if (*err < 0) {
+//       printf("FAIL\n");
+//       return -1;
+//     }
+//     return proc__input_pipe(buf, len, err);
+//   }
+//   int bytesRead = fread(buf, 1, len - 1, stdin);
+//   // TODO: Maybe perform length checks here for edge case where len > buf size
+//   buf[bytesRead] = '\0';
+//   return bytesRead;
+// }
+//
+// char *proc__input_all(Error *err) {
+//   if (proc__is_stdin_pipe(err)) {
+//     if (*err != 0) {
+//       printf("FAIL\n");
+//       return -1;
+//     }
+//     return proc__input_all_pipe(buf, len, err);
+//   }
+//   int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+//   fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+//
+//   // Attempt to read up to BUFFER_SIZE bytes
+//   int bytesRead = read(STDIN_FILENO, buf, len - 1);
+//   if (bytesRead > 0) {
+//     buf[bytesRead] = '\0';
+//   } else if (bytesRead == -1 && errno == EAGAIN) {
+//     // Nothing in stdin
+//     buf[0] = '\0';
+//   } else {
+//     // Read failed
+//     *err = -12; // Stdin is empty (processes.js/js/common.js)
+//     return -1;
+//   }
+//
+//   *err = 0;
+//   return bytesRead;
+// }
+//
+// int proc__input_line(char *buf, int len, Error *err) {
+//   if (proc__is_stdin_pipe(err)) {
+//     if (*err != 0) {
+//       printf("FAIL\n");
+//       return -1;
+//     }
+//     return proc__input_line_pipe(buf, len, err);
+//   }
+//
+//   if (fgets(buf, len, stdin) == NULL) {
+//     // line read failed
+//     *err = -14; // Failed to read stdin (processes.js/js/common.js)
+//     return -1;
+//   }
+//
+//   *err = 0;
+//   return strlen(buf);
+// }
 
 void proc__output(const char *buf, int len, Error *err) {
   if (proc__is_stdout_pipe(err)) {
