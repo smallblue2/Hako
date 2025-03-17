@@ -12,7 +12,7 @@
 
   let { id, wasmModule, layerFromId } = $props();
 
-  let min = 100;
+  let min = 150;
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -22,49 +22,17 @@
 
   let terminal;
 
+  // PID attached to terminal
+  let pid = -1;
+
   /** @type {FitAddon} */
   let fitAddon;
 
   /**
-   * @param {number} sect
-   * @param {number} relX
-   * @param {number} relY
+   * @param {number} dw
+   * @param {number} dh
    */
-  function onResize(sect, relX, relY) {
-    let dw = 0;
-    let dh = 0;
-
-    switch (sect) {
-      case lib.BOTTOM_RIGHT_CORNER:
-        dw = relX;
-        dh = relY;
-        break;
-      case lib.RIGHT:
-        dw = relX;
-        break;
-      case lib.BOTTOM:
-        dh = relY;
-        break;
-      case lib.TOP_LEFT_CORNER:
-        dw = -relX;
-        dh = -relY;
-        break;
-      case lib.LEFT:
-        dw = -relX;
-        break;
-      case lib.TOP:
-        dh = -relY;
-        break;
-      case lib.TOP_RIGHT_CORNER:
-        dw = relX;
-        dh = -relY;
-        break;
-      case lib.BOTTOM_LEFT_CORNER:
-        dw = -relX;
-        dh = relY;
-        break;
-    }
-
+  function onResize(dw, dh) {
     width = lib.clamp(width + dw, min);
     height = lib.clamp(height + dh, min);
     root.style.width = width.toString() + "px";
@@ -92,8 +60,6 @@
   });
 
   $effect(async () => {
-    let { default: initEmscripten } = await import(wasmModule);
-
     terminal = new Terminal({ fontFamily: "JetBrainsMono-Regular" });
     terminal.open(root);
 
@@ -107,12 +73,23 @@
     terminal.loadAddon(master);
     fitAddon.fit();
 
-    await initEmscripten({
-      pty: slave
-    });
+    // Create a process which will start straight away and wont have its streams piped
+    // INFO: This will be the shell when it's created
+    pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false, start: true});
   })
 
+  function onClose() {
+    console.log(`Terminal with PID ${pid} is closing.`);
+    window.ProcessManager.killProcess(pid);
+  }
+
   onMount(() => {
+    let { initWidth, initHeight } = lib.getInitWindowSize();
+    width = initWidth;
+    height = initHeight;
+    root.style.width = initWidth.toString() + "px";
+    root.style.height = initHeight.toString() + "px";
+
     window.addEventListener("resize", () => {
       if (maximized) {
         fitAddon.fit();
@@ -121,7 +98,7 @@
   })
 </script>
 
-<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root}>
+<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root} {onClose}>
   {#snippet data()}
     <div bind:this={root} class="contents"></div>
   {/snippet}

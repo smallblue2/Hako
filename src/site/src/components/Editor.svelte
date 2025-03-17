@@ -5,14 +5,25 @@
   import { EditorView, keymap, lineNumbers, drawSelection } from "@codemirror/view";
   import { EditorState } from "@codemirror/state";
   import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+  import { onMount } from "svelte";
 
   let { id, layerFromId } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
 
+  let min = 150;
+
   let width = 320;
   let height = 260;
+
+  onMount(() => {
+    let { initWidth, initHeight } = lib.getInitWindowSize();
+    width = initWidth;
+    height = initHeight;
+    root.style.width = initWidth.toString() + "px";
+    root.style.height = initHeight.toString() + "px";
+  })
 
   let maximized = $state(false);
 
@@ -42,53 +53,15 @@
       state: startState,
       parent: root,
     });
-
-    root.style.width = width.toString() + "px";
-    root.style.height = height.toString() + "px";
   })
 
   /**
-   * @param {number} sect
-   * @param {number} relX
-   * @param {number} relY
+   * @param {number} dw
+   * @param {number} dh
    */
-  function onResize(sect, relX, relY) {
-    let dw = 0;
-    let dh = 0;
-
-    switch (sect) {
-      case lib.BOTTOM_RIGHT_CORNER:
-        dw = relX;
-        dh = relY;
-        break;
-      case lib.RIGHT:
-        dw = relX;
-        break;
-      case lib.BOTTOM:
-        dh = relY;
-        break;
-      case lib.TOP_LEFT_CORNER:
-        dw = -relX;
-        dh = -relY;
-        break;
-      case lib.LEFT:
-        dw = -relX;
-        break;
-      case lib.TOP:
-        dh = -relY;
-        break;
-      case lib.TOP_RIGHT_CORNER:
-        dw = relX;
-        dh = -relY;
-        break;
-      case lib.BOTTOM_LEFT_CORNER:
-        dw = -relX;
-        dh = relY;
-        break;
-    }
-
-    width = lib.clamp(width + dw, 100);
-    height = lib.clamp(height + dh, 100);
+  function onResize(dw, dh) {
+    width = lib.clamp(width + dw, min);
+    height = lib.clamp(height + dh, min);
     root.style.width = width.toString() + "px";
     root.style.height = height.toString() + "px";
 

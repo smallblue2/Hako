@@ -3,7 +3,21 @@
   import * as windows from "$lib/windows.svelte.js";
   import { onMount } from "svelte";
 
-  let { id, maximized = $bindable(), onResize, data, dataRef, layerFromId, title } = $props();
+  /**
+   * @typedef Props
+   * 
+   * @property {number} id A unique identifying number for the window
+   * @property {boolean} maximized 
+   * @property {function} onResize
+   * @property {any} data
+   * @property {HTMLElement} dataRef
+   * @property {Object.<number, number>} layerFromId
+   * @property {string} title
+   * @property {function} onClose a function 
+   */
+
+  /** @type {Props} */
+  let { id, maximized = $bindable(), onResize, data, dataRef, onClose, layerFromId, title } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -14,7 +28,7 @@
   /** @type {number} */
   let visibleAreaOff = 0; // The size of the resize areas margin
 
-  let min = 100;
+  let min = 150;
   let resizing = false;
 
   let maxY = undefined;
@@ -83,11 +97,9 @@
    * @param {MouseEvent} ev
    */
   function onDragResize(ev) {
-    // if (onResize(globalSect, ev.movementX, ev.movementY)) {
+    const [ dw, dh ] = lib.getResizeFromSect(globalSect, ev.movementX, ev.movementY);
+    onResize(dw, dh);
 
-    onResize(globalSect, ev.movementX, ev.movementY);
-
-    const dataRect = dataRef.getBoundingClientRect(); // we need to look at the child itself (so as to exclude margin etc).
     const rect = root.getBoundingClientRect();
 
     let dy = 0;
@@ -167,11 +179,22 @@
     ev.stopPropagation();
   }
 
+  function closeWindow() {
+    windows.closeWindow(id);
+    onClose();
+  }
+
   $effect(() => {
     root.style.zIndex = layerFromId[id];
   })
 
   onMount(() => {
+    let { initWidth, initHeight } = lib.getInitWindowSize();
+    let x = Math.floor((window.innerWidth - initWidth) / 2);
+    let y = Math.floor((window.innerHeight - initHeight) / 2);
+    root.style.top = y + "px";
+    root.style.left = x + "px";
+
     visibleAreaOff = parseInt(window.getComputedStyle(evWrap).margin, 10);
   })
 </script>
@@ -189,9 +212,7 @@
       <!-- <div></div> -->
       <p class="title">{title}</p>
       <div class="btns">
-        <button title="Hide" class="btn" onmousedown={noProp} onclick={() => {
-          root.style.display = "none";
-        }}>
+        <button title="Hide" class="btn" onmousedown={noProp} onclick={() => windows.hideWindow(id)}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M217-86v-126h526v126H217Z"/></svg>
         </button>
         <button title="Maximize" class="btn" onmousedown={noProp} onclick={() => {
@@ -200,7 +221,7 @@
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
         </button>
-        <button title="Close" class="btn" onmousedown={noProp} onclick={() => windows.closeWindow(id)}>
+        <button title="Close" class="btn" onmousedown={noProp} onclick={() => closeWindow()}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
         </button>
       </div>
@@ -212,6 +233,8 @@
 <style>
 .window {
   position: absolute;
+  top: 0;
+  left: 0;
   background-color: rgba(0,0,0,0);
   outline: none;
 	background-repeat: no-repeat;
@@ -220,7 +243,7 @@
 
 :global(.window-maximized) {
   display: grid;
-  position: fixed;
+  position: relative !important;
   top: 0px !important;
   left: 0px !important;
   width: 100% !important;

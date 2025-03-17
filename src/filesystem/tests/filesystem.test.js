@@ -79,6 +79,10 @@ describe("Filesystem tests", () => {
   });
 
   it("Check whether Filesystem object exists on the window object", async () => {
+    // TODO: This is just here to keep the linter happy before we write more
+    //       tests using initFS! Remove it after!
+    initFS();
+
     const hasFilesystem = await page.evaluate(() => {
       return typeof window.Filesystem !== "undefined";
     });
@@ -86,548 +90,564 @@ describe("Filesystem tests", () => {
     assert.strictEqual(hasFilesystem, true, "Filesystem should exist on the window object");
   });
 
-  it("Check valid initialisation of the filesystem", async () => {
-
+  it("Check whether we can open a file (create)", async () => {
     await initFS(page);
 
-    let persistentVolumeExists = await page.evaluate(async () => {
-      return window.Filesystem.access("persistent", window.Filesystem.F_OK) == 0;
-    });
-
-    assert.ok(persistentVolumeExists);
-  });
-
-  it("Confirm lack of persistence due to incognito tab", async () => {
-    const persistentVolumeExists = await page.evaluate(async () => {
-      return window.Filesystem.access("persistent", window.Filesystem.F_OK) == -1;
+    const { error0, error1, error2, fd, stat } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/test.txt", "c");
+      let { error: error1 } = window.Filesystem.close(fd);
+      let { error: error2, stat } = window.Filesystem.stat("/persistent");
+      return { error0, error1, error2, fd, stat }
     })
 
-    assert.ok(persistentVolumeExists);
+    assert.ok(fd > 0, "Invalid file descriptor");
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(error1 == null, "Close reported an error");
+    assert.ok(error2 == null, "Stat reported an error");
+    assert.ok(stat != null, "Stat call didn't return a stat struct");
   });
 
-  // Change directory and compare stats based on relative paths
-  it("Test `chdir`", async () => {
-
+  it("Confirm opening an existing file with create fails", async () => {
     await initFS(page);
 
-    let origStat = await page.evaluate(async () => {
-      return window.Filesystem.stat("persistent")
+    const { error0, error1, fd0, fd1 } = await page.evaluate(() => {
+      let { error: error0, fd: fd0 } = window.Filesystem.open("/persistent/first", "c");
+      let { error: error1, fd: fd1 } = window.Filesystem.open("/persistent/first", "c");
+      // Don't need to close, as all state is wiped after each test
+      return { error0, error1, fd0, fd1 }
+    })
+
+    assert.ok(error0 == null, "First open reported an error");
+    assert.ok(fd0 > 0, "First open returned an invalid file descriptor");
+    assert.ok(error1 != null, "Second open suceeded when it should have failed");
+    assert.ok(fd1 < 0, "Second open returned a valid file descriptor when it should have been invalid");
+  })
+
+  it("Check whether closing a file works", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, fd } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/another.txt", "wc");
+      let { error: error1 } = window.Filesystem.write(fd, "This should work");
+      let { error: error2 } = window.Filesystem.close(fd);
+      let { error: error3 } = window.Filesystem.write(fd, "This shouldn't work");
+      return { error0, error1, error2, error3, fd };
     });
 
-    let chdirRes = await page.evaluate(async () => {
-      return window.Filesystem.chdir("persistent") == 0;
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Invalid file descriptor from close");
+    assert.ok(error1 == null, "Write reported an error");
+    assert.ok(error2 == null, "Close reported an error");
+    assert.ok(error3 != null, "Second write should have failed due to closed file descriptor");
+  });
+
+  it("Check we can write to an open file", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, fd } = await page.evaluate(() => {
+      let { fd, error: error0 } = window.Filesystem.open("/persistent/hello.txt", "crw");
+      let { error: error1 } = window.Filesystem.write(fd, "Hello, world!");
+      let { error: error2 } = window.Filesystem.close(fd);
+      return { error0, error1, error2, fd }
     });
 
-    let newStat = await page.evaluate(async () => {
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Invalid file descriptor returned from open");
+    assert.ok(error1 == null, "Write reported an error");
+    assert.ok(error2 == null, "Close reported an error");
+  });
+
+  it("Check we can read an open file", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, fd } = await page.evaluate(() => {
+      let { fd, error: error0 } = window.Filesystem.open("/persistent/hello.txt", "crw");
+      let { error: error1 } = window.Filesystem.read(fd, 5);
+      let { error: error2 } = window.Filesystem.close(fd);
+      return { error0, error1, error2, fd }
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Invalid file descriptor returned from open");
+    assert.ok(error1 == null, "Read reported an error");
+    assert.ok(error2 == null, "Close reported an error");
+  });
+
+  it("Check whether opening with only a read flag disallows writes", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, fd } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/another.txt", "cr");
+      let { error: error1 } = window.Filesystem.write(fd, "This should fail");
+      let { error: error2 } = window.Filesystem.close(fd);
+      return { error0, error1, error2, fd };
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Invalid file descriptor returned by open");
+    assert.ok(error1 != null, "Write was allowed on a read-only file descriptor");
+    assert.ok(error2 == null, "Close reported an error");
+  });
+
+
+  it("Check whether opening with only a write flag disallows reads", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, fd } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/another.txt", "cw");
+      let { error: error1 } = window.Filesystem.read(fd, 10); // arbitrarily chose 10 here
+      let { error: error2 } = window.Filesystem.close(fd);
+      return { error0, error1, error2, fd };
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Invalid file descriptor returned by open");
+    assert.ok(error1 != null, "Read was allowed on a write-only file descriptor");
+    assert.ok(error2 == null, "Close reported an error");
+  });
+
+  it("Confirm opening a non-existent file without create flag fails", async () => {
+    await initFS(page);
+
+    const { error, fd } = await page.evaluate(() => {
+      let { error, fd } = window.Filesystem.open("/persistent/another.txt", "rw");
+      return { error, fd };
+    });
+
+    assert.ok(error != null, "Open suceeded when it should have failed");
+    assert.ok(!(fd > 0), "Valid file descriptor created when it should've failed");
+  });
+
+  it("Create a file, write to it, close it, re-open it, and read it using Read", async () => {
+    await initFS(page);
+
+    let content = "Hello, World!";
+    let len = content.length;
+
+    const { error0, error1, error2, error3, error4, error5, fd0, fd1, data, size } = await page.evaluate((content, len) => {
+      let { error: error0, fd: fd0 } = window.Filesystem.open("/persistent/helloworld.txt", "cw");
+      let { error: error1 } = window.Filesystem.write(fd0, content);
+      let { error: error2 } = window.Filesystem.close(fd0);
+      let { error: error3, fd: fd1 } = window.Filesystem.open("/persistent/helloworld.txt", "r");
+      let { error: error4, data, size } = window.Filesystem.read(fd1, len);
+      let { error: error5 } = window.Filesystem.close(fd1);
+      return { error0, error1, error2, error3, error4, error5, fd0, fd1, data, size }
+    }, content, len);
+
+    assert.ok(error0 == null, "First open reported an error");
+    assert.ok(fd0 > 0, "First open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Write reported an error");
+    assert.ok(error2 == null, "First Close reported an error");
+    assert.ok(error3 == null, "Second open reported an error");
+    assert.ok(fd1 > 0, "Second open returned an invalid file descriptor");
+    assert.ok(error4 == null, "Read reported an error");
+    assert.ok(content === data, "Read content is not the same as what was written");
+    assert.ok(size === len, "Read returned an incorrect read length");
+    assert.ok(error5 == null, "Second close reported an error");
+  });
+
+  it("Create a file, write to it, close it, re-open it, and read it using ReadAll", async () => {
+    await initFS(page);
+
+    let content = "Hello, World!";
+    let len = content.length;
+
+    const { error0, error1, error2, error3, error4, error5, fd0, fd1, data, size } = await page.evaluate((content) => {
+      let { error: error0, fd: fd0 } = window.Filesystem.open("/persistent/helloagain.txt", "cw");
+      let { error: error1 } = window.Filesystem.write(fd0, content);
+      let { error: error2 } = window.Filesystem.close(fd0);
+      let { error: error3, fd: fd1 } = window.Filesystem.open("/persistent/helloagain.txt", "r");
+      let { error: error4, data, size } = window.Filesystem.readAll(fd1);
+      let { error: error5 } = window.Filesystem.close(fd1);
+      return { error0, error1, error2, error3, error4, error5, fd0, fd1, data, size }
+    }, content);
+
+    assert.ok(error0 == null, "First open reported an error");
+    assert.ok(fd0 > 0, "First open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Write reported an error");
+    assert.ok(error2 == null, "First Close reported an error");
+    assert.ok(error3 == null, "Second open reported an error");
+    assert.ok(fd1 > 0, "Second open returned an invalid file descriptor");
+    assert.ok(error4 == null, "ReadAll reported an error");
+    assert.ok(content === data, "ReadAll content is not the same as what was written");
+    assert.ok(size === len, "ReadAll returned an incorrect read length");
+    assert.ok(error5 == null, "Second close reported an error");
+  });
+
+  it("Confirm opening protected system files for writing is blocked", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, fd0, fd1 } = await page.evaluate(() => {
+      // Create system file
+      let { error: error0, fd: fd0 } = window.Filesystem.open("/persistent/systemfile", "cw");
+      let { error: error1 } = window.Filesystem.write(fd0, "This is protected information from writes");
+      let { error: error2 } = window.Filesystem.close(fd0);
+      window._FSM.FS.chmod("/persistent/systemfile", 0o710); // Internal chmod, 0b111001000
+      //                                               protected system file indicator ^
+      // Test if we can open it for writing (should fail)
+      let { error: error3, fd: fd1 } = window.Filesystem.open("/persistent/systemfile", "w");
+      return { error0, error1, error2, error3, fd0, fd1 }
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd0 > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Write reported an error");
+    assert.ok(error2 == null, "Close reported an error");
+    assert.ok(error3 != null, "Second open suceeded when it should have failed - not allowed to open a protected system file for writing");
+    assert.ok(fd1 < 0, "Second open should have returned an invalid file descriptor");
+  });
+
+  it("Confirm opening protected system files for reading is allowed", async () => {
+    await initFS(page);
+
+
+    const { error0, error1, error2, error3, fd0, fd1 } = await page.evaluate(() => {
+      // Create system file
+      let { error: error0, fd: fd0 } = window.Filesystem.open("/persistent/systemfile", "cw");
+      let { error: error1 } = window.Filesystem.write(fd0, "This is protected information from writes");
+      let { error: error2 } = window.Filesystem.close(fd0);
+      window._FSM.FS.chmod("/persistent/systemfile", 0o710); // Internal chmod, 0b111001000
+      //                                               protected system file indicator ^
+      // Test if we can open it for reading (should succeed)
+      let { error: error3, fd: fd1 } = window.Filesystem.open("/persistent/systemfile", "r");
+      return { error0, error1, error2, error3, fd0, fd1 }
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd0 > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Read reported an error");
+    assert.ok(error2 == null, "Close reported an error");
+    assert.ok(error3 == null, "Second open reported an error");
+    assert.ok(fd1 > 0, "Second open returned an invalid file descriptor");
+  });
+
+  it("Get the stat of a file", async () => {
+    await initFS(page);
+
+    const { error, stat } = await page.evaluate(() => {
       return window.Filesystem.stat(".");
     });
 
-    assert.ok(chdirRes);
-    assert.deepStrictEqual(origStat, newStat, "Stats are not equal, suggesting an incorrect chdir.");
+    assert.ok(error == null, "Stat reported an error");
+    assert.ok(stat != null, "Stat returned a null stat object (no data)");
+  });
+
+  it("Get the fdstat of a file", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, fd } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/statme", "crw");
+      let { error: error1 } = window.Filesystem.fdstat(fd);
+      let { error: error2 } = window.Filesystem.close(fd);
+      return { error0, error1, error2, fd };
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Fdstat reported an error");
+    assert.ok(error2 == null, "Close reported an error");
+
+  });
+
+  it("Permit (chmod) a file", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, fd, stat } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/permitme.txt", "crw");
+      let { error: error1 } = window.Filesystem.close(fd);
+      // Only put execute permission on this file
+      let { error: error2 } = window.Filesystem.permit("/persistent/permitme.txt", "x");
+      let { error: error3, stat } = window.Filesystem.stat("/persistent/permitme.txt");
+      return { error0, error1, error2, error3, fd, stat }
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Close reported an error");
+    assert.ok(error2 == null, "Permit reported an error");
+    assert.ok(error3 == null, "Stat reported an error");
+    assert.ok(stat != null, "Stat returned a null stat object (no data)");
+    assert.ok(stat.perm === "x", "Permissions inconsistent with permit call");
+  });
+
+  it("Confirm a read-only file can't be written to", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, fd0, fd1 } = await page.evaluate(() => {
+      let { error: error0, fd: fd0 } = window.Filesystem.open("/persistent/readonly.txt", "crw");
+      let { error: error1 } = window.Filesystem.close(fd0);
+      let { error: error2 } = window.Filesystem.permit("/persistent/readonly.txt", "r");
+      let { error: error3, fd: fd1 } = window.Filesystem.open("/persistent/readonly.txt", "w");
+      return { error0, error1, error2, error3, fd0, fd1 }
+    });
+
+    assert.ok(error0 == null, "First open reported an error");
+    assert.ok(fd0 > 0, "First open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Close reported an error");
+    assert.ok(error2 == null, "Permit reported an error");
+    assert.ok(error3 != null, "Second open succeeded when it should have failed");
+    assert.ok(fd1 < 0, "Second open should have returned an invalid file descriptor");
+  });
+
+  it("Confirm a write-only file can't be read", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, fd0, fd1 } = await page.evaluate(() => {
+      let { error: error0, fd: fd0 } = window.Filesystem.open("/persistent/readonly.txt", "crw");
+      let { error: error1 } = window.Filesystem.close(fd0);
+      let { error: error2 } = window.Filesystem.permit("/persistent/readonly.txt", "w");
+      let { error: error3, fd: fd1 } = window.Filesystem.open("/persistent/readonly.txt", "r");
+      return { error0, error1, error2, error3, fd0, fd1 }
+    });
+
+    assert.ok(error0 == null, "First open reported an error");
+    assert.ok(fd0 > 0, "First open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Close reported an error");
+    assert.ok(error2 == null, "Permit reported an error");
+    assert.ok(error3 != null, "Second open succeeded when it should have failed");
+    assert.ok(fd1 < 0, "Second open should have returned an invalid file descriptor");
+  });
+
+  it("Confirm shifting an open file's cursor works", async () => {
+    await initFS(page);
+
+    let content = "Shift!";
+    let len = content.length;
+
+    const { error0, error1, error2, error3, fd, data, size } = await page.evaluate((content, len) => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/cursor.txt", "crw");
+      let { error: error1 } = window.Filesystem.write(fd, content); // 5 long
+      let { error: error2 } = window.Filesystem.shift(fd, -len);
+      let { error: error3, data, size } = window.Filesystem.read(fd, len);
+      return { error0, error1, error2, error3, fd, data, size };
+    }, content, len);
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Write reported an error");
+    assert.ok(error2 == null, "Shift reported an error");
+    assert.ok(error3 == null, "Read reported an error");
+    assert.ok(data === content, "Read returned incorrect content (Shift may have behaved incorrectly)");
+    assert.ok(size == len, "Read returned incorrect read length (Shift may have behaved incorrectly)")
+
+  });
+
+
+  it("Confirm goto of an open file's cursor works", async () => {
+    await initFS(page);
+
+    let content = "Shift!";
+    let len = content.length;
+
+    const { error0, error1, error2, error3, fd, data, size } = await page.evaluate((content, len) => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/cursor.txt", "crw");
+      let { error: error1 } = window.Filesystem.write(fd, content); // 5 long
+      let { error: error2 } = window.Filesystem.goto(fd, 0);
+      let { error: error3, data, size } = window.Filesystem.read(fd, len);
+      return { error0, error1, error2, error3, fd, data, size };
+    }, content, len);
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Write reported an error");
+    assert.ok(error2 == null, "Goto reported an error");
+    assert.ok(error3 == null, "Read reported an error");
+    assert.ok(data === content, "Read returned incorrect content (Goto may have behaved incorrectly)");
+    assert.ok(size == len, "Read returned incorrect read length (Goto may have behaved incorrectly)")
+
+  });
+
+  it("Confirm removing a file deletes it", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, error4, fd, stat0, stat1 } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/cursor.txt", "crw");
+      let { error: error1 } = window.Filesystem.close(fd);
+      let { error: error2, stat: stat0 } = window.Filesystem.stat("/persistent/cursor.txt");
+      let { error: error3 } = window.Filesystem.remove("/persistent/cursor.txt");
+      let { error: error4, stat: stat1 } = window.Filesystem.stat("/persistent/cursor.txt");
+      return { error0, error1, error2, error3, error4, fd, stat0, stat1 };
+    });
+
+    assert.ok(error0 == null, "Open reported an error")
+    assert.ok(fd > 0, "Open returned an invalid file descriptor")
+    assert.ok(error1 == null, "Close reported an error")
+    assert.ok(error2 == null, "First stat reported an error")
+    assert.ok(stat0 != null, "First stat returned a null stat object (no data)")
+    assert.ok(error3 == null, "Remove reported an error")
+    assert.ok(error4 != null, "Second stat should have reported an error")
+    assert.ok(stat1 == null, "Second stat should have returned a null stat object (no data)")
+
+  });
+
+  it("Confirm remove fails on protected system files", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, fd } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/cursor.txt", "crw");
+      let { error: error1 } = window.Filesystem.close(fd);
+      window._FSM.FS.chmod("/persistent/cursor.txt", 0o710) // internal chmod signifying protected file
+      let { error: error2 } = window.Filesystem.remove("/persistent/cursor.txt");
+      return { error0, error1, error2, fd };
+    });
+
+    assert.ok(error0 == null, "Open reported an error")
+    assert.ok(fd > 0, "Open returned an invalid file descriptor")
+    assert.ok(error1 == null, "Close reported an error")
+    assert.ok(error2 != null, "Remove should have failed and reported an error")
+
+  });
+
+  it("Move a file", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, error4, fd } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/old.txt", "crw");
+      let { error: error1 } = window.Filesystem.close(fd);
+      let { error: error2 } = window.Filesystem.move("/persistent/old.txt", "/persistent/new.txt");
+      let { error: error3 } = window.Filesystem.stat("/persistent/old.txt");
+      let { error: error4 } = window.Filesystem.stat("/persistent/new.txt");
+      return { error0, error1, error2, error3, error4, fd }
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Close reported an error");
+    assert.ok(error2 == null, "Move reported an error");
+    assert.ok(error3 != null, "First stat should have reported an error but didn't");
+    assert.ok(error4 == null, "Second stat reported an error");
+  });
+
+  it("Move a file", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, error4, fd } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/old.txt", "crw");
+      let { error: error1 } = window.Filesystem.close(fd);
+      let { error: error2 } = window.Filesystem.move("/persistent/old.txt", "/persistent/new.txt");
+      let { error: error3 } = window.Filesystem.stat("/persistent/old.txt");
+      let { error: error4 } = window.Filesystem.stat("/persistent/new.txt");
+      return { error0, error1, error2, error3, error4, fd }
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Close reported an error");
+    assert.ok(error2 == null, "Move reported an error");
+    assert.ok(error3 != null, "First stat should have reported an error but didn't");
+    assert.ok(error4 == null, "Second stat reported an error");
+  });
+
+  it("Ensure user can't move a protected file", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, error4, fd } = await page.evaluate(() => {
+      let { error: error0, fd } = window.Filesystem.open("/persistent/old.txt", "crw");
+      let { error: error1 } = window.Filesystem.close(fd);
+      window._FSM.FS.chmod("/persistent/old.txt", 0o710); // internal chmod
+      let { error: error2 } = window.Filesystem.move("/persistent/old.txt", "/persistent/new.txt");
+      let { error: error3 } = window.Filesystem.stat("/persistent/old.txt");
+      let { error: error4 } = window.Filesystem.stat("/persistent/new.txt");
+      return { error0, error1, error2, error3, error4, fd }
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Close reported an error");
+    assert.ok(error2 != null, "Move should have reported an error but didn't");
+    assert.ok(error3 == null, "First stat reported an error");
+    assert.ok(error4 != null, "Second stat should have reported an error but didn't");
+  });
+
+  it("Ensure user can't overwrite a protected file with a move", async () => {
+    await initFS(page);
+
+    const { error0, error1, error2, error3, error4, error5, fd0, fd1 } = await page.evaluate(() => {
+      let { error: error0, fd: fd0 } = window.Filesystem.open("/persistent/old.txt", "crw");
+      let { error: error1 } = window.Filesystem.close(fd0);
+      let { error: error2, fd: fd1 } = window.Filesystem.open("/persistent/protected.txt", "crw");
+      let { error: error3 } = window.Filesystem.close(fd1);
+      window._FSM.FS.chmod("/persistent/protected.txt", 0o710); // internal chmod
+      let { error: error4 } = window.Filesystem.move("/persistent/old.txt", "/persistent/protected.txt");
+      let { error: error5 } = window.Filesystem.stat("/persistent/old.txt");
+      return { error0, error1, error2, error3, error4, error5, fd0, fd1 }
+    });
+
+    assert.ok(error0 == null, "Open reported an error");
+    assert.ok(fd0 > 0, "Open returned an invalid file descriptor");
+    assert.ok(error1 == null, "Close reported an error");
+    assert.ok(error2 == null, "Second open reported an error");
+    assert.ok(fd1 > 0, "Second open returned an invalid file descriptor");
+    assert.ok(error3 == null, "Second close reported an error");
+    assert.ok(error4 != null, "Move should have reported an error but didn't");
+    assert.ok(error5 == null, "Stat reported an error")
+  });
+
+  it("Make a directory", async () => {
+    await initFS(page);
+
+    const { error0, error1, stat } = await page.evaluate(() => {
+      let { error: error0 } = window.Filesystem.make_dir("/persistent/mydir");
+      let { error: error1, stat } = window.Filesystem.stat("/persistent/mydir");
+      return { error0, error1, stat }
+    });
+
+    assert.ok(error0 == null, "Make_dir reported an error");
+    assert.ok(error1 == null, "Stat reported an error");
+    assert.ok(stat != null, "Stat returned a null stat object (no data)");
   })
 
-  it("Test creating a file with `open` and closing it with `close`", async () => {
-
+  it("Remove a directory", async () => {
     await initFS(page);
 
-    let { notExistBefore, fd, closeRes, accessRes } = await page.evaluate(async () => {
-      let notExistBefore = window.Filesystem.access("persistent/hello.txt", window.Filesystem.F_OK) == -1;
-      let fd = window.Filesystem.open("persistent/hello.txt", window.Filesystem.O_CREAT, 0o333);
-      let closeRes = window.Filesystem.close(fd) == 0;
-      let accessRes = window.Filesystem.access("persistent/hello.txt", window.Filesystem.F_OK) == 0;
-      return { notExistBefore, fd, closeRes, accessRes }
+    const { error0, error1, error2, error3, stat0, stat1 } = await page.evaluate(() => {
+      let { error: error0 } = window.Filesystem.make_dir("/persistent/mydir");
+      let { error: error1, stat: stat0 } = window.Filesystem.stat("/persistent/mydir");
+      let { error: error2 } = window.Filesystem.remove_dir("/persistent/mydir");
+      let { error: error3, stat: stat1 } = window.Filesystem.stat("/persistent/mydir");
+      return { error0, error1, error2, error3, stat0, stat1 }
     });
 
-    assert.ok(notExistBefore, "File existed before test when it shouldn't");
-    assert.ok(fd >= 0, "Invalid file descriptor");
-    assert.ok(closeRes, "Couldn't close file descriptor");
-    assert.ok(accessRes, "File access failed after its creation");
-
+    assert.ok(error0 == null, "Make_dir reported an error");
+    assert.ok(error1 == null, "First stat reported an error");
+    assert.ok(stat0 != null, "First stat returned a null stat object (no data)");
+    assert.ok(error2 == null, "Remove_dir reported an error");
+    assert.ok(error3 != null, "Second stat should have reported an error");
+    assert.ok(stat1 == null, "Second stat should have returned a null stat object (no data)");
   })
 
-  it("Test `mkdir`", async () => {
-
+  it("Read a directory", async () => {
     await initFS(page);
 
-    let { accessResp, mkdirResp } = await page.evaluate(async () => {
-      let mkdirResp = window.Filesystem.mkdir("persistent/testdir") == 0;
-      let accessResp = window.Filesystem.access("persistent/testdir", window.Filesystem.F_OK) == 0;
-      return { accessResp, mkdirResp }
+    const { error0, error1, entries } = await page.evaluate(() => {
+      let { error: error0 } = window.Filesystem.make_dir("/persistent/mydir");
+      let { error: error1, entries } = window.Filesystem.read_dir("/persistent");
+      return { error0, error1, entries };
     });
 
-    assert.ok(mkdirResp, "Failed to create directory");
-    assert.ok(accessResp, "Seems like directory doesn't exist");
+    assert.ok(error0 == null, "Make_dir reported an error");
+    assert.ok(error1 == null, "Read_dir reported an error");
+    assert.ok(entries.length == 4, "Read_dir returned an incorrect number of entries");
+    assert.deepStrictEqual(entries, [".", "..", "hello.lua", "mydir"], "Read_dir returned incorrect entries");
+  })
 
-  });
-
-  it("Test `rmdir`", async () => {
-
+  it("Change active directory", async () => {
     await initFS(page);
 
-    let { mkdirResp, confirmCreat, rmdirResp, confirmDel } = await page.evaluate(async () => {
-      let mkdirResp = window.Filesystem.mkdir("persistent/testdir") == 0;
-      let confirmCreat = window.Filesystem.access("persistent/testdir", window.Filesystem.F_OK) == 0;
-      let rmdirResp = window.Filesystem.rmdir("persistent/testdir") == 0;
-      let confirmDel = window.Filesystem.access("persistent/testdir", window.Filesystem.F_OK) == -1;
-      return { mkdirResp, confirmCreat, rmdirResp, confirmDel }
-    });
-
-    assert.ok(mkdirResp, "Failed to create directory to delete");
-    assert.ok(confirmCreat, "Failed to confirm the creation of directory to delete");
-    assert.ok(rmdirResp, "Failed to remove directory");
-    assert.ok(confirmDel, "Directory still exists despite deletion");
-
-  });
-
-  it("Test `readdir`", async () => {
-
-    await initFS(page);
-
-    let readRes = await page.evaluate(async () => {
-      let readRes = window.Filesystem.readdir("persistent");
-      return readRes
-    });
-
-    assert.ok(readRes.length > 0, "Opened directory was empty, expected non-empty");
-
-  });
-
-  it("Test `read`,`write` and `lseek`", async () => {
-
-    await initFS(page);
-
-    let { fd, bytesWritten0, readRes0, lseekRes0, bytesWritten1, lseekRes1, readRes1 } = await page.evaluate(async () => {
-      let fd = window.Filesystem.open("persistent/random.txt", window.Filesystem.O_CREAT | window.Filesystem.O_RDWR, 0o777);
-      // 4
-      let bytesWritten0 = window.Filesystem.write(fd, "this is a test");
-      // 14
-      let readRes0 = window.Filesystem.read(fd, 14);
-      // Object { data: "", size: 0 }
-      let lseekRes0 = window.Filesystem.lseek(fd, 0, 0) == 0;
-      // 0
-      let bytesWritten1 = window.Filesystem.write(fd, 14);
-      // 2
-      let lseekRes1 = window.Filesystem.lseek(fd, 0, 0) == 0;
-      // 0
-      let readRes1 = window.Filesystem.read(fd, 14)
-      // Object { data: "14is is a test", size: 14 }
-      return { fd, bytesWritten0, readRes0, lseekRes0, bytesWritten1, lseekRes1, readRes1 }
+    const { error0, error1, error2, stat0, stat1 } = await page.evaluate(() => {
+      let { entries } = window.Filesystem.read_dir(".")
+      let { error: error0, stat: stat0 } = window.Filesystem.stat("/persistent");
+      let { error: error1 } = window.Filesystem.change_dir("/persistent");
+      let { error: error2, stat: stat1 } = window.Filesystem.stat(".");
+      return { error0, error1, error2, stat0, stat1, entries }
     })
 
-    assert.ok(fd >= 0, "File couldn't be opened (O_CREAT | O_RDRW)");
-    assert.ok(bytesWritten0 == 14, `Failed to write expected bytes in first write. Expected 14, got ${bytesWritten0}`);
-    assert.ok(readRes0.size == 0, "First read result should have been empty but wasn't");
-    assert.ok(lseekRes0, "Failed first move file pointer to start of file with lseek");
-    assert.ok(bytesWritten1, `Failed to write expected bytes in second write. Expected 2, got ${bytesWritten1}`);
-    assert.ok(lseekRes1, "Failed second move file pointer to start of file with lseek");
-    assert.strictEqual(readRes1.data, "14is is a test");
+    assert.ok(error0 == null, "First stat reported an error");
+    assert.ok(stat0 != null, "First stat returned a null stat object (no data)");
+    assert.ok(error1 == null, "Change_dir reported an error");
+    assert.ok(error2 == null, "Second stat reported an error");
+    assert.ok(stat1 != null, "Second stat returned a null stat object (no data)");
+    assert.deepStrictEqual(stat0, stat1, "Two stats should be exactly equal");
   });
 
-  it("Test `unlink`", async () => {
-
-    await initFS(page);
-
-    let { fd, closeRes, unlinkRes, confirmDel } = await page.evaluate(async () => {
-      let fd = window.Filesystem.open("persistent/deleteme", window.Filesystem.O_CREAT, 0o777);
-      let closeRes = window.Filesystem.close(fd) == 0;
-      let unlinkRes = window.Filesystem.unlink("persistent/deleteme") == 0;
-      let confirmDel = window.Filesystem.access("persistent/deleteme", window.Filesystem.F_OK) == -1;
-      return { fd, closeRes, unlinkRes, confirmDel }
-    })
-
-    assert.ok(fd >= 0, "Failed to create file with open");
-    assert.ok(closeRes, "Failed to close open file");
-    assert.ok(unlinkRes, "Failed to unlink created file");
-    assert.ok(confirmDel, "The file still exists after unlinking");
-
-  });
-
-  it("Test `rename`", async () => {
-
-    await initFS(page);
-
-    let { fd, closeRes, renameRes, checkOldGone, checkNewExists } = await page.evaluate(async () => {
-      let fd = window.Filesystem.open("persistent/renameme", window.Filesystem.O_CREAT, 0o777);
-      let closeRes = window.Filesystem.close(fd) == 0;
-      let renameRes = window.Filesystem.rename("persistent/renameme", "persistent/moved") == 0;
-      let checkOldGone = window.Filesystem.access("persistent/renameme", window.Filesystem.F_OK) == -1;
-      let checkNewExists = window.Filesystem.access("persistent/moved", window.Filesystem.F_OK) == 0;
-      return { fd, closeRes, renameRes, checkOldGone, checkNewExists };
-    });
-
-    assert.ok(fd >= 0, "Failed to open file");
-    assert.ok(closeRes, "Failed to close file descriptor");
-    assert.ok(renameRes, "Failed to rename file");
-    assert.ok(checkOldGone, "Old file still exists after rename");
-    assert.ok(checkNewExists, "New file doesn't exist after rename");
-  })
-
-  it("Test `stat`", async () => {
-
-    await initFS(page);
-
-    let stat = await page.evaluate(async () => {
-      return window.Filesystem.stat("persistent");
-    })
-
-    assert.ok(stat.size == 4096, `Was expecting directory to be 4096 bytes, got ${stat.size}`);
-    assert.ok(stat.blocks == 1, `Was expecting blocks to be 1, got ${stat.blocks}`);
-    assert.ok(stat.ino > 0, `Was expecting the inode to be > 0, got ${stat.ino}`);
-    assert.ok((stat.mode & 0o170000) == 0o040000, `Mode is incorrect, it should represent a directory 0o040000, got ${(stat.mode & 0o170000).toString(2)}`);
-    assert.ok((stat.mode & 0o777) == 0b111111111, `Mode is incorrect, permissions should be 0b111111111, got ${(stat.mode & 0o777).toString(2)}`);
-    assert.ok(stat.nlink == 1, `Incorrect link, expected 1, got ${stat.nlink}`);
-  })
-
-  it("Test `chmod`", async () => {
-
-    await initFS(page);
-
-    let { fd, closeRes, statOne, chmodRes, statTwo } = await page.evaluate(async () => {
-      let fd = await window.Filesystem.open("persistent/changemymode", window.Filesystem.O_CREAT, 0o777);
-      let closeRes = await window.Filesystem.close(fd) == 0;
-      let statOne = await window.Filesystem.stat("persistent/changemymode");
-      let chmodRes = await window.Filesystem.chmod("persistent/changemymode", 0b001010011) == 0;
-      let statTwo = await window.Filesystem.stat("persistent/changemymode");
-      return { fd, closeRes, statOne, chmodRes, statTwo };
-    });
-
-    assert.ok(fd >= 0, "Invalid file descriptor when creating a file");
-    assert.ok(closeRes, "Failed to close file descriptor");
-    assert.ok((statOne.mode & 0b111111111) == 0b111111111, `File was created with incorrect permissions. Expected 0b111111111, got ${(statOne.mode & 0b111111111).toString(2)}`)
-    assert.ok(chmodRes, "Failed to change mode of file");
-    assert.ok((statTwo.mode & 0b111111111) == 0b001010011, `Mode not correct after change, expected 0b001010011, got ${(statTwo.mode & 0b111111111).toString(2)}`);
-  })
-
-  it("Test `utime`", async () => {
-    await initFS(page);
-
-    let { fd, closeRes, statBefore, utimeRes, statAfter } = await page.evaluate(async () => {
-      let fd = window.Filesystem.open("persistent/utimefile", window.Filesystem.O_CREAT, 0o777);
-      let closeRes = window.Filesystem.close(fd) == 0;
-
-      let statBefore = window.Filesystem.stat("persistent/utimefile");
-
-      const newAtime = statBefore.atime.sec + 1000; // Increment access time by 1000 seconds
-      const newMtime = statBefore.mtime.sec + 2000; // Increment modification time by 2000 seconds
-      let utimeRes = window.Filesystem.utime("persistent/utimefile", newAtime, newMtime) == 0;
-
-      // Get the updated stats
-      let statAfter = window.Filesystem.stat("persistent/utimefile");
-
-      return { fd, closeRes, statBefore, utimeRes, statAfter };
-    });
-
-    assert.ok(fd >= 0, "Invalid file descriptor when creating file");
-    assert.ok(closeRes, "Failed to close file descriptor");
-    assert.ok(utimeRes, "Failed to update atime and mtime using utime");
-
-    // Check if atime and mtime were updated correctly
-    assert.ok(
-      statAfter.atime.sec === statBefore.atime.sec + 1000,
-      `Access time (atime) was not updated correctly. Expected ${statBefore.atime.sec + 1000
-      }, got ${statAfter.atime.sec}`
-    );
-    assert.ok(
-      statAfter.mtime.sec === statBefore.mtime.sec + 2000,
-      `Modification time (mtime) was not updated correctly. Expected ${statBefore.mtime.sec + 2000
-      }, got ${statAfter.mtime.sec}`
-    );
-  });
-
-  it("Test `ftruncate`", async () => {
-    await initFS(page);
-
-    let { fd, writeRes, ftruncateRes, statAfterTruncate, fileContents, lseekRes } = await page.evaluate(async () => {
-      // Create and write to a file
-      let fd = window.Filesystem.open("persistent/truncatefile", window.Filesystem.O_CREAT | window.Filesystem.O_RDWR, 0o777);
-      let writeRes = window.Filesystem.write(fd, "This is a test file with extra content.");
-
-      // Truncate the file to a smaller size
-      let ftruncateRes = window.Filesystem.ftruncate(fd, 14) == 0;
-
-      // Get the file's stats after truncation
-      let statAfterTruncate = window.Filesystem.stat("persistent/truncatefile");
-
-      // Read the file's contents after truncation
-      let lseekRes = window.Filesystem.lseek(fd, 0, 0) == 0;
-      let fileContents = window.Filesystem.read(fd, statAfterTruncate.size).data;
-
-      window.Filesystem.close(fd);
-      return { fd, writeRes, ftruncateRes, statAfterTruncate, fileContents, lseekRes };
-    });
-
-    assert.ok(fd >= 0, "Failed to open file descriptor");
-    assert.ok(writeRes > 0, "Failed to write to file");
-    assert.ok(ftruncateRes, "Failed to truncate file");
-
-    // Verify the file size after truncation
-    assert.strictEqual(statAfterTruncate.size, 14, `File size after truncation should be 14 bytes, got ${statAfterTruncate.size}`);
-    assert.ok(lseekRes, "Failed to seek back to the start of the file");
-
-    // Ensure strings are correct
-    assert.strictEqual(fileContents, "This is a test", `File contents after truncation do not match expected value. Got ${fileContents}`);
-  });
-
-  it("Test read permission (remove read perms and restore them)", async () => {
-    await initFS(page);
-
-    let {
-      fd,
-      writeRes,
-      chmodToWriteOnly,
-      readResultNoPerms,
-      chmodToRW,
-      readResultAfterFix
-    } = await page.evaluate(async () => {
-      // 1) Create file with full perms, open + write
-      let fd = window.Filesystem.open("persistent/noread.txt", window.Filesystem.O_CREAT | window.Filesystem.O_RDWR, 0o777);
-      let writeRes = window.Filesystem.write(fd, "no one can read this line");
-
-      // Move back to the start so we can attempt to read it from there
-      window.Filesystem.lseek(fd, 0, 0);
-
-      // 2) Change permissions to write-only: (0o200)
-      let chmodToWriteOnly = window.Filesystem.chmod("persistent/noread.txt", 0o200) == 0;
-
-      // Attempt to read
-      // We'll keep reading from the same open fd:
-      let readResultNoPerms = window.Filesystem.read(fd, 100);
-
-      // 3) Change perms back to read/write
-      let chmodToRW = window.Filesystem.chmod("persistent/noread.txt", 0o600) == 0;
-
-      // Re-seek to start
-      window.Filesystem.lseek(fd, 0, 0);
-
-      // 4) Attempt to read again
-      let readResultAfterFix = window.Filesystem.read(fd, 100);
-
-      // Close
-      window.Filesystem.close(fd);
-
-      return {
-        fd,
-        writeRes,
-        chmodToWriteOnly,
-        readResultNoPerms,
-        chmodToRW,
-        readResultAfterFix
-      };
-    });
-
-    // Basic checks
-    assert.ok(fd >= 0, "Failed to create/open file descriptor");
-    assert.ok(writeRes > 0, "Write operation to file failed");
-    assert.ok(chmodToWriteOnly, "Failed to chmod to write-only");
-
-    // Expect read to fail or return null (failed perms)
-    assert.strictEqual(
-      readResultNoPerms,
-      null,
-      "Expected null or error reading a file with no read perms"
-    );
-
-    assert.ok(chmodToRW, "Failed to chmod back to read/write");
-
-    // After restoring read perms, the read call should succeed
-    assert.ok(readResultAfterFix?.data, "Expected to read data after restoring R/W perms");
-    assert.strictEqual(
-      readResultAfterFix?.data,
-      "no one can read this line",
-      "Read data was not as expected after restoring permissions"
-    );
-  });
-
-  it("Test write permission (remove write perms and restore them)", async () => {
-    await initFS(page);
-
-    let {
-      fd,
-      firstWrite,
-      chmodNoWrite,
-      secondWrite,
-      chmodRestoreWrite,
-      thirdWrite
-    } = await page.evaluate(async () => {
-      // 1) Create file with read + write perms
-      let fd = window.Filesystem.open("persistent/writeperm.txt", window.Filesystem.O_CREAT | window.Filesystem.O_RDWR, 0o666); // user/group/other => rw
-
-      // Write once
-      let firstWrite = window.Filesystem.write(fd, "Initial content");
-
-      // 2) Remove write permission from user => 0o444 => read-only
-      let chmodNoWrite = (window.Filesystem.chmod("persistent/writeperm.txt", 0o444) === 0);
-
-      // 3) Try writing => expect fail, the return should be -1.
-      let secondWrite = window.Filesystem.write(fd, "Should fail or do nothing") < 0;
-
-      // 4) Restore write permission => 0o666
-      let chmodRestoreWrite = (window.Filesystem.chmod("persistent/writeperm.txt", 0o666) === 0);
-
-      // 5) Try writing again => should succeed
-      let thirdWrite = window.Filesystem.write(fd, "Now it should work") >= 0;
-
-      // Close
-      window.Filesystem.close(fd);
-
-      return {
-        fd,
-        firstWrite,
-        chmodNoWrite,
-        secondWrite,
-        chmodRestoreWrite,
-        thirdWrite
-      };
-    });
-
-    assert.ok(fd >= 0, "Failed to create/open file descriptor");
-    assert.ok(firstWrite > 0, "Initial write returned unexpected value");
-    assert.ok(chmodNoWrite, "Failed to remove write permissions (chmod 0o444)");
-
-    // FS is enforcing permissions, should expect a failure (-1).
-    assert.ok(secondWrite,
-      "Write likely failed with no write permission, which is correct for a strictly enforced FS")
-
-    assert.ok(chmodRestoreWrite, "Failed to chmod file back to write perms (0o666)");
-    assert.ok(thirdWrite, "Expected final write to succeed once perms were restored");
-  });
-
-  it("Test directory execute permission (traverse vs. no traverse)", async () => {
-    await initFS(page);
-
-    let {
-      mkdirOk,
-      chmodNoExec,
-      readdirNoExec,
-      chmodExecAgain,
-      readdirWithExec
-    } = await page.evaluate(async () => {
-      // Create a directory with full perms
-      let mkdirOk = (window.Filesystem.mkdir("persistent/dirnoexec") === 0);
-
-      // Remove 'execute' from user => e.g. 0o666 => user rw, group rw, other rw, no one has x
-      let chmodNoExec = (window.Filesystem.chmod("persistent/dirnoexec", 0o666) === 0);
-
-      let readdirNoExec;
-      try {
-        readdirNoExec = window.Filesystem.readdir("persistent/dirnoexec");
-      } catch {
-        // If it fails, store null or something
-        readdirNoExec = null;
-      }
-
-      // Restore execute => 0o777
-      let chmodExecAgain = (window.Filesystem.chmod("persistent/dirnoexec", 0o777) === 0);
-
-      let readdirWithExec;
-      try {
-        readdirWithExec = window.Filesystem.readdir("persistent/dirnoexec");
-      } catch {
-        readdirWithExec = null;
-      }
-
-      return {
-        mkdirOk,
-        chmodNoExec,
-        readdirNoExec,
-        chmodExecAgain,
-        readdirWithExec
-      };
-    });
-
-    assert.ok(mkdirOk, "Failed to create test directory");
-    assert.ok(chmodNoExec, "Failed to chmod directory to remove 'execute' bit");
-
-    // If emscripten enforces x-permission, readdirNoExec might be null or throw an error
-    if (readdirNoExec !== null) {
-      console.warn(
-        "readdir succeeded even though 'execute' was removed. " +
-        "Emscripten doens't seem to strictly enforce directory x-perms."
-      );
-    }
-
-    assert.ok(chmodExecAgain, "Failed to chmod directory back to full perms (0o777)");
-
-    // Now readdir should succeed
-    assert.ok(
-      Array.isArray(readdirWithExec),
-      "Expected readdir to return an array after restoring directory x-permission"
-    );
-  });
-
-  it("Test chown (Emscripten support is questionable)", async () => {
-    await initFS(page);
-
-    let { fd, closeRes, chownRes, postStat } = await page.evaluate(() => {
-      // Create a file
-      let fd = window.Filesystem.open("persistent/ownercheck", window.Filesystem.O_CREAT, 0o777);
-      let closeRes = (window.Filesystem.close(fd) === 0);
-
-      // Attempt to chown => let's try to set user=1, group=2 (arbitrary)
-      let chownRes = window.Filesystem.chown("persistent/ownercheck", 1, 2);
-
-      // Get updated stat
-      let postStat = window.Filesystem.stat("persistent/ownercheck");
-
-      return {
-        fd,
-        closeRes,
-        chownRes,
-        postStat
-      };
-    });
-
-    assert.ok(fd >= 0, "Failed to create file descriptor");
-    assert.ok(closeRes, "Failed to close the file descriptor");
-    if (chownRes !== 0) {
-      console.warn("chown failed - your FS may not allow chown on this file");
-    } else {
-      // If success, check if uid/gid changed
-      // Emscripten may ignore the call. If not ignored, expect postStat.uid=1, postStat.gid=2
-      const changedUID = (postStat.uid === 1);
-      const changedGID = (postStat.gid === 2);
-      if (!changedUID || !changedGID) {
-        console.warn(
-          "chown succeeded but ownership didn't change as expected. " +
-          "Some FS drivers do not actually store UID/GID changes."
-        );
-      }
-      assert.ok(true, "chown call was attempted, check console for details.");
-    }
-  });
-
-  it("Test access() checks (R_OK, W_OK, X_OK)", async () => {
-    await initFS(page);
-
-    let results = await page.evaluate(() => {
-      // 1) Create a file => 0o644
-      let fd = window.Filesystem.open("persistent/check_access.txt", window.Filesystem.O_CREAT, 0o644);
-      window.Filesystem.close(fd);
-
-      // 2) Check R_OK => Should be 0
-      const readCheck = window.Filesystem.access("persistent/check_access.txt", 4); // 4 => R_OK
-
-      // 3) Check W_OK => Should be 0 if user is the owner with mode 0o600+
-      const writeCheck = window.Filesystem.access("persistent/check_access.txt", 2); // 2 => W_OK
-
-      // 4) Check X_OK => should be -1 since we haven't set x bit in 0o644
-      const execCheck = window.Filesystem.access("persistent/check_access.txt", 1); // 1 => X_OK
-
-      // 5) For comparison, chmod => 0o755 => re-check X_OK
-      window.Filesystem.chmod("persistent/check_access.txt", 0o755);
-      const execCheckAfterChmod = window.Filesystem.access("persistent/check_access.txt", 1);
-
-      return {
-        readCheck,
-        writeCheck,
-        execCheck,
-        execCheckAfterChmod
-      };
-    });
-
-    assert.strictEqual(results.readCheck, 0, "File should be readable (R_OK=0) with 0o644");
-    assert.strictEqual(results.writeCheck, 0, "File should be writable by owner (W_OK=0) with 0o644");
-    assert.strictEqual(results.execCheck, -1, "File should not be executable with 0o644");
-    assert.strictEqual(results.execCheckAfterChmod, 0, "After chmod 0o755, file should be executable");
-  });
 });

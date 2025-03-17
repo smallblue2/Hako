@@ -1,0 +1,2 @@
+0 - No error
+1 - Memory Allocation Error

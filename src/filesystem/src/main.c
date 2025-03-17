@@ -1,62 +1,78 @@
-/*
- *
- * TODO:
- *  - INITIALISATION + MOUNTING
- *    - Proper bootstrap [x]
- *  - FILE OPERATIONS
- *    - Create a file [x]
- *    - Read a file [x]
- *    - Write to a file [x]
- *    - Unlink a file [x]
- *    - Rename a file [x]
- *    - Access a file [x]
- *  - DIRECTORY OPERATION
- *    - Create a directory [x]
- *    - Read a directory [x]
- *    - Unlink a directory [x]
- *  - METADATA OPERATIONS
- *    - Stat a node (stat) [x]
- *    - Stat a link (lstat) [x]
- *    - Set mode
- *    - Set timestamps
- *    - Set metadata (permissions, timestamps, any custom logic, etc)
- *  - FILE DESCRIPTORS
- *    - Open a file [x]
- *    - Close a file [x]
- *    - Read from descriptor [x]
- *    - Write from descriptor [x]
- *    - Seek [x]
- *  - ADVANCED [DO WE WANT?]
- *    - Symbolic links [x]
- *    - Hard links [don't think is supported by emscripten]
- *    - File locking for concurrency [not implementing]
- *    - Copy files [x]
- *    - Truncate file [x]
- *
- */
-
-#include <dirent.h>
-#include <emscripten.h>
-#include <errno.h>
+#include "main.h"
 #include <fcntl.h>
-#include <libgen.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/stat.h>
-#include <time.h>
-#include <unistd.h>
-#include <utime.h>
 
-char *PERSISTENT_ROOT_NAME = "/persistent";
-int MAX_PATH_LENGTH = 256;
+// Emscripten uses its own errno convention when compiled which
+// makes accurate error reporting convoluted - use our own.
+int translate_errors(int err) {
+  switch (err) {
+  case EEXIST:
+    return E_EXISTS;
+  case ENOENT:
+    return E_DOESNTEXIST;
+  case EACCES:
+    return E_PERM;
+  case EROFS:
+    return E_SYSFS;
+  case EISDIR:
+    return E_ISDIR;
+  case ENOTDIR:
+    return E_NOTDIR;
+  case EIO:
+    return E_IOERROR;
+  case EINVAL:
+    return E_INVALID;
+  case EAGAIN:
+    return E_AGAIN;
+  default:
+    printf("[C] Unknown error: %d: %s\n", err, strerror(err));
+    return err;
+  }
+}
+
+// Helper function for checking read perms based on stat
+bool can_read(struct stat *node_stat) {
+  return ((node_stat->st_mode & 0400) == 0400);
+}
+
+// Helper function for checking write perms based on stat
+bool can_write(struct stat *node_stat) {
+  return ((node_stat->st_mode & 0200) == 0200);
+}
+
+// Helper function for checking exec perms based on stat
+bool can_exec(struct stat *node_stat) {
+  return ((node_stat->st_mode & 0100) == 0100);
+}
+
+// Helper function for guarding system nodes based on stat
+bool is_system_file(struct stat *node_stat) {
+  return ((node_stat->st_mode & PROTECTED_BIT) == PROTECTED_BIT);
+}
 
 // Explicitly forces a filesystem synchronisation.
 // Likely not needed if the IDBFS filesystem is mounted with `autoPersist`
 // option set to TRUE
-int syncFS() {
+void file__pullFromPersist() {
 #ifdef __EMSCRIPTEN__
-  EM_ASM({
+  MAIN_THREAD_EM_ASM({
+    // Force an initial sync - despite `autoPersist` flag
+    FS.syncfs(
+        true, function(err) {
+          if (err) {
+            console.error("[JS] Error during sync:", err);
+          } else {
+            console.log("[JS] Sync completed succesfully!");
+          }
+        });
+  });
+#endif
+  return;
+}
+
+void file__pushToPersist() {
+#ifdef __EMSCRIPTEN__
+  MAIN_THREAD_EM_ASM({
     // Force an initial sync - despite `autoPersist` flag
     FS.syncfs(
         true, function(err) {
@@ -69,16 +85,16 @@ int syncFS() {
   });
 #endif
 
-  return 0;
+  return;
 }
 
 // Mounts filesystem, creating structure if required.
-int initialiseFS() {
+void file__initialiseFS() {
   printf("[C] Starting up persistent filesystem at '%s'...\n",
          PERSISTENT_ROOT_NAME);
 
 #ifdef __EMSCRIPTEN__
-  EM_ASM(
+  MAIN_THREAD_EM_ASM(
       {
         let persistentRoot = UTF8ToString($0);
         let check = FS.analyzePath(persistentRoot, false);
@@ -99,156 +115,405 @@ int initialiseFS() {
         }
       },
       PERSISTENT_ROOT_NAME);
+
+  // Write the shell file
+  EM_ASM({
+    try {
+      FS.writeFile('/persistent/hello.lua', 'print("Hello from Lua!")');
+
+      // Force sync back to IndexedDB
+      FS.syncfs(
+          false, function(err) {
+            if (err)
+              console.error("Error syncing to IndexedDB:", err);
+            else
+              console.log("File written and synced to IndexedDB.");
+          });
+    } catch (e) {
+      console.error("Error writing file:", e);
+    }
+  });
 #endif
 
-  syncFS(); // Not sure if needed due to autoPersist: true
-
-  printf("[C] Finished filesystem initialisation!\n");
-
-  return 0;
-}
-
-// Permission types
-#define PERMISSION_READ 1
-#define PERMISSION_WRITE 2
-#define PERMISSION_EXEC 4
-
-bool check_permission(struct stat node_stat, int permission) {
-  uid_t current_uid = getuid();
-  gid_t current_gid = getgid();
-
-  // Check owner permissions
-  if (current_uid == node_stat.st_uid) {
-    if ((permission & PERMISSION_READ) && !(node_stat.st_mode & S_IRUSR))
-      return false;
-    if ((permission & PERMISSION_WRITE) && !(node_stat.st_mode & S_IWUSR))
-      return false;
-    if ((permission & PERMISSION_EXEC) && !(node_stat.st_mode & S_IXUSR))
-      return false;
-  }
-  // Check group permissions
-  else if (current_gid == node_stat.st_gid) {
-    if ((permission & PERMISSION_READ) && !(node_stat.st_mode & S_IRGRP))
-      return false;
-    if ((permission & PERMISSION_WRITE) && !(node_stat.st_mode & S_IWGRP))
-      return false;
-    if ((permission & PERMISSION_EXEC) && !(node_stat.st_mode & S_IXGRP))
-      return false;
-  }
-  // Check other permissions
-  else {
-    if ((permission & PERMISSION_READ) && !(node_stat.st_mode & S_IROTH))
-      return false;
-    if ((permission & PERMISSION_WRITE) && !(node_stat.st_mode & S_IWOTH))
-      return false;
-    if ((permission & PERMISSION_EXEC) && !(node_stat.st_mode & S_IXOTH))
-      return false;
-  }
-
-  return true;
-}
-
-int fs_close(int fd) { return close(fd); }
-
-int fs_write(int fd, void *buf, int count) {
-  struct stat fd_stat;
-  if (fstat(fd, &fd_stat) < 0) {
-    fprintf(stderr,
-            "Failed to stat file descriptor '%d' for permission check\n", fd);
-    return -1;
-  }
-
-  if (!check_permission(fd_stat, PERMISSION_WRITE)) {
-    fprintf(stderr, "Permission denied: Cannot write to file descriptor %d\n",
-            fd);
-    return -1;
-  }
-  return write(fd, buf, count);
-}
-
-int fs_lseek(int fd, int offset, int whence) {
-  return lseek(fd, offset, whence);
-}
-
-typedef struct {
-  unsigned char *data;
-  int size;
-} ReadResult;
-
-void fs_read(int fd, ReadResult *rr, int count) {
-
-  rr->size = -1;
-  rr->data = NULL;
-
-  struct stat fd_stat;
-  if (fstat(fd, &fd_stat) < 0) {
-    fprintf(stderr,
-            "Failed to stat file descriptor '%d' for permission check\n", fd);
-    return;
-  }
-
-  if (!check_permission(fd_stat, PERMISSION_READ)) {
-    fprintf(stderr, "Permission denied: Cannot read from file descriptor %d\n",
-            fd);
-    return;
-  }
-  // Create buffer
-  unsigned char *buffer = (unsigned char *)malloc(count);
-  if (!buffer) {
-    perror("Failed to create buffer to read file");
-    return;
-  }
-
-  // Read into buffer
-  int bytesRead = read(fd, buffer, count);
-  rr->data = buffer;
-  rr->size = bytesRead;
+  file__pullFromPersist();
 
   return;
 }
 
-int fs_access(const char *name, int type) { return access(name, type); }
+int file__open(const char *path, int flags, Error *err) {
+  // Permission checks
+  struct stat st = {0};
+  bool file_exists = (stat(path, &st) == 0);
 
-typedef struct {
-  int sec;
-  int nsec;
-} Time;
+  bool wants_read =
+      ((flags & O_RDONLY) == O_RDONLY) || ((flags & O_RDWR) == O_RDWR);
+  bool wants_write =
+      ((flags & O_WRONLY) == O_WRONLY) || ((flags & O_RDWR) == O_RDWR);
 
-typedef struct { // 48 bytes
-  int size;
-  int blocks;
-  int blocksize;
-  int ino;
-  int nlink;
-  int mode;
-  int uid;
-  int gid; // 32 byes
-  Time atime;
-  Time mtime;
-  Time ctime; // 24 bytes
-} StatResult;
+  if (file_exists) {
+    // If the file already exists, and the user specified "create", fail
+    if ((flags & O_CREAT) == O_CREAT) {
+      *err = E_EXISTS;
+      return -1;
+    }
+    // Read check
+    if (wants_read && !can_read(&st)) {
+      *err = translate_errors(EACCES);
+      return -1;
+    }
+    // Write check
+    if (wants_write && !can_write(&st)) {
+      *err = translate_errors(EACCES);
+      return -1;
+    }
+    // Trying to write to system file check
+    if (wants_write && is_system_file(&st)) {
+      *err = translate_errors(EROFS);
+      return -1;
+    }
+  } else {
+    // The file doesn't exist
+    if ((flags & O_CREAT) == 0) {
+      *err = translate_errors(ENOENT);
+      return -1;
+    }
+  }
 
-int fs_stat(const char *name, StatResult *sr) {
-  struct stat file_stat;
-  if (stat(name, &file_stat) < 0) {
-    fprintf(stderr, "Failed to stat file %s for permission check.", name);
+  // Finally open the file
+  int fd = open(path, flags, 0700);
+
+  if (fd < 0) {
+    // has failed (sad) :'(
+    *err = translate_errors(errno);
     return -1;
   }
 
-  if (!check_permission(file_stat, PERMISSION_EXEC)) {
-    fprintf(stderr, "Permission denied: Cannot stat %s\n", name);
-    errno = EACCES;
-    return -1;
+  *err = 0;
+  return fd;
+}
+
+void file__close(int fd, Error *err) {
+  // NOTE: no perm checks, as they wouldn't make sense here
+  if (close(fd) < 0) {
+    *err = translate_errors(errno);
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+void file__write(int fd, const char *content, Error *err) {
+  // NOTE: no perm checks as the user already has the file descriptor
+
+  int contentLength = strlen(content);
+  printf("[C] Passed in fd: %d\n", fd);
+  printf("[C] Passed in string: \"%s\" (%d)\n", content, contentLength);
+  int written = write(fd, content, contentLength);
+  printf("[C] Written returned => {%d}\n", written);
+  if (written < 0) {
+    *err = translate_errors(errno);
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+// Reads up to `amt`, returning whatever it was able to read
+void file__read(int fd, int amt, ReadResult *rr, Error *err) {
+  // NOTE: No permission checks here - they already obtained fd
+
+  rr->size = -1;
+  rr->data = NULL;
+
+  char *buf = calloc(amt, sizeof(char));
+  if (!buf) {
+    *err = translate_errors(errno);
+    return;
+  }
+
+  int amount_read = read(fd, buf, amt);
+  if (amount_read < 0) {
+    *err = translate_errors(errno);
+    return;
+  }
+
+  // WARNING: MUST free in WASM!
+  rr->data = buf;
+  rr->size = amount_read;
+
+  *err = 0;
+  return;
+}
+
+// Reads the entirety of a files contents
+void file__read_all(int fd, ReadResult *rr, Error *err) {
+  // NOTE: No permission checks here - they already obtained fd
+
+  rr->data = NULL;
+  rr->size = -1;
+
+  ssize_t buf_size = BUFSIZ;
+  // Allocate buffer on heap
+  char *buf = malloc(buf_size * sizeof(char));
+  // Initialise or pointer to the start of the buffer
+  char *ptr = buf;
+
+  ssize_t bytes_read = 0;
+
+  // Keep reading as many bytes as possible, filling to the end of the buffer
+  // ((bug + buf_size) - ptr).
+  while ((bytes_read = read(fd, ptr, (buf + buf_size) - ptr)) > 0) {
+    // Move the pointer forward
+    ptr += bytes_read;
+
+    ssize_t avail = (buf + buf_size) - ptr;
+    // Check if the remaining space is less than the buffer size (we can't
+    // request a full buffer for the next read)
+    if (avail < BUFSIZ) {
+      // Our minimum read request is of BUFSIZ
+
+      // We need to store the offset of the ptr from buf
+      // as the realloc will have a new address (most of the time)
+      ssize_t offset = ptr - buf;
+
+      // Double the buffer size
+      void *blk = realloc(buf, buf_size * 2);
+      if (blk == NULL) {
+        // realloc failed
+        *err = translate_errors(errno);
+        free(buf);
+        return;
+      }
+      // Save the resized buffer as our new buffer
+      buf = blk;
+      // Take into account our new buffer size
+      buf_size *= 2;
+
+      // Update ptr to correct location in new buffer
+      ptr = (buf + offset);
+    }
+  }
+
+  // bytes_read == 0 means EOF, if this is false, there was an error in a read
+  if (bytes_read != 0) {
+    // If it is not EOF
+    *err = translate_errors(errno);
+    free(buf);
+    return;
+  }
+
+  // NOTE: could technically reallocate here down to the exact size needed
+  // but that can also be done by the caller if it is an issue
+
+  // Calculate the total number of bytes read
+  rr->size = (ptr - buf);
+
+  // Allocate enough space for the files contents into our ReadResult struct
+  if (rr->size != 0) {
+    rr->data = malloc(rr->size * sizeof(char));
+    if (!rr->data) {
+      *err = translate_errors(errno);
+      free(buf);
+      return;
+    }
+
+    // copy the buffer into our String output struct
+    memcpy(rr->data, buf, rr->size);
+  }
+
+  // free the buffer
+  free(buf);
+
+  // No error
+  *err = 0;
+  return;
+}
+
+// Shifts the file offset by 'amt'
+void file__shift(int fd, int amt, Error *err) {
+  // NOTE: No permission checks here - they already obtained fd
+
+  int moved_bytes = lseek(fd, amt, SEEK_CUR);
+  if (moved_bytes < 0) {
+    *err = translate_errors(errno);
+    return;
+  }
+
+  *err = 0;
+  return;
+}
+
+// Places the file offset to `pos`
+void file__goto(int fd, int pos, Error *err) {
+  // NOTE: No permission checks here - they already obtained fd
+
+  int moved_bytes = lseek(fd, pos, SEEK_SET);
+  if (moved_bytes < 0) {
+    *err = translate_errors(errno);
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+// Unlinks a node
+//
+// TODO: Test on directories, if it doesnt work - likely change to
+// `file__removeFile`
+void file__remove(const char *path, Error *err) {
+  // Permission checks
+  struct stat st;
+  bool file_exists = (stat(path, &st) == 0);
+
+  if (!file_exists) {
+    *err = translate_errors(EEXIST);
+    return;
+  }
+
+  // If it's a system file, fail - user can't remove system files
+  if (is_system_file(&st)) {
+    *err = translate_errors(EROFS);
+    return;
+  }
+
+  int error = unlink(path);
+  if (error < 0) {
+    *err = translate_errors(errno);
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+void file__move(const char *old_path, const char *new_path, Error *err) {
+  // Permission checks [OLD FILE]
+  struct stat st;
+  bool file_exists = (stat(old_path, &st) == 0);
+
+  if (!file_exists) {
+    *err = translate_errors(EEXIST);
+    return;
+  }
+
+  // If it's a system file, fail - user can't move system files
+  if (is_system_file(&st)) {
+    *err = translate_errors(EROFS);
+    return;
+  }
+
+  // Permission checks [NEW FILE]
+  file_exists = (stat(new_path, &st) == 0);
+
+  // If it's a system file, fail - user can't overwrite system files
+  if (is_system_file(&st)) {
+    *err = translate_errors(EROFS);
+    return;
+  }
+
+  int error = rename(old_path, new_path);
+  if (error < 0) {
+    *err = translate_errors(errno);
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+void file__make_dir(const char *path, Error *err) {
+  // NOTE: No permission checks as we're not enforcing permissions
+  //       on directories.
+
+  int error = mkdir(path, 0755);
+  if (error < 0) {
+    *err = translate_errors(errno);
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+void file__remove_dir(const char *path, Error *err) {
+  // NOTE: No permission checks as we're not enforcing permissions
+  //       on directories.
+
+  int error = rmdir(path);
+  if (error < 0) {
+    *err = translate_errors(errno);
+    return;
+  }
+  *err = 0;
+  return;
+}
+
+void file__read_dir(const char *path, Entry *entry, int *err) {
+  // NOTE: No permission checks as we're not enforcing permissions
+  //       on directories.
+
+  // If this is the first call (dirp == NULL), open the directory
+  if (entry->dirp == NULL) {
+    entry->dirp = opendir(path);
+    if (entry->dirp == NULL) {
+      *err = translate_errors(errno);
+      return;
+    }
+  }
+
+  // Read the next entry
+  errno = 0; // readdir signals an error when at End of Directory, but doesn't
+             // set errno
+  struct dirent *ep = readdir(entry->dirp);
+
+  if (ep == NULL) {
+    // Errno still being 0 signals end of directory
+    if (errno == 0) {
+      entry->isEnd = 1;
+      closedir(entry->dirp);
+      entry->dirp =
+          NULL; // Ensure `dirp` is reset to avoid reuse of closed pointer
+      return;
+    }
+    *err = translate_errors(errno);
+    return;
+  }
+
+  // Store the entry name
+  entry->name = strdup(ep->d_name);
+  if (entry->name == NULL) {
+    closedir(entry->dirp);
+    entry->dirp = NULL; // Prevent reuse of closed pointer
+    *err = translate_errors(errno);
+    return;
+  }
+
+  entry->name_len = strlen(entry->name);
+  entry->isEnd = 0;
+  *err = 0;
+  return;
+}
+
+void file__stat(const char *name, StatResult *sr, Error *err) {
+  // NOTE: No permission checks, user can stat anything
+  // This usually relies on the `x` of the parent directory,
+  // but we're not implementing directory permissions
+
+  struct stat file_stat;
+  if (stat(name, &file_stat) < 0) {
+    *err = translate_errors(errno);
+    return;
   }
 
   sr->size = file_stat.st_size;
   sr->blocks = file_stat.st_blocks;
   sr->blocksize = file_stat.st_blksize;
   sr->ino = file_stat.st_ino;
-  sr->nlink = file_stat.st_nlink;
-  sr->mode = file_stat.st_mode;
-  sr->uid = file_stat.st_uid;
-  sr->gid = file_stat.st_gid;
+
+  // If it's a directory, just report `rwx`
+  if (S_ISDIR(file_stat.st_mode)) {
+    sr->perm = 0700;
+  } else {
+    sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+  }
+
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
@@ -256,30 +521,33 @@ int fs_stat(const char *name, StatResult *sr) {
   sr->ctime.sec = (int)file_stat.st_ctim.tv_sec;
   sr->ctime.nsec = (int)file_stat.st_ctim.tv_nsec;
 
-  return 0;
+  *err = 0;
+  return;
 }
 
-int fs_lstat(const char *name, StatResult *sr) {
-  struct stat file_stat;
-  if (stat(name, &file_stat) < 0) {
-    fprintf(stderr, "Failed to stat file %s for permission check.", name);
-    return -1;
-  }
+void file__fdstat(int fd, StatResult *sr, Error *err) {
+  // NOTE: No permission checks, user can stat anything
+  // This usually relies on the `x` of the parent directory,
+  // but we're not implementing directory permissions
 
-  if (!check_permission(file_stat, PERMISSION_EXEC)) {
-    fprintf(stderr, "Permission denied: Cannot stat %s\n", name);
-    errno = EACCES;
-    return -1;
+  struct stat file_stat;
+  if (fstat(fd, &file_stat) < 0) {
+    *err = translate_errors(errno);
+    return;
   }
 
   sr->size = file_stat.st_size;
   sr->blocks = file_stat.st_blocks;
   sr->blocksize = file_stat.st_blksize;
   sr->ino = file_stat.st_ino;
-  sr->nlink = file_stat.st_nlink;
-  sr->mode = file_stat.st_mode;
-  sr->uid = file_stat.st_uid;
-  sr->gid = file_stat.st_gid;
+
+  // If it's a directory, just report `rwx`
+  if (S_ISDIR(file_stat.st_mode)) {
+    sr->perm = 0700;
+  } else {
+    sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+  }
+
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
@@ -287,85 +555,55 @@ int fs_lstat(const char *name, StatResult *sr) {
   sr->ctime.sec = (int)file_stat.st_ctim.tv_sec;
   sr->ctime.nsec = (int)file_stat.st_ctim.tv_nsec;
 
-  return 0;
+  *err = 0;
+  return;
 }
 
-int fs_chmod(const char *path, int mode) {
-  struct stat file_stat;
-  if (stat(path, &file_stat) < 0) {
-    perror("Failed to stat file for chmod");
-    return -1;
+void file__change_dir(const char *path, Error *err) {
+  // NOTE: No permission checks here as directory permissions are ignored
+
+  if (chdir(path) < 0) {
+    *err = translate_errors(errno);
+    return;
   }
 
-  // Check if current user owns the file
-  if (file_stat.st_uid != getuid()) {
-    fprintf(stderr, "Permission denied: Cannot chmod %s\n", path);
-    errno = EPERM;
-    return -1;
-  }
-
-  return chmod(path, mode);
+  *err = 0;
+  return;
 }
 
-int fs_utime(const char *path, int atim, int mtim) {
-  struct stat file_stat;
-  if (stat(path, &file_stat) < 0) {
-    perror("Failed to stat file for utime");
-    return -1;
+// Changes FILE permissions (only for user - single user OS,
+// 0[use][ignore][ignore])
+void file__permit(const char *path, int flags, Error *err) {
+  // permissions check
+  struct stat st;
+  bool file_exists = (stat(path, &st) == 0);
+
+  if (!file_exists) {
+    *err = translate_errors(EEXIST);
+    return;
   }
 
-  // Check if user owns the file or has write permission
-  if (file_stat.st_uid != getuid() &&
-      !check_permission(file_stat, PERMISSION_WRITE)) {
-    fprintf(stderr, "Permission denied: Cannot update timestamps for %s\n",
-            path);
-    errno = EACCES;
-    return -1;
+  // If it's a directory, fail - as this does nothing in our system
+  // and might even break it due to emscripten's emulation
+  if (S_ISDIR(st.st_mode)) {
+    *err = translate_errors(EISDIR);
+    return;
   }
 
-  struct utimbuf new_times;
-
-  new_times.actime = atim;
-  new_times.modtime = mtim;
-
-  return utime(path, &new_times);
-}
-
-int fs_ftruncate(int fd, int length) {
-  struct stat fd_stat;
-  if (fstat(fd, &fd_stat) < 0) {
-    fprintf(stderr,
-            "Failed to stat file descriptor '%d' for permission check\n", fd);
-    return -1;
+  // If it's a system file, fail
+  if (is_system_file(&st)) {
+    *err = translate_errors(EROFS);
+    return;
   }
 
-  if (!check_permission(fd_stat, PERMISSION_WRITE)) {
-    fprintf(stderr, "Permission denied: Cannot truncate file descriptor %d\n",
-            fd);
-    return -1;
+  // No permissions check here - user should be allowed to modify all file
+  // permissions
+  // TODO: Figure out how to modify
+  if (chmod(path, flags) < 0) {
+    *err = translate_errors(errno);
+    return;
   }
 
-  return ftruncate(fd, length);
-}
-
-int fs_chown(const char *path, int owner, int group) {
-  struct stat file_stat;
-  if (stat(path, &file_stat) < 0) {
-    perror("Failed to stat file for chmod");
-    return -1;
-  }
-
-  // Check if current user owns the file
-  if (file_stat.st_uid != getuid()) {
-    fprintf(stderr, "Permission denied: Cannot chown %s\n", path);
-    errno = EPERM;
-    return -1;
-  }
-
-  return chown(path, owner, group);
-}
-
-int main() {
-  initialiseFS();
-  return 0;
+  *err = 0;
+  return;
 }

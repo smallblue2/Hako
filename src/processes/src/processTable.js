@@ -1,4 +1,6 @@
-import { ProcessStates } from "./common.js";
+import { ProcessStates, CustomError } from "./common.js";
+import Pipe from "./pipe.js";
+import Signal from "./signal.js";
 
 /**
  * The ProcessTable class is responsible for storing and tracking all
@@ -29,6 +31,12 @@ export default class ProcessTable {
      * @type {number}
      */
     this.nextPID = 1; // Start PID allocation from 1
+
+    /**
+     * The default pipe size for processes.
+     * @type {number}
+     */
+    this.pipeSize = 1024;
   }
 
   /**
@@ -48,7 +56,7 @@ export default class ProcessTable {
    *
    * @throws {Error} If no available PIDs remain.
    */
-  allocateProcess(processData) {
+  async allocateProcess(processData) {
     // Find the next available PID
     while (this.nextPID < this.maxPIDs && this.processTable[this.nextPID] !== null) {
       this.nextPID++;
@@ -56,54 +64,76 @@ export default class ProcessTable {
 
     // Table is full
     if (this.nextPID >= this.maxPIDs) {
-      throw new Error("No available PIDs. Process table is full.");
+      throw new CustomError(CustomError.symbols.PROC_TABLE_FULL);
     }
 
     // ============= Initialise Process Entry ============= 
 
     // Create MessageChannels for inter-process communication
-    const stdinChannel = new MessageChannel();
-    const stdoutChannel = new MessageChannel();
-    const stderrChannel = new MessageChannel();
+    const stdinPipe = new Pipe(this.pipeSize);
+    const stdoutPipe = new Pipe(this.pipeSize);
+    const stderrPipe = new Pipe(this.pipeSize);
+    const signal = new Signal();
 
     const process = {
-      worker: null, // Will be set below
-      stdin: stdinChannel.port2,
-      stdout: stdoutChannel.port2,
-      stderr: stderrChannel.port2,
+      stdin: stdinPipe,
+      stdout: stdoutPipe,
+      stderr: stderrPipe,
+      luaCode: processData.luaCode,
+      signal: signal,
       time: Date.now(),
       state: ProcessStates.STARTING,
+      pty: processData.slave,
+      pipeStdin: processData.pipeStdin,
+      pipeStdout: processData.pipeStdout,
+      start: processData.start
     }
 
     // Place the new process object in the table
     this.processTable[this.nextPID] = process;
 
-    // Create worker
-    const worker = new Worker(processData.processScript, { type: "module" });
-    process.worker = worker; // Attach it to the process record
+    let newProcessPID = this.nextPID++;
 
-    // Start closure to actually kick-off the process
-    let start = () => {
-      worker.postMessage(
-        {
-          stdin: stdinChannel.port1,
-          stdout: stdoutChannel.port1,
-          stderr: stderrChannel.port1,
-          func: processData.processFunction.toString()
-        },
-        [stdinChannel.port1, stdoutChannel.port1, stderrChannel.port1],
-      )
-    }
+    const { default: initEmscripten } = await import("/runtime.js?url");
 
+    const Module = await initEmscripten({
+      onRuntimeInitialized: () => {
+        console.log("Runtime emscripten module loaded");
+      },
+      pty: processData.slave,
+      pid: newProcessPID
+    })
+
+    process.emscriptenBuffer = Module.wasmMemory.buffer;
+
+    // Attach Module to process
     // Return the allocated PID and increment it
     return {
-      pid: this.nextPID++,
-      stdin: stdinChannel.port2,
-      stdout: stdoutChannel.port2,
-      stderr: stderrChannel.port2,
-      worker,
-      start
+      pid: newProcessPID,
     };
+  }
+
+  registerWorker(pid, worker) {
+    let registeredProcess = this.processTable[pid];
+    registeredProcess.worker = worker;
+
+    console.log("Attached worker to registeredProcess:");
+
+    registeredProcess.startMsg = {
+        cmd: "custom-init",
+        start: registeredProcess.start,
+        pid: pid,
+        emscriptenBuffer: registeredProcess.emscriptenBuffer,
+        signal: registeredProcess.signal.getBuffer(),
+        stdin: registeredProcess.stdin.getBuffer(),
+        stdout: registeredProcess.stdout.getBuffer(),
+        stderr: registeredProcess.stderr.getBuffer(),
+        pipeStdin: registeredProcess.pipeStdin,
+        pipeStdout: registeredProcess.pipeStdout,
+        luaCode: registeredProcess.luaCode
+    }
+
+    return;
   }
 
   /**
@@ -114,7 +144,7 @@ export default class ProcessTable {
    */
   getProcess(pid) {
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      return null; // Process does not exist
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
 
     return this.processTable[pid];
@@ -130,7 +160,7 @@ export default class ProcessTable {
   freeProcess(pid) {
     // Ensure valid pid
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      throw new Error(`Invalid or non-existent PID: ${pid}`);
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
 
     // TODO: Figure out if the process is running, don't free if it is
@@ -151,7 +181,7 @@ export default class ProcessTable {
    */
   changeProcessState(pid, newState) {
     if (pid <= 0 || pid >= this.maxPIDs || this.processTable[pid] === null) {
-      throw new Error(`Invalid or non-existent PID: ${pid}`);
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST)
     }
 
     this.processTable[pid].state = newState;
@@ -161,13 +191,19 @@ export default class ProcessTable {
    * Prints out a summary of all active (non-null) processes in the table.
    * This is a convenience method for debugging.
    */
-  displayTable() {
-    console.log("Process Table:")
+  getTable() {
+    let out = [];
     this.processTable.forEach((entry, index) => {
       if (entry !== null) {
-        console.log(this.processToString(entry, index));
+        out.push({
+          pid: index,
+          created: entry.time,
+          alive: Date.now() - entry.time,
+          state: entry.state
+        });
       }
     });
+    return out;
   }
 
   /**
