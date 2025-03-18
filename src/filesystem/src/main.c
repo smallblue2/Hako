@@ -543,11 +543,13 @@ void file__stat(const char *name, StatResult *sr, Error *err) {
 
   // If it's a directory, just report `rwx`
   if (S_ISDIR(file_stat.st_mode)) {
-    sr->perm = 0700;
+    sr->type = 1; // Directory
   } else {
-    sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+    // We only support files and directories
+    sr->type = 0; // file (technically anything that isn't a directory)
   }
 
+  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
@@ -577,11 +579,13 @@ void file__fdstat(int fd, StatResult *sr, Error *err) {
 
   // If it's a directory, just report `rwx`
   if (S_ISDIR(file_stat.st_mode)) {
-    sr->perm = 0700;
+    sr->type = 1; // Directory
   } else {
-    sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+    // We only support files and directories
+    sr->type = 0; // file (technically anything that isn't a directory)
   }
 
+  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;

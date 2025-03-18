@@ -75,17 +75,18 @@ typedef struct __attribute__((packed)) {
 } Time;     // 8 bytes
 
 // Output parameter struct, filled with a node's stat content
-typedef struct __attribute__((packed)) { // 48 bytes
+typedef struct __attribute__((packed)) { // 52 bytes
   int size;
   int blocks;
   int blocksize;
   int ino;
   int perm; // permissions (Only user: 01 Read, 001 Write, 0001 Execute) 20
             // bytes
+  int type; // 0: file, 1: directory
   Time atime;
   Time mtime;
   Time ctime; // 24 bytes
-} StatResult; // 44 bytes
+} StatResult; 
 
 // ======================= Filesystem API =======================
 
