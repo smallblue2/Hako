@@ -44,9 +44,12 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  async createProcess({ luaPath = "/persistent/sys/shell.lua", slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null, start = false }) {
+  async createProcess({ luaPath = "/persistent/sys/shell.lua", args=[], slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null, start = false }) {
     if (slave === undefined && (pipeStdin == false || pipeStdout == false)) {
       throw new CustomError(CustomError.symbols.PTY_PROCESS_NO_PTY);
+    }
+    if (!Array.isArray(args)) {
+      throw new CustomError(CustomError.symbols.INVALID_PROC_AGS);
     }
 
     // TODO: Confirm its a lua file, maybe check for shebang or simply just the extension
@@ -64,7 +67,7 @@ export default class ProcessManager {
 
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
-      { slave, pipeStdin, pipeStdout, start, luaCode }, // Defined behaviour for web-worker
+      { args, slave, pipeStdin, pipeStdout, start, luaCode }, // Defined behaviour for web-worker
     );
 
     // Enqueue process to be initialised

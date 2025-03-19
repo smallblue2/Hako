@@ -19,6 +19,7 @@ async function initWorkerForProcess(data) {
 
   self.proc = {
     pid: data.pid,
+    args: data.args,
     stdin: new Pipe(0, data.stdin),
     stdout: new Pipe(0, data.stdout),
     stderr: new Pipe(0, data.stderr),

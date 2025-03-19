@@ -41,5 +41,6 @@ int proc__output(char* buf, int len, Error *err);
 void proc__start(int pid, Error *err);
 int proc__get_lua_code(char *buf, int len, Error *err);
 void proc__exit(int exit_code, Error *err);
+void proc__args(int *argc, char **argv, Error *err);
 
 #endif
