@@ -301,6 +301,9 @@ void statr_as_l(lua_State *L, StatResult *sr) {
   lua_pushnumber(L, sr->ino);
   lua_setfield(L, -2, "ino");
 
+  lua_pushnumber(L, sr->type);
+  lua_setfield(L, -2, "type");
+
   int usr = (sr->perm & 0700) >> 6;
   bool read = (usr & 4) != 0;
   bool write = (usr & 2) != 0;
@@ -343,7 +346,8 @@ void statr_as_l(lua_State *L, StatResult *sr) {
  *   blocksize: number,
  *   ino: number,
  *   perm: number, -- permissions (Only user: 01 Read, 001 Write, 0001 Execute) 20
- * 
+ *
+ *   type: number, -- compare to FILE and DIRECTORY constants
  *   atime: {
  *     sec: number,
  *     nsec: number,
@@ -385,6 +389,7 @@ int lfile__stat(lua_State *L) {
  *   ino: number,
  *   perm: number, -- permissions (Only user: 01 Read, 001 Write, 0001 Execute) 20
  * 
+ *   type: number, -- compare to FILE and DIRECTORY constants
  *   atime: {
  *     sec: number,
  *     nsec: number,
