@@ -21,8 +21,7 @@ reconfigure-processes:
 reconfigure-runtime: processes filesystem
   meson setup --cross-file ../emscripten.ini ../../build/runtime --wrap-mode=forcefallback
 
-# Native compilation is used for running tests, just so we don't need to run
-# them in a wasm + browser context
+# Native compilation is used for running tests, just so we don't need to run them in a wasm + browser context
 [working-directory('src/filesystem')]
 reconfigure-filesystem-native:
   meson setup ../../build-native/filesystem

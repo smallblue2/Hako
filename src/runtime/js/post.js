@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
  * This file intercepts Emscripten's process system and registers it to our own.
  */
@@ -201,4 +202,10 @@ if (ENVIRONMENT_IS_PTHREAD) {
   interceptThreadCreation();
 } else {
   interceptMainThread();
+const syncfsOld = IDBFS.syncfs;
+const inotifyChannel = new BroadcastChannel("inotify");
+
+IDBFS.syncfs = (mount, populate, callback) => {
+  inotifyChannel.postMessage({});
+  return syncfsOld(mount, populate, callback);
 }
