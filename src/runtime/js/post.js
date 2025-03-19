@@ -201,12 +201,10 @@ if (ENVIRONMENT_IS_PTHREAD) {
   interceptThreadCreation();
 } else {
   interceptMainThread();
-=======
 const syncfsOld = IDBFS.syncfs;
 const inotifyChannel = new BroadcastChannel("inotify");
 
 IDBFS.syncfs = (mount, populate, callback) => {
   inotifyChannel.postMessage({});
   return syncfsOld(mount, populate, callback);
->>>>>>> b5b5713 (HO-54 inotify working)
 }
