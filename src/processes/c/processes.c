@@ -220,6 +220,38 @@ EM_JS(void, proc__exit, (int exit_code, Error *err), {
   setValue(err, 0, 'i32');
 });
 
+// WARNING: NEED TO CLEAR ARGV IN C
+// void proc__args(int *argc, char **argv, Error *err);
+EM_JS(void, proc__args, (int *argc, char **argv, Error *err), {
+  const jsArgs = self.proc.args;
+
+  // Set argc
+  const length = jsArgs.length;
+  setValue(argc, length, 'i32');
+
+
+  // Set argv
+  let argvPointer = _malloc((length + 1) * 4); // Emscripten is 32-bit (4 bit pointer)
+  for (let i = 0; i < length; i++) {
+    const jsString = jsArgs[i].toString();
+    const strByteLen = lengthBytesUTF8(jsString) + 1; // null terminator
+    const strPtr = _malloc(strByteLen);
+
+    stringToUTF8(jsString, strPtr, strByteLen);
+
+    setValue(argvPointer + i * 4, strPtr, 'i32');
+  }
+
+  // null terminate argv array
+  setValue(argvPointer + length * 4, 0, 'i32');
+
+  // set argv
+  setValue(argv, argvPointer, 'i32');
+
+  // Set Error to 0
+  setValue(err, 0, 'i32');
+});
+
 void test(void) {
   Error err;
 

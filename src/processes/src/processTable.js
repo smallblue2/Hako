@@ -76,6 +76,7 @@ export default class ProcessTable {
     const signal = new Signal();
 
     const process = {
+      args: processData.args,
       stdin: stdinPipe,
       stdout: stdoutPipe,
       stderr: stderrPipe,
@@ -121,6 +122,7 @@ export default class ProcessTable {
 
     registeredProcess.startMsg = {
         cmd: "custom-init",
+        args: registeredProcess.args,
         start: registeredProcess.start,
         pid: pid,
         emscriptenBuffer: registeredProcess.emscriptenBuffer,
