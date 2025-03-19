@@ -27,12 +27,12 @@ int proc__input_line(char **buf,Error *err); // WARNING: MUST FREE OUTPARAM `BUF
 void proc__close_input(Error *err);
 
 // Output
-int proc__output_pipe(char *buf, int len, Error *err);
-int proc__output(char *buf, int len, Error *err);
+void proc__output_pipe(const char *buf, int len, Error *err);
+void proc__output(const char *buf, int len, Error *err);
 void proc__close_output(Error *err);
 
 // Error
-int proc__error_pipe(char *buf, int len, Error *err);
+void proc__error_pipe(const char *buf, int len, Error *err);
 void proc__close_error(Error *err);
 
 // Pipes
@@ -41,13 +41,14 @@ bool proc__is_stdout_pipe(Error *err);
 bool proc__is_stdin_pipe(Error *err);
 
 // Processes
-int proc__create(char *buf, int len, bool pipe_stdin, bool pipe_stdout, Error *err);
+int proc__create(const char *buf, int len, bool pipe_stdin, bool pipe_stdout, Error *err);
 int proc__wait(int pid, Error *err);
 void proc__kill(int pid, Error *err);
-Process* proc__list(Error *err); // WARNING: PROCESS* RETURN VALUE MUST BE FREED
+Process* proc__list(int *length, Error *err); // WARNING: PROCESS* RETURN VALUE MUST BE FREED
 int proc__get_pid(Error *err);
 void proc__start(int pid, Error *err);
 void proc__exit(int exit_code, Error *err);
-void proc__args(int *argc, char **argv, Error *err); // WARNING: MUST FREE OUTPARAM `ARGV`
+void proc__args(int *argc, char ***argv, Error *err); // WARNING: MUST FREE OUTPARAM `ARGV`
+char *proc__get_lua_code(Error *err);
 
 #endif

@@ -73,14 +73,14 @@ EM_JS(int, proc__input_line_pipe, (char **buf, Error *err), {
 })
 
 // proc__output_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__output_pipe, (char *buf, int len, Error *err), {
+EM_JS(void, proc__output_pipe, (const char *buf, int len, Error *err), {
   var s = UTF8ToString(buf, len);
   self.proc.output(s);
   setValue(err, 0, 'i32');
 })
 
 // proc__error_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__error_pipe, (const char *buf, int len, Error *err), {
+EM_JS(void, proc__error_pipe, (const char *buf, int len, Error *err), {
   var s = UTF8ToString(buf, len);
   self.proc.error(s);
   setValue(err, 0, 'i32');
@@ -112,7 +112,7 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
   setValue(err, errorCode, 'i32');
 })
 
-// proc__list(Error *err)
+// proc__list(int *length, Error *err)
 EM_JS(Process*, proc__list, (int *length, Error *err), {
   try {
     let procJSON = self.proc.list();
@@ -318,7 +318,7 @@ int proc__input_line(char **buf, Error *err) {
   return (int)length;
 }
 
-int proc__output(char *buf, int len, Error *err) {
+void proc__output(const char *buf, int len, Error *err) {
   if (proc__is_stdout_pipe(err)) {
     if (*err != 0) {
       return;
