@@ -123,7 +123,7 @@ EM_JS(Process *, proc__list, (Error * err), {
     // WARNING: NEEDS TO BE FREED IN C
     let memPointer = _malloc(heapAllocationSize);
     let offsetCounter = 0;
-    procJSON.forEach((item, index) = > {
+    procJSON.forEach((item, index) => {
       setValue(offsetCounter + memPointer, item.pid, 'i32');
       setValue(offsetCounter + memPointer + 4, item.alive, 'i32');
       setValue(offsetCounter + memPointer + 8,
