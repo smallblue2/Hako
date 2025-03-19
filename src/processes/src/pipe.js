@@ -1,4 +1,7 @@
 export default class Pipe {
+  #EOF = 0xFF; // EOF is 255 as we're bound to 8 bits - hopefully OK with ascii/utf8
+  #closed = false;
+
   /**
    * Create a Pipe that uses a SharedArrayBuffer.
    * @param {number} size The capacity of the data region.
@@ -25,7 +28,40 @@ export default class Pipe {
     return this.buffer;
   }
 
+  #writeEOF() {
+    if (this.#closed) return -1;
+    while (true) {
+      const wr = Atomics.load(this.control, 1);
+      const rd = Atomics.load(this.control, 0);
+      if (((wr + 1) % this.data.length) === rd) {
+        Atomics.wait(this.control, 0, rd);
+        continue;
+      }
+      this.data[wr] = this.#EOF;
+      const newWr = (wr + 1) % this.data.length;
+      Atomics.store(this.control, 1, newWr);
+      Atomics.notify(this.control, 1, 1);
+      break;
+    }
+    return 0;
+  }
+
+  close() {
+    this.#writeEOF();
+    this.#closed = true;
+  }
+
+  isClosed() {
+    return this.#closed;
+  }
+
+  /**
+   * Writes data to buffer.
+   * Returns -1 if closed, 0 otherwise
+   */
   write(data) {
+    if (this.#closed) return -1;
+
     const encoded = this.encoder.encode(data);
     for (let i = 0; i < encoded.length; i++) {
       while (true) {
@@ -46,50 +82,108 @@ export default class Pipe {
         break;
       }
     }
+    return 0;
   }
 
-  read(amt) {
+  /**
+  * Blocks until it has read `exactBytes` of data
+  */
+  readExact(exactBytes) {
     const result = [];
-    for (let i = 0; i < amt; i++) {
-      while (true) {
-        const rd = Atomics.load(this.control, 0);
-        const wr = Atomics.load(this.control, 1);
-        // Buffer is empty if the read pointer equals the write pointer
-        if (rd === wr) {
-          // Buffer empty; wait on the write pointer
-          Atomics.wait(this.control, 1, wr);
-          continue;
-        }
-        result.push(this.data[rd]);
-        const newRd = (rd + 1) % this.data.length;
-        Atomics.store(this.control, 0, newRd);
-        // Notify the writer that space is available.
-        Atomics.notify(this.control, 0, 1);
-        break;
-      }
-    }
-    return this.decoder.decode(new Uint8Array(result));
-  }
 
-  // Non-blocking readAll. If empty, instantly returns.
-  readAll() {
-    const result = []
-    while (true) {
+    // Read up to maxBytes
+    for (let i = 0; i < exactBytes;) {
       const rd = Atomics.load(this.control, 0);
       const wr = Atomics.load(this.control, 1);
+      // 
+      // If buffer is full, wait
+      if (rd === wr) {
+        Atomics.wait(this.control, 1, wr);
+        continue;
+      }
 
-      // If buffer is empty, break
-      if (rd === wr) break;
+      // If buffer is empty or EOF stop
+      if (this.data[rd] === this.#EOF) break;
 
+      // Otherwise read one byte
       result.push(this.data[rd]);
-      const newRd = (rd + 1) % this.data.length;
+      i++;
+
+      // Advance read pointer
+      let newRd = (rd + 1) % this.data.length;
       Atomics.store(this.control, 0, newRd);
       Atomics.notify(this.control, 0, 1);
     }
     return this.decoder.decode(new Uint8Array(result));
   }
 
-  // Blocking, will read until `\n`
+  /**
+  * Blocks until at least 1 byte is available, and then
+  * tries to read up to `max_bytes` or EOF
+  */
+  read(maxBytes) {
+    const result = [];
+
+    // Block until we have at least 1 byte or EOF
+    while (true) {
+      const rd = Atomics.load(this.control, 0);
+      const wr = Atomics.load(this.control, 1);
+
+      if (rd !== wr) {
+        // There's atleast 1 byte
+        break;
+      }
+
+      // Wait until there's something to read
+      Atomics.wait(this.control, 1, wr);
+    }
+
+    // Read up to maxBytes
+    for (let i = 0; i < maxBytes; i++) {
+      const rd = Atomics.load(this.control, 0);
+      const wr = Atomics.load(this.control, 1);
+
+      // If buffer is empty or EOF stop
+      if (this.data[rd] === this.#EOF || rd === wr) break;
+
+      // Otherwise read one byte
+      result.push(this.data[rd]);
+
+      // Advance read pointer
+      let newRd = (rd + 1) % this.data.length;
+      Atomics.store(this.control, 0, newRd);
+      Atomics.notify(this.control, 0, 1);
+    }
+    return this.decoder.decode(new Uint8Array(result));
+  }
+
+  /**
+  * Reads until EOF
+  */
+  readAll() {
+    const result = []
+    while (true) {
+      const rd = Atomics.load(this.control, 0);
+      const wr = Atomics.load(this.control, 1);
+
+      // If buffer is full, wait
+      if (rd === wr) {
+        Atomics.wait(this.control, 1, wr);
+        continue;
+      }
+
+      // Only break on EOF
+      if (this.data[rd] == this.#EOF) return this.decoder.decode(new Uint8Array(result));
+      result.push(this.data[rd]);
+      const newRd = (rd + 1) % this.data.length;
+      Atomics.store(this.control, 0, newRd);
+      Atomics.notify(this.control, 0, 1);
+    }
+  }
+
+  /**
+  * Reads until '\n' or EOF
+  */
   readLine() {
     const result = []
     while (true) {
@@ -103,12 +197,19 @@ export default class Pipe {
         continue;
       }
 
+      const byte = this.data[rd];
+
+      // Return on EOF without consuming 
+      if (byte == this.#EOF) return this.decoder.decode(new Uint8Array(result));
+
+      // Consume
       result.push(this.data[rd]);
       const newRd = (rd + 1) % this.data.length;
       Atomics.store(this.control, 0, newRd);
       Atomics.notify(this.control, 0, 1);
 
-      if (this.data[rd] == 10) { // `\n` = 10 in ASCII
+      // If byte was '\n' (10 in ASCII), break
+      if (byte === 10) {
         break;
       }
     }

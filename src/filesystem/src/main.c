@@ -93,8 +93,6 @@ void file__initialiseFS() {
   printf("[C] Starting up persistent filesystem at '%s'...\n",
          PERSISTENT_ROOT_NAME);
 
-  file__pullFromPersist();
-
 #ifdef __EMSCRIPTEN__
   MAIN_THREAD_EM_ASM(
       {
@@ -126,7 +124,7 @@ void file__initialiseFS() {
             }
         });
 
-        console.log("Moving system files in...");
+        console.log("Moving fresh system files in...");
 
         // Initialise system files
         let systemFilePath = "/persistent/sys";
@@ -135,8 +133,6 @@ void file__initialiseFS() {
         //          able modify regardless due to the PROTECTED_BIT being
         //          raised signifying it's a system file (0o010)
         FS.mkdir(systemFilePath, 0o710);
-
-        console.log(FS.readdir(`${systemFilePath}/..`));
 
         // Move lua files into correct place in IDBFS
         for (const luaFile of FS.readdir("/luaSource")) {

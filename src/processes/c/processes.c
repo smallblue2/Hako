@@ -1,37 +1,76 @@
-#include <errno.h>
 #include <emscripten.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <unistd.h>
 
 #include "processes.h"
 
+// void proc__close_input(Error *err);
+EM_JS(void, proc__close_input, (Error *err), {
+  self.proc.stdin.close();
+  setValue(err, 0, 'i32');
+})
 
-// // proc__input_pipe(char* buf, int len, Error *err)
-// EM_JS(int, proc__input_pipe, (char *buf, int len, Error *err), {
-//   let s = self.proc.input(len);
-//   stringToUTF8(s, buf, len);
-//   setValue(err, 0, 'i32');
-//   return s.length;
-// })
-//
-// // proc__input_all_pipe(char* buf, int len, Error *err)
-// EM_JS(char *, proc__input_all_pipe, (Error *err), {
-//   var s = self.proc.inputAll();
-//   setValue(err, 0, 'i32');
-//   return stringToNewUTF8(s)
-// })
-//
-// // proc__input_line_pipe(char* buf, int len, Error *err)
-// EM_JS(int, proc__input_line_pipe, (char *buf, int len, Error *err), {
-//   var s = self.proc.inputLine();
-//   stringToUTF8(s, buf, len);
-//   setValue(err, 0, 'i32');
-//   return s.length;
-// })
+// void proc__close_output(Error *err);
+EM_JS(void, proc__close_output, (Error *err), {
+  self.proc.stdout.close();
+  setValue(err, 0, 'i32');
+})
+
+// void proc__close_error(Error *err);
+EM_JS(void, proc__close_error, (Error *err), {
+  self.proc.stderr.close();
+  setValue(err, 0, 'i32');
+})
+
+// int proc__input_pipe(char* buf, int max_bytes, Error *err);
+EM_JS(int, proc__input_pipe, (char *buf, int max_bytes, Error *err), {
+  let s = self.proc.input(max_bytes - 1); // -1 for null terminator
+  stringToUTF8(s, buf, max_bytes);
+  setValue(err, 0, 'i32');
+  return s.length + 1; // +1 for null terminator
+})
+
+// int proc__input_exact_pipe(char *buf, int exact_byes, Error *err);
+EM_JS(int, proc__input_exact_pipe, (char *buf, int exact_bytes, Error *err), {
+  let s = self.proc.inputExact(exact_bytes - 1); // -1 for null terminator
+  stringToUTF8(s, buf, exact_bytes);
+  setValue(err, 0, 'i32');
+  return s.length + 1; // +1 for null terminator
+})
+
+// WARNING: BUF MUST BE FREED
+// int proc__input_all_pipe(char* buf, Error *err)
+EM_JS(int, proc__input_all_pipe, (char **buf, Error *err), {
+  var s = self.proc.inputAll();
+  const strByteLen = lengthBytesUTF8(s) + 1; // null terminator
+  const strPtr = _malloc(strByteLen);
+
+  stringToUTF8(s, strPtr, strByteLen);
+  setValue(buf, strPtr, '*');
+
+  setValue(err, 0, 'i32');
+  return strByteLen;
+})
+
+// WARNING: BUF MUST BE FREED
+// proc__input_line_pipe(char* buf, Error *err)
+EM_JS(int, proc__input_line_pipe, (char **buf, Error *err), {
+  var s = self.proc.inputLine();
+  const strByteLen = lengthBytesUTF8(s) + 1; // null terminator
+  const strPtr = _malloc(strByteLen);
+
+  stringToUTF8(s, strPtr, strByteLen);
+  setValue(buf, strPtr, '*');
+
+  setValue(err, 0, 'i32');
+  return strByteLen;
+})
 
 // proc__output_pipe(char* buf, int len, Error *err)
 EM_JS(void, proc__output_pipe, (const char *buf, int len, Error *err), {
@@ -41,7 +80,7 @@ EM_JS(void, proc__output_pipe, (const char *buf, int len, Error *err), {
 })
 
 // proc__error_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__error_pipe, (const char *buf, int len, Error *err), {
+EM_JS(void, proc__error_pipe, (const char *buf, int len, Error *err), {
   var s = UTF8ToString(buf, len);
   self.proc.error(s);
   setValue(err, 0, 'i32');
@@ -73,7 +112,7 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
   setValue(err, errorCode, 'i32');
 })
 
-// proc__list(Error *err)
+// proc__list(int *length, Error *err)
 EM_JS(Process*, proc__list, (int *length, Error *err), {
   try {
     let procJSON = self.proc.list();
@@ -98,7 +137,7 @@ EM_JS(Process*, proc__list, (int *length, Error *err), {
 })
 
 // proc__get_pid(Error *err)
-EM_JS(int, proc__get_pid, (Error *err), {
+EM_JS(int, proc__get_pid, (Error * err), {
   setValue(err, 0, 'i32');
   return self.proc.pid;
 })
@@ -110,77 +149,174 @@ EM_JS(void, proc__pipe, (int out_pid, int in_pid, Error *err), {
 })
 
 // proc__is_stdin_pipe(Error *err)
-EM_JS(bool, proc__is_stdin_pipe, (Error *err), {
+EM_JS(bool, proc__is_stdin_pipe, (Error * err), {
   setValue(err, 0, 'i32');
   return self.proc.isPipeable(self.proc.StreamDescriptor.STDIN);
 })
 
 // proc__is_stdout_pipe(Error *err)
-EM_JS(bool, proc__is_stdout_pipe, (Error* err), {
+EM_JS(bool, proc__is_stdout_pipe, (Error * err), {
   setValue(err, 0, 'i32');
   return self.proc.isPipeable(self.proc.StreamDescriptor.STDOUT);
 })
 
-// int proc__input(char *buf, int len, Error *err) {
-//   if (proc__is_stdin_pipe(err)) {
-//     if (*err < 0) {
-//       printf("FAIL\n");
-//       return -1;
-//     }
-//     return proc__input_pipe(buf, len, err);
-//   }
-//   int bytesRead = fread(buf, 1, len - 1, stdin);
-//   // TODO: Maybe perform length checks here for edge case where len > buf size
-//   buf[bytesRead] = '\0';
-//   return bytesRead;
-// }
-//
-// char *proc__input_all(Error *err) {
-//   if (proc__is_stdin_pipe(err)) {
-//     if (*err != 0) {
-//       printf("FAIL\n");
-//       return -1;
-//     }
-//     return proc__input_all_pipe(buf, len, err);
-//   }
-//   int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-//   fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
-//
-//   // Attempt to read up to BUFFER_SIZE bytes
-//   int bytesRead = read(STDIN_FILENO, buf, len - 1);
-//   if (bytesRead > 0) {
-//     buf[bytesRead] = '\0';
-//   } else if (bytesRead == -1 && errno == EAGAIN) {
-//     // Nothing in stdin
-//     buf[0] = '\0';
-//   } else {
-//     // Read failed
-//     *err = -12; // Stdin is empty (processes.js/js/common.js)
-//     return -1;
-//   }
-//
-//   *err = 0;
-//   return bytesRead;
-// }
-//
-// int proc__input_line(char *buf, int len, Error *err) {
-//   if (proc__is_stdin_pipe(err)) {
-//     if (*err != 0) {
-//       printf("FAIL\n");
-//       return -1;
-//     }
-//     return proc__input_line_pipe(buf, len, err);
-//   }
-//
-//   if (fgets(buf, len, stdin) == NULL) {
-//     // line read failed
-//     *err = -14; // Failed to read stdin (processes.js/js/common.js)
-//     return -1;
-//   }
-//
-//   *err = 0;
-//   return strlen(buf);
-// }
+int proc__input(char *buf, int max_bytes, Error *err) {
+  if (proc__is_stdin_pipe(err)) {
+    if (*err < 0) {
+      printf("FAIL\n");
+      return -1;
+    }
+    return proc__input_pipe(buf, max_bytes, err);
+  }
+  size_t bytesRead = fread(buf, 1, max_bytes - 1, stdin);
+  if (ferror(stdin)) {
+    *err = -9; // TODO: What error to report here?
+    return -1;
+  }
+
+  buf[bytesRead] = '\0';
+  *err = 0;
+  return (int)bytesRead;
+}
+
+int proc__input_exact(char *buf, int exact_bytes, Error *err) {
+  if (proc__is_stdin_pipe(err)) {
+    if (*err < 0) {
+      printf("FAIL\n");
+      return -1;
+    }
+    return proc__input_exact_pipe(buf, exact_bytes, err);
+  }
+
+  // Block until `exact_bytes` have been read
+  size_t totalBytesRead = 0;
+  size_t bytesLeft = (size_t)exact_bytes;
+
+  while (bytesLeft > 0) {
+    // Try to read what's left in one chunk
+    size_t n = fread(buf + totalBytesRead, 1, bytesLeft, stdin);
+
+    // Check for any errors
+    if (ferror(stdin)) {
+      *err = -9; // TODO: Decide on what error to state
+      return -1;
+    }
+
+    // If 0 bytes were read, but not an error, it's EOF
+    if (n == 0) {
+      // Possibly partial read
+      if (feof(stdin)) {
+        *err = -19; // EOF (processes/js/common.js)
+        return -1;
+      }
+    }
+
+    totalBytesRead += n;
+    bytesLeft -= n;
+  }
+
+  // We have read exactly `exact_bytes`!
+  *err = 0;
+
+  return (int)totalBytesRead;
+}
+
+// WARNING: MUST FREE BUF
+int proc__input_all(char **buf, Error *err) {
+  if (proc__is_stdin_pipe(err)) {
+    if (*err != 0) {
+      printf("FAIL\n");
+      return -1;
+    }
+    return proc__input_all_pipe(buf, err);
+  }
+
+  // Initial size
+  size_t capacity = 1024;
+  size_t length = 0;
+  char *buffer = malloc(capacity);
+  if (!buffer) {
+    *err = -18; // Failed to assign memory (processes/js/common.js)
+    return -1;
+  }
+
+  int c;
+  while ((c = getchar()) != EOF) {
+    // If we need to expand buffer
+    if (length + 1 >= capacity) {
+      // double it
+      capacity *= 2;
+      char *temp = realloc(buffer, capacity);
+      if (!temp) {
+        free(buffer);
+        *err = -18; // Failed to assign memory (processes/js/common.js)
+        return -1;
+      }
+      buffer = temp;
+    }
+    buffer[length++] = (char)c;
+  }
+
+  // Null terminate
+  buffer[length] = '\0';
+
+  *buf = buffer;
+
+  *err = 0;
+
+  return (int)length;
+}
+
+int proc__input_line(char **buf, Error *err) {
+  if (proc__is_stdin_pipe(err)) {
+    if (*err != 0) {
+      printf("FAIL\n");
+      return -1;
+    }
+    return proc__input_line_pipe(buf, err);
+  }
+
+  // Initial size
+  size_t capacity = 1024;
+  size_t length = 0;
+  char *buffer = malloc(capacity);
+  if (!buffer) {
+    *err = -18; // Failed to assign memory (processes/js/common.js)
+    return -1;
+  }
+
+  int c;
+  while ((c = getchar()) != '\n' && c != EOF) {
+    // If we need to expand buffer
+    if (length + 1 >= capacity) {
+      // double it
+      capacity *= 2;
+      char *temp = realloc(buffer, capacity);
+      if (!temp) {
+        free(buffer);
+        *err = -18; // Failed to assign memory (processes/js/common.js)
+        return -1;
+      }
+      buffer = temp;
+    }
+    buffer[length++] = (char)c;
+  }
+
+  // If we got EOF immediately (nothing read)
+  if (length == 0 && c == EOF) {
+    free(buffer);
+    *err = -19; // EOF, nothing read (processes/js/common.js)
+    return -1;
+  }
+
+  // Null terminate
+  buffer[length] = '\0';
+
+  *buf = buffer;
+  *err = 0;
+
+  return (int)length;
+}
 
 void proc__output(const char *buf, int len, Error *err) {
   if (proc__is_stdout_pipe(err)) {
@@ -230,9 +366,9 @@ EM_JS(void, proc__args, (int *argc, char ***argv, Error *err), {
   const length = jsArgs.length;
   setValue(argc, length, 'i32');
 
-
   // Set argv
-  let argvPointer = _malloc((length + 1) * 4); // Emscripten is 32-bit (4 bit pointer)
+  let argvPointer =
+      _malloc((length + 1) * 4); // Emscripten is 32-bit (4 bit pointer)
   for (let i = 0; i < length; i++) {
     const strPtr = stringToNewUTF8(jsArgs[i].toString());
     setValue(argvPointer + i * 4, strPtr, '*');
