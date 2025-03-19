@@ -6,7 +6,7 @@
 typedef int Error;
 #endif
 
-typedef enum : int { READY, RUNNING, SLEEPING, TERMINATING, STARTING } ProcessState;
+typedef enum { READY, RUNNING, SLEEPING, TERMINATING, STARTING } ProcessState;
 
 typedef struct __attribute__((packed)) {
   int pid;             // 0
