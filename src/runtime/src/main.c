@@ -30,11 +30,16 @@ void export_custom_apis(lua_State *L) {
     it++;
   }
 
-  // Set stdin and stdout globals
+  // Set number globals
   lua_pushnumber(L, STDIN_FILENO);
   lua_setglobal(L, "STDIN");
   lua_pushnumber(L, STDOUT_FILENO);
   lua_setglobal(L, "STDOUT");
+
+  lua_pushnumber(L, 0);
+  lua_setglobal(L, "FILE");
+  lua_pushnumber(L, 1);
+  lua_setglobal(L, "DIRECTORY");
 
   lua_settop(L, top); // restore stack
 }
@@ -72,8 +77,32 @@ void set_argv(lua_State *L) {
   free(argv);
 }
 
+void setup_fs(void) {
+#ifdef __EMSCRIPTEN__
+  MAIN_THREAD_EM_ASM({
+    FS.mkdir("/persistent");
+    try {
+      FS.mount(PROXYFS, { root: "/persistent", fs: window._FSM.FS }, "/persistent");
+    } catch (err) {
+      console.error("[JS] Failed to mount proxy filesystem:", err);
+    }
+
+    FS.syncfs(
+        true, function(err) {
+          if (err) {
+            console.error("[JS] Error during sync:", err);
+          } else {
+            console.log("[JS] Sync completed succesfully!");
+          }
+        });
+  });
+#endif
+}
+
 int main(void) {
   lua_State *L = luaL_newstate();
+
+  setup_fs();
 
   // We want to have control over what builtin
   // lua functions we expose, so we very clearly
