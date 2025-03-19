@@ -1,5 +1,44 @@
 import { mount, unmount } from "svelte";
 
+import PlaceHolderIcon from "/src/placeholder.svg?raw";
+import TerminalIcon from "/src/terminal.svg?raw";
+import TextEditorIcon from "/src/text-editor.svg?raw";
+import Terminal from "../components/Terminal.svelte";
+import Editor from "../components/Editor.svelte";
+
+// Window types
+export const TERMINAL = 0;
+export const EDITOR = 1;
+export const OTHER = 2;
+
+export const applications = $state([
+  {
+    icon: TerminalIcon,
+    name: "Terminal",
+    instances: 0,
+    alwaysShow: true,
+    create: () => {
+      openWindow(TERMINAL, Terminal, { props: { wasmModule: "/runtime.js?url" }});
+    },
+  },
+  {
+    icon: TextEditorIcon,
+    name: "Text Editor",
+    instances: 0,
+    alwaysShow: true,
+    create: () => {
+      openWindow(EDITOR, Editor);
+    },
+  },
+  {
+    icon: PlaceHolderIcon,
+    name: "Application",
+    instances: 0,
+    alwaysShow: false,
+    create: null
+  }
+]);
+
 let _topLayer = 2; // initially 1 as we want windows at higher z than default html elements
 
 /** @type {number[]} */
@@ -20,10 +59,22 @@ export function setRootSfc(el) {
   rootSfc = el;
 }
 
-export function openWindow(component, options) {
+export function openWindow(type, component, options) {
   console.assert(rootSfc !== null);
   if (options === undefined || options === null) {
     options = { props: {} };
+  }
+
+  switch (type) {
+    case TERMINAL:
+      applications[TERMINAL].instances += 1;
+      break;
+    case EDITOR:
+      applications[EDITOR].instances += 1;
+      break;
+    default:
+      applications[OTHER].instances += 1;
+      break;
   }
 
   options.target = rootSfc;
@@ -37,12 +88,13 @@ export function openWindow(component, options) {
 
   // Object.freeze is used here to prevent some odd behaviour
   // with svelte mangling the component, making it unmountable
-  _windows.push(Object.freeze({ id: id, component: mount(component, options)}));
+  _windows.push(Object.freeze({ id: id, type: type, state: { show: true }, component: mount(component, options)}));
 }
 
 export function closeWindow(id) {
   for (let i = 0; i < _windows.length; i++) {
     if (_windows[i].id == id) {
+      applications[_windows[i].type].instances -= 1;
       unmount(_windows[i].component, { outro: false });
       _windows.splice(i, 1);
       return;
@@ -56,6 +108,18 @@ export function getWindowByID(id) {
       return _windows[i];
     }
   }
+}
+
+export function hideWindow(id) {
+  getWindowByID(id).state.show = false;
+  const el = document.getElementById(`window-${id}`);
+  el.style.display = "none";
+}
+
+export function showWindow(id) {
+  getWindowByID(id).state.show = true;
+  const el = document.getElementById(`window-${id}`);
+  el.style.display = "";
 }
 
 export function focusWindow(id) {
