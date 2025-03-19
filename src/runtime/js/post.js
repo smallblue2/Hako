@@ -30,9 +30,9 @@ async function initWorkerForProcess(data) {
     luaCode: data.luaCode,
     signal: new Signal(data.signal),
     // DOESNT RETURN AN ERRORCODE
-    input: (amt) => {
+    input: (maxBytes) => {
       changeState(ProcessStates.SLEEPING);
-      let s = self.proc.stdin.read(amt);
+      let s = self.proc.stdin.read(maxBytes);
       changeState(ProcessStates.RUNNING);
       return s;
     },
@@ -47,6 +47,13 @@ async function initWorkerForProcess(data) {
     inputAll: () => {
       changeState(ProcessStates.SLEEPING);
       let s = self.proc.stdin.readAll();
+      changeState(ProcessStates.RUNNING);
+      return s;
+    },
+    // DOESNT RETURN AN ERRORCODE
+    inputExact: (exactBytes) => {
+      changeState(ProcessStates.SLEEPING);
+      let s = self.proc.stdin.readExact(exactBytes);
       changeState(ProcessStates.RUNNING);
       return s;
     },

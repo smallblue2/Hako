@@ -48,7 +48,9 @@ export class CustomError extends Error {
     STDIN_FAIL_READ: -14,
     PIPE_STARTED_PROC: -15,
     LUA_FILE_NO_EXIST: -16,
-    INVALID_PROC_AGS: -17
+    INVALID_PROC_AGS: -17,
+    FAILED_MEM: -18,
+    EOF: -19
  });
 
   static #codeToMessageMap = Object.freeze({
@@ -68,7 +70,9 @@ export class CustomError extends Error {
     "-14": "Failed to read stdin",
     "-15": "Tried to pipe input into process that has already started",
     "-16": "Lua file doesn't exist",
-    "-17": "Invalid arguments passed to process"
+    "-17": "Invalid arguments passed to process",
+    "-18": "Failed to assign memory",
+    "-19": "Reached EOF"
   });
 
   constructor(code) {
