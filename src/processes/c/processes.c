@@ -10,6 +10,24 @@
 
 #include "processes.h"
 
+// void proc__close_input(Error *err);
+EM_JS(void, proc__close_input, (Error *err), {
+  self.proc.stdin.close();
+  setValue(err, 0, 'i32');
+})
+
+// void proc__close_output(Error *err);
+EM_JS(void, proc__close_output, (Error *err), {
+  self.proc.stdout.close();
+  setValue(err, 0, 'i32');
+})
+
+// void proc__close_error(Error *err);
+EM_JS(void, proc__close_error, (Error *err), {
+  self.proc.stderr.close();
+  setValue(err, 0, 'i32');
+})
+
 // int proc__input_pipe(char* buf, int max_bytes, Error *err);
 EM_JS(int, proc__input_pipe, (char *buf, int max_bytes, Error *err), {
   let s = self.proc.input(max_bytes - 1); // -1 for null terminator
