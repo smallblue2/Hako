@@ -77,11 +77,10 @@ EM_JS(int, proc__output_pipe, (char *buf, int len, Error *err), {
   var s = UTF8ToString(buf, len);
   self.proc.output(s);
   setValue(err, 0, 'i32');
-  return s.length;
 })
 
 // proc__error_pipe(char* buf, int len, Error *err)
-EM_JS(int, proc__error_pipe, (char *buf, int len, Error *err), {
+EM_JS(int, proc__error_pipe, (const char *buf, int len, Error *err), {
   var s = UTF8ToString(buf, len);
   self.proc.error(s);
   setValue(err, 0, 'i32');
@@ -96,17 +95,16 @@ EM_JS(int, proc__wait, (int pid, Error *err), {
 })
 
 // proc__create(char *buf, int len, int pipe_stdin, int pipe_stdout, Error *err)
-EM_JS(int, proc__create,
-      (char *buf, int len, bool pipe_stdin, bool pipe_stdout, Error *err), {
-        var luaPath = UTF8ToString(buf, len);
-        var createdPID = self.proc.create(luaPath, pipe_stdin, pipe_stdout);
-        if (createdPID < 0) {
-          setValue(err, createdPID, 'i32');
-          return -1;
-        }
-        setValue(err, 0, 'i32');
-        return createdPID;
-      })
+EM_JS(int, proc__create, (const char *buf, int len, bool pipe_stdin, bool pipe_stdout, Error *err), {
+  var luaPath = UTF8ToString(buf, len);
+  var createdPID = self.proc.create(luaPath, pipe_stdin, pipe_stdout);
+  if (createdPID < 0) {
+    setValue(err, createdPID, 'i32');
+    return -1;
+  }
+  setValue(err, 0, 'i32');
+  return createdPID;
+})
 
 // proc__kill(int pid)
 EM_JS(void, proc__kill, (int pid, Error *err), {
@@ -115,28 +113,25 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
 })
 
 // proc__list(Error *err)
-EM_JS(Process *, proc__list, (Error * err), {
+EM_JS(Process*, proc__list, (int *length, Error *err), {
   try {
     let procJSON = self.proc.list();
-    let heapAllocationSize =
-        procJSON.length * 20; // C 'Process' struct is 20 bytes long
+    let heapAllocationSize = procJSON.length * 16; // C 'Process' struct is 16 bytes long
     // WARNING: NEEDS TO BE FREED IN C
     let memPointer = _malloc(heapAllocationSize);
-    let offsetCounter = 0;
     procJSON.forEach((item, index) => {
-      setValue(offsetCounter + memPointer, item.pid, 'i32');
-      setValue(offsetCounter + memPointer + 4, item.alive, 'i32');
-      setValue(offsetCounter + memPointer + 8,
-               Number(BigInt(item.created) & 0xFFFFFFFFn), 'i32');
-      setValue(offsetCounter + memPointer + 12,
-               Number((BigInt(item.created) >> 32n) & 0xFFFFFFFFn), 'i32');
-      setValue(offsetCounter + memPointer + 16, item.state, 'i32');
-      offsetCounter = index * 20;
+      const off = index * 16;
+      setValue(memPointer + off, item.pid, 'i32');
+      setValue(memPointer + off + 4, item.alive, 'i32');
+      setValue(memPointer + off + 8, item.created, 'i32');
+      setValue(memPointer + off + 12, item.state, 'i32');
     });
     setValue(err, 0, 'i32');
+    setValue(length, procJSON.length, 'i32');
     return memPointer;
   } catch (e) {
     setValue(err, -1, 'i32');
+    setValue(length, 0, 'i32');
     return -1;
   }
 })
@@ -326,19 +321,19 @@ int proc__input_line(char **buf, Error *err) {
 int proc__output(char *buf, int len, Error *err) {
   if (proc__is_stdout_pipe(err)) {
     if (*err != 0) {
-      return -1;
+      return;
     }
-    return proc__output_pipe(buf, len, err);
+    proc__output_pipe(buf, len, err);
+    return;
   }
 
   int num_written = fwrite(buf, 1, len, stdout);
   if (num_written < len) {
     *err = -13; // Failed to write to stdout (processes.js/js/common.js)
-    return -1;
+    return;
   }
   fflush(stdout);
   *err = 0;
-  return num_written;
 }
 
 // void proc__start(int pid, Error *err)
@@ -347,21 +342,24 @@ EM_JS(void, proc__start, (int pid, Error *err), {
   setValue(err, errCode, 'i32');
 })
 
-// proc__get_lua_code(char *buf, int len, Error *err)
-EM_JS(int, proc__get_lua_code, (char *buf, int len, Error *err), {
-  stringToUTF8(self.proc.luaCode, buf, len);
-  setValue(err, 0, 'i32');
-  return self.proc.luaCode.length;
+// const char *proc__get_lua_code(char *buf, int len, Error *err)
+EM_JS(char *, proc__get_lua_code, (Error *err), {
+  const ptr = stringToNewUTF8(self.proc.luaCode);
+  if (!ptr) {
+    setValue(err, ERROR_CODES.ENOMEM, 'i32');
+    return null;
+  }
+  return ptr;
 })
 
 EM_JS(void, proc__exit, (int exit_code, Error *err), {
   self.proc.exit(exit_code);
   setValue(err, 0, 'i32');
-});
+})
 
 // WARNING: NEED TO CLEAR ARGV IN C
-// void proc__args(int *argc, char **argv, Error *err);
-EM_JS(void, proc__args, (int *argc, char **argv, Error *err), {
+// void proc__args(int *argc, char ***argv, Error *err);
+EM_JS(void, proc__args, (int *argc, char ***argv, Error *err), {
   const jsArgs = self.proc.args;
 
   // Set argc
@@ -372,41 +370,16 @@ EM_JS(void, proc__args, (int *argc, char **argv, Error *err), {
   let argvPointer =
       _malloc((length + 1) * 4); // Emscripten is 32-bit (4 bit pointer)
   for (let i = 0; i < length; i++) {
-    const jsString = jsArgs[i].toString();
-    const strByteLen = lengthBytesUTF8(jsString) + 1; // null terminator
-    const strPtr = _malloc(strByteLen);
-
-    stringToUTF8(jsString, strPtr, strByteLen);
-
-    setValue(argvPointer + i * 4, strPtr, 'i32');
+    const strPtr = stringToNewUTF8(jsArgs[i].toString());
+    setValue(argvPointer + i * 4, strPtr, '*');
   }
 
   // null terminate argv array
-  setValue(argvPointer + length * 4, 0, 'i32');
+  setValue(argvPointer + length * 4, 0, 'i8');
 
   // set argv
-  setValue(argv, argvPointer, 'i32');
+  setValue(argv, argvPointer, '*');
 
   // Set Error to 0
   setValue(err, 0, 'i32');
-});
-
-void test(void) {
-  Error err;
-
-  char buffer[256]; // Allocate a buffer in C
-
-  printf("Getting proc__list!\n");
-  Process *proc_list = proc__list(&err);
-  printf("Got proc__list!\n");
-
-  printf("pid[0] -> %d\n", proc_list->pid);
-  printf("created_low[0] -> %d\n", proc_list->created_low);
-  printf("created_high[0] -> %d\n", proc_list->created_high);
-  uint64_t created =
-      proc_list->created_low | ((uint64_t)proc_list->created_high << 32);
-  printf("created -> %lld\n", created);
-  printf("alive[0] -> %d\n", proc_list->alive);
-  printf("state[0] -> %d\n", proc_list->state);
-  free(proc_list);
-}
+})

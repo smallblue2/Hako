@@ -2,7 +2,8 @@ export const ProcessStates = Object.freeze({
   READY: 0,
   RUNNING: 1,
   SLEEPING: 2,
-  TERMINATING: 3
+  TERMINATING: 3,
+  STARTING: 4
 });
 
 export const StreamDescriptor = Object.freeze({

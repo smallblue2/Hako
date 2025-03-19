@@ -6,20 +6,14 @@
 typedef int Error;
 #endif
 
-typedef enum : int {
-  READY,
-  RUNNING,
-  SLEEPING,
-  TERMINATING
-} ProcessStates;
+typedef enum { READY, RUNNING, SLEEPING, TERMINATING, STARTING } ProcessState;
 
 typedef struct __attribute__((packed)) {
-  int pid; // 0
-  int alive; // 4
-  int created_low; // 8
-  int created_high; // 12
-  ProcessStates state; // 16
-} Process; // 20
+  int pid;             // 0
+  int alive;           // 4
+  int created;         // 8
+  ProcessState state; // 12
+} Process;             // 16
 
 // Input
 int proc__input_pipe(char *buf, int max_bytes, Error *err); // INFO: Not meant to be used directly, used by `proc__input`
@@ -53,7 +47,6 @@ void proc__kill(int pid, Error *err);
 Process* proc__list(Error *err); // WARNING: PROCESS* RETURN VALUE MUST BE FREED
 int proc__get_pid(Error *err);
 void proc__start(int pid, Error *err);
-int proc__get_lua_code(char *buf, int len, Error *err);
 void proc__exit(int exit_code, Error *err);
 void proc__args(int *argc, char **argv, Error *err); // WARNING: MUST FREE OUTPARAM `ARGV`
 

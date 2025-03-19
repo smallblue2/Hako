@@ -1,9 +1,5 @@
 <script>
-  import Terminal from "../components/Terminal.svelte";
-  import Editor from "../components/Editor.svelte";
-  import TaskBar from "../components/TaskBar.svelte";
-
-  import * as lib from "$lib/windows.svelte.js";
+  import Desktop from "../components/Desktop.svelte";
   import { onMount } from "svelte";
 
   onMount(async () => {
@@ -20,7 +16,8 @@
         const Module = await initEmscripten({
           onRuntimeInitialized: () => {
             console.log("Filesystem Emscripten module loaded.");
-          }
+          },
+          noExitRuntime: false
         });
 
         return Module
@@ -47,22 +44,10 @@
     window.ProcessManager = new ProcessManager();
     console.log("Created process manager");
   })
-
-  let root = $state();
-
-  $effect(() => lib.setRootSfc(root));
 </script>
 
-<div id="root" bind:this={root}>
-  <button onclick={() => {
-    // lib.openWindow(Terminal, { props: { wasmModule: "/lua.mjs?url" }});
-    lib.openWindow(Terminal, { props: { wasmModule: "/runtime.js?url" }});
-  }}>Create Terminal</button>
-  <button onclick={() => {
-    lib.openWindow(Editor);
-  }}>Create Editor</button>
-  <TaskBar classList={["fixed-right"]}></TaskBar>
-</div>
+<Desktop></Desktop>
+
 <div id="event-overlay"></div>
 
 <style>
@@ -86,19 +71,5 @@
   left: 0;
   display: none;
   z-index: 1000;
-}
-
-:global(#root) {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  z-index: -2;
-}
-
-:global(.fixed-right) {
-  overflow: hidden;
-  position: fixed;
-  right: 0;
-  height: 100%;
 }
 </style>

@@ -1,1 +1,2 @@
-print("cathal smells")
+output("cathal smells")
+output(inspect(process.argv))
