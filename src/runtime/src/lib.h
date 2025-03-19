@@ -3,9 +3,11 @@
 
 #include <lua.h>
 #include "file.h"
+#include "process.h"
 #include "errors.h"
 #include "lauxlib.h"
 
+#define FILE_MODULE_NAME "file"
 static const luaL_Reg file_module[] = {
   {"open", lfile__open},
   {"close", lfile__close},
@@ -26,9 +28,38 @@ static const luaL_Reg file_module[] = {
   {NULL, NULL},
 };
 
+#define PROCESS_MODULE_NAME "process"
+static const luaL_Reg process_module[] = {
+  {"create", lprocess__create},
+  {"start", lprocess__start},
+  {"wait", lprocess__wait},
+  {"output", lprocess__output},
+  {"kill", lprocess__kill},
+  {"get_pid", lprocess__get_pid},
+  {"list", lprocess__list},
+  {"pipe", lprocess__pipe},
+  {"isatty", lprocess__isatty},
+  {"exit", lprocess__exit},
+  // {"input", lprocess__input},
+  {NULL, NULL},
+};
+
+#define ERRORS_MODULE_NAME "errors"
 static const luaL_Reg errors_module[] = {
   {"as_string", lerrors__as_string},
   {NULL, NULL},
+};
+
+typedef struct {
+  const char *namespace;
+  const char *function;
+} Namespaced_Function;
+
+// Put functions you want to alias to the global namespace in here
+static const Namespaced_Function globals[] = {
+  {PROCESS_MODULE_NAME, "output"},
+  {PROCESS_MODULE_NAME, "input"},
+  {NULL, NULL}
 };
 
 #endif

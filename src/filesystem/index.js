@@ -13,7 +13,8 @@ const LoadFilesystem = (async () => {
     const Module = await initEmscripten({
       onRuntimeInitialized: () => {
         console.log("Filesystem Emscripten module loaded.");
-      }
+      },
+      noExitRuntime: false
     });
 
     return Module
