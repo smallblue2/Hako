@@ -32,24 +32,27 @@ export function initialiseAPI(Module) {
     const blocksize = Module.getValue(statResultPtr + 8, "i32");
     const ino = Module.getValue(statResultPtr + 12, "i32");
     const permNum = Module.getValue(statResultPtr + 16, "i32");
+    const type = Module.getValue(statResultPtr + 20, "i32");
+    let typeString = type == 1 ? "directory" : "file";
 
     let permString = "";
     if ((permNum & 0o400) == 0o400) permString += "r";
     if ((permNum & 0o200) == 0o200) permString += "w";
     if ((permNum & 0o100) == 0o100) permString += "x";
 
-    const atimeSec = Module.getValue(statResultPtr + 20, "i32");
-    const atimeNSec = Module.getValue(statResultPtr + 24, "i32");
-    const mtimeSec = Module.getValue(statResultPtr + 28, "i32");
-    const mtimeNSec = Module.getValue(statResultPtr + 32, "i32");
-    const ctimeSec = Module.getValue(statResultPtr + 36, "i32");
-    const ctimeNSec = Module.getValue(statResultPtr + 40, "i32");
+    const atimeSec = Module.getValue(statResultPtr + 24, "i32");
+    const atimeNSec = Module.getValue(statResultPtr + 28, "i32");
+    const mtimeSec = Module.getValue(statResultPtr + 32, "i32");
+    const mtimeNSec = Module.getValue(statResultPtr + 36, "i32");
+    const ctimeSec = Module.getValue(statResultPtr + 40, "i32");
+    const ctimeNSec = Module.getValue(statResultPtr + 44, "i32");
 
     return {
-      size: size,
-      blocks: blocks,
-      blocksize: blocksize,
-      ino: ino,
+      size,
+      blocks,
+      blocksize,
+      ino,
+      type: typeString,
       perm: permString,
       atime: { sec: atimeSec, nsec: atimeNSec },
       mtime: { sec: mtimeSec, nsec: mtimeNSec },

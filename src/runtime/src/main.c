@@ -22,67 +22,16 @@ int main(void) {
 
   Error err;
 
-  int current_pid = proc__get_pid(&err);
-  if (err != 0) {
-    printf("Failed to get pid\n");
-  } else {
-    printf("[%d] Current proc pid: %d\n", current_pid, current_pid);
-  }
-
-  switch (current_pid) {
-    case 1: {
-      char buff[256];
-      int len = snprintf(buff, sizeof(buff), "/persistent/hello.lua");
-      int new_pid = proc__create(buff, len, false, false, &err);
-      if (err < 0) {
-        printf("[1] Couldn't create process (err %d)\n", err);
-        return -1;
-      }
-      printf("[1] Created new process (new PID: %d)\n", new_pid);
-
-      proc__start(new_pid, &err);
-      if (err < 0) {
-        printf("[1] Couldn't start out_pid (err: %d)\n!", err);
-      }
-
-      printf("[1] Waiting on pid: %d\n", new_pid);
-      int exit_code = proc__wait(new_pid, &err);
-      if (err < 0) {
-        printf("[1] Waiting on pid: %d failed!\n", new_pid);
-        return -1;
-      }
-      printf("[1] Finished waiting on pid: %d (Exit code: %d)!\n", new_pid);
-      printf("[1] Process returned exit code: %d!\n", exit_code);
-      break;
-    }
-    case 2: {
-      printf("[2] I AM ALIVE!\n");
-      printf("[2] But only for a short while :(");
-      printf("[2] Exiting...");
-      Error err;
-      proc__exit(0, &err);
-      if (err < 0) {
-        printf("[2] Failed to exit");
-        return -1;
-      }
-
-      break;
-    }
-  }
-
   char luaCodeBuffer[256];
   proc__get_lua_code(luaCodeBuffer, sizeof(luaCodeBuffer), &err);
+  if (err < 0) {
+    printf("Failed to load code from FS. Err: %d\n", err);
+  }
   printf("Loaded code from FS: \n%s\n", luaCodeBuffer);
 
   char src[256];
-  snprintf(src, sizeof(src), "local func, ok = load('%s')\nlocal success, err = pcall(func)\nif not success then\n  print(err)\nend", luaCodeBuffer);
+  snprintf(src, sizeof(src), "local func, ok = load([[%s]])\nlocal success, err = pcall(func)\nif not success then\n  print(err)\nend", luaCodeBuffer);
 
-  // char *src =
-  //   "local func, ok = load(io.read('*a'))\n"
-  //   "local success, err = pcall(func)\n"
-  //   "if not success then\n"
-  //   "  print(err)\n"
-  //   "end";
 
   export_stdlib(L);
 

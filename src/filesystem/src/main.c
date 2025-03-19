@@ -88,7 +88,7 @@ void file__pushToPersist() {
   return;
 }
 
-// Mounts filesystem, creating structure if required.
+// Mounts filesystem, creating structurje if required.
 void file__initialiseFS() {
   printf("[C] Starting up persistent filesystem at '%s'...\n",
          PERSISTENT_ROOT_NAME);
@@ -113,29 +113,63 @@ void file__initialiseFS() {
         } catch (err) {
           console.error("[JS] Failed to mount filesystem:", err);
         }
+
+        // Pull in previous data after mounting
+        FS.syncfs(
+          true, function(err) {
+            if (err) {
+              console.error("[JS] Error during sync:", err);
+            } else {
+              console.log("[JS] Sync completed succesfully!");
+            }
+        });
+
+        console.log("Moving system files in...");
+
+        // Initialise system files
+        let systemFilePath = "/persistent/sys";
+
+        // WARNING: IDBFS requires write access - however users will not be
+        //          able modify regardless due to the PROTECTED_BIT being
+        //          raised signifying it's a system file (0o010)
+        FS.mkdir(systemFilePath, 0o710);
+
+        console.log(FS.readdir(`${systemFilePath}/..`));
+
+        // Move lua files into correct place in IDBFS
+        for (const luaFile of FS.readdir("/luaSource")) {
+          if (luaFile == "." || luaFile == "..") continue;
+
+          let sourcePath = `/luaSource/${luaFile}`;
+          let systemPath = `${systemFilePath}/${luaFile}`;
+
+          // Move files into systemFilePath
+          let data = FS.readFile(sourcePath);
+          FS.writeFile(systemPath, data);
+
+          // Set correct permissions on file
+          FS.chmod(systemPath, 0o710);
+
+          console.log(`ADDED: ${systemPath}`);
+        }
+        // Set correct permissions so parent directory cannot be modified either
+        // INFO: I don't believe we're currently using dir permission bits, but future proofing regardless
+        FS.chmod(systemFilePath, 0o710);
+
+        FS.syncfs(
+          false, function(err) {
+            if (err) {
+              console.error("[JS] Error during sync:", err);
+            } else {
+              console.log("[JS] Sync completed succesfully!");
+            }
+        });
+
+        console.log("Finished bootstrap");
+
       },
       PERSISTENT_ROOT_NAME);
-
-  // Write the shell file
-  EM_ASM({
-    try {
-      FS.writeFile('/persistent/hello.lua', 'print("Hello from Lua!")');
-
-      // Force sync back to IndexedDB
-      FS.syncfs(
-          false, function(err) {
-            if (err)
-              console.error("Error syncing to IndexedDB:", err);
-            else
-              console.log("File written and synced to IndexedDB.");
-          });
-    } catch (e) {
-      console.error("Error writing file:", e);
-    }
-  });
 #endif
-
-  file__pullFromPersist();
 
   return;
 }
@@ -509,11 +543,13 @@ void file__stat(const char *name, StatResult *sr, Error *err) {
 
   // If it's a directory, just report `rwx`
   if (S_ISDIR(file_stat.st_mode)) {
-    sr->perm = 0700;
+    sr->type = 1; // Directory
   } else {
-    sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+    // We only support files and directories
+    sr->type = 0; // file (technically anything that isn't a directory)
   }
 
+  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
@@ -543,11 +579,13 @@ void file__fdstat(int fd, StatResult *sr, Error *err) {
 
   // If it's a directory, just report `rwx`
   if (S_ISDIR(file_stat.st_mode)) {
-    sr->perm = 0700;
+    sr->type = 1; // Directory
   } else {
-    sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+    // We only support files and directories
+    sr->type = 0; // file (technically anything that isn't a directory)
   }
 
+  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
