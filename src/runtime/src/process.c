@@ -229,8 +229,15 @@ int lprocess__isatty(lua_State *L) {
 }
 
 int lprocess__exit(lua_State *L) {
-  // proc__exit(int exit_code, Error *err)
-  return 0;
+  int exit_code = luaL_checknumber(L, 1);
+  Error err;
+  proc__exit(exit_code, &err);
+  if (err != 0) {
+    lua_pushnumber(L, err);
+    return 1;
+  }
+  lua_pushnil(L);
+  return 1;
 }
 
 // +1 for sentinal '\0'
