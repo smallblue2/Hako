@@ -21,5 +21,6 @@ int lprocess__isatty(lua_State *L);
 // int lprocess__input_line(lua_State *L);
 int lprocess__output(lua_State *L);
 int lprocess__start(lua_State *L);
+int lprocess__exit(lua_State *L);
 
 #endif

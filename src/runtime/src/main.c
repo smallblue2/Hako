@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -8,7 +9,7 @@
 #include "../../processes/c/processes.h"
 
 #include "lib.h"
-#include "unistd.h"
+#include <unistd.h>
 
 void export_custom_apis(lua_State *L) {
   int top = lua_gettop(L);
@@ -47,6 +48,30 @@ void exclude_globals(lua_State *L) {
   }
 }
 
+void set_argv(lua_State *L) {
+  Error err = 0;
+  int argc;
+  char **argv;
+  proc__args(&argc, &argv, &err);
+  assert(err == 0);
+
+  // push the `process` module onto the top of the stack
+  lua_getglobal(L, PROCESS_MODULE_NAME);
+  assert(lua_istable(L, -1));
+
+  lua_newtable(L); // table to store `argv`
+  for (int i = 0; i < argc; i++) {
+    const char *arg = argv[i];
+    lua_pushnumber(L, i + 1);
+    lua_pushstring(L, arg);
+    lua_settable(L, -3);
+  }
+  lua_setfield(L, -2, "argv"); // set the `argv` field on global `process`
+
+  lua_pop(L, -1); // pop `process` module
+  free(argv);
+}
+
 int main(void) {
   lua_State *L = luaL_newstate();
 
@@ -57,9 +82,10 @@ int main(void) {
   luaL_requiref(L, LUA_TABLIBNAME, luaopen_table, 1);
   luaL_requiref(L, LUA_MATHLIBNAME, luaopen_math, 1);
   luaL_requiref(L, LUA_GNAME, luaopen_base, 1);
-  exclude_globals(L);
 
+  exclude_globals(L);
   export_custom_apis(L);
+  set_argv(L);
 
   // This loads third-party inspect module, to allow users to visualize lua data
   // structures more clearly
@@ -68,28 +94,17 @@ int main(void) {
   }
   lua_setglobal(L, "inspect");
 
-  Error err = 0;
-
-<<<<<<< HEAD
-  char luaCodeBuffer[256];
-  proc__get_lua_code(luaCodeBuffer, sizeof(luaCodeBuffer), &err);
+  Error err;
+  char *luaCodeBuffer = proc__get_lua_code(&err);
   if (err < 0) {
     printf("Failed to load code from FS. Err: %d\n", err);
   }
   printf("Loaded code from FS: \n%s\n", luaCodeBuffer);
 
-  char src[256];
-  snprintf(src, sizeof(src),
-      "local src = [[ %s ]]\n"
-      "local func, ok = load(src)\n"
-      "local success, err = pcall(func)\n"
-      "if not success then\n"
-      "  print(err)\n"
-      "end", luaCodeBuffer);
+  int current_pid = proc__get_pid(&err);
+  assert(err == 0);
 
-  export_stdlib(L);
-
-  if (luaL_loadstring(L, src) == LUA_OK) {
+  if (luaL_loadstring(L, luaCodeBuffer) == LUA_OK) {
     if (lua_pcall(L, 0, 0, 0) == LUA_OK) {
       lua_pop(L, lua_gettop(L));
     } else {

@@ -219,11 +219,11 @@ EM_JS(char *, proc__get_lua_code, (Error *err), {
 EM_JS(void, proc__exit, (int exit_code, Error *err), {
   self.proc.exit(exit_code);
   setValue(err, 0, 'i32');
-});
+})
 
 // WARNING: NEED TO CLEAR ARGV IN C
-// void proc__args(int *argc, char **argv, Error *err);
-EM_JS(void, proc__args, (int *argc, char **argv, Error *err), {
+// void proc__args(int *argc, char ***argv, Error *err);
+EM_JS(void, proc__args, (int *argc, char ***argv, Error *err), {
   const jsArgs = self.proc.args;
 
   // Set argc
@@ -234,40 +234,16 @@ EM_JS(void, proc__args, (int *argc, char **argv, Error *err), {
   // Set argv
   let argvPointer = _malloc((length + 1) * 4); // Emscripten is 32-bit (4 bit pointer)
   for (let i = 0; i < length; i++) {
-    const jsString = jsArgs[i].toString();
-    const strByteLen = lengthBytesUTF8(jsString) + 1; // null terminator
-    const strPtr = _malloc(strByteLen);
-
-    stringToUTF8(jsString, strPtr, strByteLen);
-
-    setValue(argvPointer + i * 4, strPtr, 'i32');
+    const strPtr = stringToNewUTF8(jsArgs[i].toString());
+    setValue(argvPointer + i * 4, strPtr, '*');
   }
 
   // null terminate argv array
-  setValue(argvPointer + length * 4, 0, 'i32');
+  setValue(argvPointer + length * 4, 0, 'i8');
 
   // set argv
-  setValue(argv, argvPointer, 'i32');
+  setValue(argv, argvPointer, '*');
 
   // Set Error to 0
   setValue(err, 0, 'i32');
-});
-
-void test(void) {
-  Error err;
-
-  char buffer[256]; // Allocate a buffer in C
-
-  printf("Getting proc__list!\n");
-  Process* proc_list = proc__list(&err);
-  printf("Got proc__list!\n");
-
-  printf("pid[0] -> %d\n", proc_list->pid);
-  printf("created_low[0] -> %d\n", proc_list->created_low);
-  printf("created_high[0] -> %d\n", proc_list->created_high);
-  uint64_t created = proc_list->created_low | ((uint64_t)proc_list->created_high << 32);
-  printf("created -> %lld\n", created);
-  printf("alive[0] -> %d\n", proc_list->alive);
-  printf("state[0] -> %d\n", proc_list->state);
-  free(proc_list);
-}
+})

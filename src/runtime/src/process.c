@@ -228,6 +228,11 @@ int lprocess__isatty(lua_State *L) {
   return 2;
 }
 
+int lprocess__exit(lua_State *L) {
+  // proc__exit(int exit_code, Error *err)
+  return 0;
+}
+
 // +1 for sentinal '\0'
 // static char input_buf[BUFSIZ + 1] = {0};
 //

@@ -35,7 +35,7 @@ bool proc__is_stdin_pipe(Error *err);
 void proc__output(const char *buf, int len, Error *err);
 void proc__start(int pid, Error *err);
 void proc__exit(int exit_code, Error *err);
-void proc__args(int *argc, char **argv, Error *err);
+void proc__args(int *argc, char ***argv, Error *err);
 char *proc__get_lua_code(Error *err);
 
 #endif
