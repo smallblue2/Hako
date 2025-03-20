@@ -56,7 +56,7 @@ void set_argv(lua_State *L) {
   Error err = 0;
   int argc;
   char **argv;
-  proc__args(&argc, &argv, &err);
+  proc__args(&argc, (char *restrict **)&argv, &err);
   assert(err == 0);
 
   // push the `process` module onto the top of the stack

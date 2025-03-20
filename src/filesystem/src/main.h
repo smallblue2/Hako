@@ -99,21 +99,21 @@ void file__pullFromPersist(void);
 
 // Opens a file, only uses user flags, ignores any others provided
 // INFO: Performs permission and existence checks
-int file__open(const char *path, int flags, Error *err);
+int file__open(const char *restrict path, int flags, Error *restrict err);
 
 // Closes an open file
 void file__close(int fd, Error *err);
 
 // Writes to an open file
-void file__write(int fd, const char *content, Error *err);
+void file__write(int fd, const char *restrict content, Error *restrict err);
 
 // Reads `amt` bytes in an open file
 // WARNING: rr->data MUST be freed in WASM/JS
-void file__read(int fd, int amt, ReadResult *rr, Error *err);
+void file__read(int fd, int amt, ReadResult *restrict rr, Error *restrict err);
 
 // Reads an open file in its entirety
 // WARNING: rr->data MUST be freed in WASM/JS
-void file__read_all(int fd, ReadResult *rr, Error *err);
+void file__read_all(int fd, ReadResult *restrict rr, Error *restrict err);
 
 // Shifts an open file's cursor by `amt` bytes
 void file__shift(int fd, int amt, Error *err);
@@ -123,34 +123,34 @@ void file__goto(int fd, int pos, Error *err);
 
 // Removes a file
 // INFO: Ensures `path` isn't a system node
-void file__remove(const char *path, Error *err);
+void file__remove(const char *restrict path, Error *restrict err);
 
 // Moves a node
 // INFO: Ensures `old_path` and `new_path` are NOT system nodes
-void file__move(const char *old_path, const char *new_path, Error *err);
+void file__move(const char *restrict old_path, const char *restrict new_path, Error *restrict err);
 
 // Makes a directory
-void file__make_dir(const char *path, Error *err);
+void file__make_dir(const char *restrict path, Error *restrict err);
 
 // Removes a directory
-void file__remove_dir(const char *path, Error *err);
+void file__remove_dir(const char *restrict path, Error *restrict err);
 
 // Changes the user's current directory
-void file__change_dir(const char *path, Error *err);
+void file__change_dir(const char *restrict path, Error *restrict err);
 
 // Reads a directory
 // WARNING: entry->name MUST be freed in WASM/JS
-void file__read_dir(const char *path, Entry *entry,
-                    Error *err); // Keep calling, state kept in DIR*
+void file__read_dir(const char *restrict path, Entry *restrict entry,
+                    Error *restrict err); // Keep calling, state kept in DIR*
 
 // Stats a node
-void file__stat(const char *path, StatResult *sr, Error *err);
+void file__stat(const char *restrict path, StatResult *restrict sr, Error *restrict err);
 
 // Stats an open file
-void file__fdstat(int fd, StatResult *sr, Error *err);
+void file__fdstat(int fd, StatResult *restrict sr, Error *restrict err);
 
 // Changes permissions on a file
 // INFO: Ensures `path` isn't a system node
-void file__permit(const char *path, int flags, Error *err);
+void file__permit(const char *restrict path, int flags, Error *restrict err);
 
 #endif
