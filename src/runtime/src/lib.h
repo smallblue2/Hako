@@ -40,7 +40,10 @@ static const luaL_Reg process_module[] = {
   {"pipe", lprocess__pipe},
   {"isatty", lprocess__isatty},
   {"exit", lprocess__exit},
-  // {"input", lprocess__input},
+  {"input", lprocess__input},
+  {"input_all", lprocess__input_all},
+  {"input_line", lprocess__input_line},
+  {"close_input", lprocess__close_input},
   {NULL, NULL},
 };
 
@@ -59,6 +62,8 @@ typedef struct {
 static const Namespaced_Function globals[] = {
   {PROCESS_MODULE_NAME, "output"},
   {PROCESS_MODULE_NAME, "input"},
+  {PROCESS_MODULE_NAME, "input_all"},
+  {PROCESS_MODULE_NAME, "input_line"},
   {NULL, NULL}
 };
 

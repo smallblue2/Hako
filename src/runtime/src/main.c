@@ -118,16 +118,15 @@ int main(void) {
   // This loads third-party inspect module, to allow users to visualize lua data
   // structures more clearly
   if (luaL_dofile(L, "/static/inspect.lua") != LUA_OK) {
-    printf("Failed to load static module: %s\n", lua_tostring(L, -1));
+    fprintf(stderr, "Failed to load static module: %s\n", lua_tostring(L, -1));
   }
   lua_setglobal(L, "inspect");
 
   Error err;
   char *luaCodeBuffer = proc__get_lua_code(&err);
   if (err < 0) {
-    printf("Failed to load code from FS. Err: %d\n", err);
+    fprintf(stderr, "Failed to load code from FS. Err: %d\n", err);
   }
-  printf("Loaded code from FS: \n%s\n", luaCodeBuffer);
 
   int current_pid = proc__get_pid(&err);
   assert(err == 0);
@@ -137,11 +136,11 @@ int main(void) {
       lua_pop(L, lua_gettop(L));
     } else {
       const char *err = lua_tostring(L, -1);
-      printf("process failed: %s\n", err);
+      fprintf(stderr, "Process failed: %s\n", err);
     }
   } else {
     const char *err = lua_tostring(L, -1);
-    printf("process failed: %s\n", err);
+    fprintf(stderr, "Process failed: %s\n", err);
   }
 
   free(luaCodeBuffer);

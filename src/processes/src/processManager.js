@@ -259,7 +259,7 @@ export default class ProcessManager {
         }
 
         try {
-          await this.createProcess({ luaPath: e.data.luaPath, slave: requestor.pty, pipeStdin, pipeStdout, callerSignal: sendBackSignal });
+          await this.createProcess({ luaPath: e.data.luaPath, args: e.data.args, slave: requestor.pty, pipeStdin, pipeStdout, callerSignal: sendBackSignal });
           // INFO: PID is written to callerSignal after a process is registered to it
         } catch (err) {
           if (!(err instanceof CustomError)) {
