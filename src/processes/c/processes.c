@@ -2,7 +2,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>
-#include <stdint.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +29,7 @@ EM_JS(void, proc__close_error, (Error *err), {
 })
 
 // int proc__input_pipe(char* buf, int max_bytes, Error *err);
-EM_JS(int, proc__input_pipe, (char *buf, int max_bytes, Error *err), {
+EM_JS(int, proc__input_pipe, (char *restrict buf, int max_bytes, Error *restrict err), {
   let s = self.proc.input(max_bytes - 1); // -1 for null terminator
   stringToUTF8(s, buf, max_bytes);
   setValue(err, 0, 'i32');
@@ -37,7 +37,7 @@ EM_JS(int, proc__input_pipe, (char *buf, int max_bytes, Error *err), {
 })
 
 // int proc__input_exact_pipe(char *buf, int exact_byes, Error *err);
-EM_JS(int, proc__input_exact_pipe, (char *buf, int exact_bytes, Error *err), {
+EM_JS(int, proc__input_exact_pipe, (char *restrict buf, int exact_bytes, Error *restrict err), {
   let s = self.proc.inputExact(exact_bytes - 1); // -1 for null terminator
   stringToUTF8(s, buf, exact_bytes);
   setValue(err, 0, 'i32');
@@ -45,42 +45,38 @@ EM_JS(int, proc__input_exact_pipe, (char *buf, int exact_bytes, Error *err), {
 })
 
 // WARNING: BUF MUST BE FREED
-// int proc__input_all_pipe(char* buf, Error *err)
-EM_JS(int, proc__input_all_pipe, (char **buf, Error *err), {
-  var s = self.proc.inputAll();
-  const strByteLen = lengthBytesUTF8(s) + 1; // null terminator
-  const strPtr = _malloc(strByteLen);
-
-  stringToUTF8(s, strPtr, strByteLen);
-  setValue(buf, strPtr, '*');
-
+// char *proc__input_all_pipe(Error *err)
+EM_JS(char *, proc__input_all_pipe, (Error *err), {
+  const ptr = stringToNewUTF8(self.proc.inputAll());
+  if (!ptr) {
+    setValue(err, ERROR_CODES.ENOMEM, 'i32');
+    return null;
+  }
   setValue(err, 0, 'i32');
-  return strByteLen;
+  return ptr;
 })
 
 // WARNING: BUF MUST BE FREED
-// proc__input_line_pipe(char* buf, Error *err)
-EM_JS(int, proc__input_line_pipe, (char **buf, Error *err), {
-  var s = self.proc.inputLine();
-  const strByteLen = lengthBytesUTF8(s) + 1; // null terminator
-  const strPtr = _malloc(strByteLen);
-
-  stringToUTF8(s, strPtr, strByteLen);
-  setValue(buf, strPtr, '*');
-
+// char *proc__input_line_pipe(Error *err)
+EM_JS(char *, proc__input_line_pipe, (Error *err), {
+  const ptr = stringToNewUTF8(self.proc.inputLine());
+  if (!ptr) {
+    setValue(err, ERROR_CODES.ENOMEM, 'i32');
+    return null;
+  }
   setValue(err, 0, 'i32');
-  return strByteLen;
+  return ptr;
 })
 
 // proc__output_pipe(char* buf, int len, Error *err)
-EM_JS(void, proc__output_pipe, (const char *buf, int len, Error *err), {
+EM_JS(void, proc__output_pipe, (const char *restrict buf, int len, Error *restrict err), {
   var s = UTF8ToString(buf, len);
   self.proc.output(s);
   setValue(err, 0, 'i32');
 })
 
 // proc__error_pipe(char* buf, int len, Error *err)
-EM_JS(void, proc__error_pipe, (const char *buf, int len, Error *err), {
+EM_JS(void, proc__error_pipe, (const char *restrict buf, int len, Error *restrict err), {
   var s = UTF8ToString(buf, len);
   self.proc.error(s);
   setValue(err, 0, 'i32');
@@ -95,7 +91,7 @@ EM_JS(int, proc__wait, (int pid, Error *err), {
 })
 
 // proc__create(char *buf, int len, int pipe_stdin, int pipe_stdout, Error *err)
-EM_JS(int, proc__create, (const char *buf, int len, bool pipe_stdin, bool pipe_stdout, Error *err), {
+EM_JS(int, proc__create, (const char *restrict buf, int len, bool pipe_stdin, bool pipe_stdout, Error *restrict err), {
   var luaPath = UTF8ToString(buf, len);
   var createdPID = self.proc.create(luaPath, pipe_stdin, pipe_stdout);
   if (createdPID < 0) {
@@ -113,7 +109,7 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
 })
 
 // proc__list(int *length, Error *err)
-EM_JS(Process*, proc__list, (int *length, Error *err), {
+EM_JS(Process*, proc__list, (int *restrict length, Error *restrict err), {
   try {
     let procJSON = self.proc.list();
     let heapAllocationSize = procJSON.length * 16; // C 'Process' struct is 16 bytes long
@@ -137,7 +133,7 @@ EM_JS(Process*, proc__list, (int *length, Error *err), {
 })
 
 // proc__get_pid(Error *err)
-EM_JS(int, proc__get_pid, (Error * err), {
+EM_JS(int, proc__get_pid, (Error *err), {
   setValue(err, 0, 'i32');
   return self.proc.pid;
 })
@@ -149,18 +145,18 @@ EM_JS(void, proc__pipe, (int out_pid, int in_pid, Error *err), {
 })
 
 // proc__is_stdin_pipe(Error *err)
-EM_JS(bool, proc__is_stdin_pipe, (Error * err), {
+EM_JS(bool, proc__is_stdin_pipe, (Error *err), {
   setValue(err, 0, 'i32');
   return self.proc.isPipeable(self.proc.StreamDescriptor.STDIN);
 })
 
 // proc__is_stdout_pipe(Error *err)
-EM_JS(bool, proc__is_stdout_pipe, (Error * err), {
+EM_JS(bool, proc__is_stdout_pipe, (Error *err), {
   setValue(err, 0, 'i32');
   return self.proc.isPipeable(self.proc.StreamDescriptor.STDOUT);
 })
 
-int proc__input(char *buf, int max_bytes, Error *err) {
+int proc__input(char *restrict buf, int max_bytes, Error *restrict err) {
   if (proc__is_stdin_pipe(err)) {
     if (*err < 0) {
       printf("FAIL\n");
@@ -179,7 +175,7 @@ int proc__input(char *buf, int max_bytes, Error *err) {
   return (int)bytesRead;
 }
 
-int proc__input_exact(char *buf, int exact_bytes, Error *err) {
+int proc__input_exact(char *restrict buf, int exact_bytes, Error *restrict err) {
   if (proc__is_stdin_pipe(err)) {
     if (*err < 0) {
       printf("FAIL\n");
@@ -222,13 +218,12 @@ int proc__input_exact(char *buf, int exact_bytes, Error *err) {
 }
 
 // WARNING: MUST FREE BUF
-int proc__input_all(char **buf, Error *err) {
+char *proc__input_all(Error *err) {
   if (proc__is_stdin_pipe(err)) {
     if (*err != 0) {
-      printf("FAIL\n");
-      return -1;
+      return NULL;
     }
-    return proc__input_all_pipe(buf, err);
+    return proc__input_all_pipe(err);
   }
 
   // Initial size
@@ -237,7 +232,7 @@ int proc__input_all(char **buf, Error *err) {
   char *buffer = malloc(capacity);
   if (!buffer) {
     *err = -18; // Failed to assign memory (processes/js/common.js)
-    return -1;
+    return NULL;
   }
 
   int c;
@@ -250,7 +245,7 @@ int proc__input_all(char **buf, Error *err) {
       if (!temp) {
         free(buffer);
         *err = -18; // Failed to assign memory (processes/js/common.js)
-        return -1;
+        return NULL;
       }
       buffer = temp;
     }
@@ -260,65 +255,39 @@ int proc__input_all(char **buf, Error *err) {
   // Null terminate
   buffer[length] = '\0';
 
-  *buf = buffer;
-
   *err = 0;
 
-  return (int)length;
+  return buffer;
 }
 
-int proc__input_line(char **buf, Error *err) {
+char *proc__input_line(Error *err) {
   if (proc__is_stdin_pipe(err)) {
     if (*err != 0) {
-      printf("FAIL\n");
-      return -1;
+      return NULL;
     }
-    return proc__input_line_pipe(buf, err);
+    return proc__input_line_pipe(err);
   }
 
-  // Initial size
-  size_t capacity = 1024;
-  size_t length = 0;
-  char *buffer = malloc(capacity);
-  if (!buffer) {
-    *err = -18; // Failed to assign memory (processes/js/common.js)
-    return -1;
+  size_t n = 0;
+  char *lineptr = NULL;
+  if (getline(&lineptr, &n, stdin) == -1 && ferror(stdin)) {
+    *err = errno;
+    return NULL;
   }
 
-  int c;
-  while ((c = getchar()) != '\n' && c != EOF) {
-    // If we need to expand buffer
-    if (length + 1 >= capacity) {
-      // double it
-      capacity *= 2;
-      char *temp = realloc(buffer, capacity);
-      if (!temp) {
-        free(buffer);
-        *err = -18; // Failed to assign memory (processes/js/common.js)
-        return -1;
-      }
-      buffer = temp;
-    }
-    buffer[length++] = (char)c;
+  int len = strnlen(lineptr, n);
+  if (!feof(stdin)) {
+    // This means that the newline was included
+    // Replace it with a null byte
+    assert(lineptr[len - 1] == '\n');
+    lineptr[len - 1] = '\0';
   }
 
-  // If we got EOF immediately (nothing read)
-  if (length == 0 && c == EOF) {
-    free(buffer);
-    *err = -19; // EOF, nothing read (processes/js/common.js)
-    return -1;
-  }
-
-  // Null terminate
-  buffer[length] = '\0';
-
-  *buf = buffer;
   *err = 0;
-
-  return (int)length;
+  return lineptr;
 }
 
-void proc__output(const char *buf, int len, Error *err) {
+void proc__output(const char *restrict buf, int len, Error *restrict err) {
   if (proc__is_stdout_pipe(err)) {
     if (*err != 0) {
       return;
@@ -359,7 +328,7 @@ EM_JS(void, proc__exit, (int exit_code, Error *err), {
 
 // WARNING: NEED TO CLEAR ARGV IN C
 // void proc__args(int *argc, char ***argv, Error *err);
-EM_JS(void, proc__args, (int *argc, char ***argv, Error *err), {
+EM_JS(void, proc__args, (int *restrict argc, char *restrict **argv, Error *restrict err), {
   const jsArgs = self.proc.args;
 
   // Set argc
