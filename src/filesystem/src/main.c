@@ -171,7 +171,7 @@ void file__initialiseFS() {
   return;
 }
 
-int file__open(const char *path, int flags, Error *err) {
+int file__open(const char *restrict path, int flags, Error *restrict err) {
   // Permission checks
   struct stat st = {0};
   bool file_exists = (stat(path, &st) == 0);
@@ -233,7 +233,7 @@ void file__close(int fd, Error *err) {
   return;
 }
 
-void file__write(int fd, const char *content, Error *err) {
+void file__write(int fd, const char *restrict content, Error *restrict err) {
   // NOTE: no perm checks as the user already has the file descriptor
 
   int contentLength = strlen(content);
@@ -250,7 +250,7 @@ void file__write(int fd, const char *content, Error *err) {
 }
 
 // Reads up to `amt`, returning whatever it was able to read
-void file__read(int fd, int amt, ReadResult *rr, Error *err) {
+void file__read(int fd, int amt, ReadResult *restrict rr, Error *restrict err) {
   // NOTE: No permission checks here - they already obtained fd
 
   rr->size = -1;
@@ -277,7 +277,7 @@ void file__read(int fd, int amt, ReadResult *rr, Error *err) {
 }
 
 // Reads the entirety of a files contents
-void file__read_all(int fd, ReadResult *rr, Error *err) {
+void file__read_all(int fd, ReadResult *restrict rr, Error *restrict err) {
   // NOTE: No permission checks here - they already obtained fd
 
   rr->data = NULL;
@@ -391,7 +391,7 @@ void file__goto(int fd, int pos, Error *err) {
 //
 // TODO: Test on directories, if it doesnt work - likely change to
 // `file__removeFile`
-void file__remove(const char *path, Error *err) {
+void file__remove(const char *restrict path, Error *restrict err) {
   // Permission checks
   struct stat st;
   bool file_exists = (stat(path, &st) == 0);
@@ -416,7 +416,7 @@ void file__remove(const char *path, Error *err) {
   return;
 }
 
-void file__move(const char *old_path, const char *new_path, Error *err) {
+void file__move(const char *restrict old_path, const char *restrict new_path, Error *restrict err) {
   // Permission checks [OLD FILE]
   struct stat st;
   bool file_exists = (stat(old_path, &st) == 0);
@@ -450,7 +450,7 @@ void file__move(const char *old_path, const char *new_path, Error *err) {
   return;
 }
 
-void file__make_dir(const char *path, Error *err) {
+void file__make_dir(const char *restrict path, Error *restrict err) {
   // NOTE: No permission checks as we're not enforcing permissions
   //       on directories.
 
@@ -476,7 +476,7 @@ void file__remove_dir(const char *path, Error *err) {
   return;
 }
 
-void file__read_dir(const char *path, Entry *entry, int *err) {
+void file__read_dir(const char *restrict path, Entry *restrict entry, int *restrict err) {
   // NOTE: No permission checks as we're not enforcing permissions
   //       on directories.
 
@@ -522,7 +522,7 @@ void file__read_dir(const char *path, Entry *entry, int *err) {
   return;
 }
 
-void file__stat(const char *name, StatResult *sr, Error *err) {
+void file__stat(const char *restrict name, StatResult *restrict sr, Error *restrict err) {
   // NOTE: No permission checks, user can stat anything
   // This usually relies on the `x` of the parent directory,
   // but we're not implementing directory permissions
@@ -558,7 +558,7 @@ void file__stat(const char *name, StatResult *sr, Error *err) {
   return;
 }
 
-void file__fdstat(int fd, StatResult *sr, Error *err) {
+void file__fdstat(int fd, StatResult *restrict sr, Error *restrict err) {
   // NOTE: No permission checks, user can stat anything
   // This usually relies on the `x` of the parent directory,
   // but we're not implementing directory permissions
@@ -594,7 +594,7 @@ void file__fdstat(int fd, StatResult *sr, Error *err) {
   return;
 }
 
-void file__change_dir(const char *path, Error *err) {
+void file__change_dir(const char *restrict path, Error *restrict err) {
   // NOTE: No permission checks here as directory permissions are ignored
 
   if (chdir(path) < 0) {
@@ -608,7 +608,7 @@ void file__change_dir(const char *path, Error *err) {
 
 // Changes FILE permissions (only for user - single user OS,
 // 0[use][ignore][ignore])
-void file__permit(const char *path, int flags, Error *err) {
+void file__permit(const char *restrict path, int flags, Error *restrict err) {
   // permissions check
   struct stat st;
   bool file_exists = (stat(path, &st) == 0);
