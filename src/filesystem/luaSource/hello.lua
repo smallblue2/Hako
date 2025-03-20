@@ -1,1 +1,1 @@
-output("Hello World!")
+output(inspect(process.argv))

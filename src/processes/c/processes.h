@@ -41,7 +41,7 @@ bool proc__is_stdout_pipe(Error *err);
 bool proc__is_stdin_pipe(Error *err);
 
 // Processes
-int proc__create(const char *restrict buf, int len, bool pipe_stdin, bool pipe_stdout, Error *restrict err);
+int proc__create(const char *restrict buf, int len, const char *restrict *args, int args_len, bool pipe_stdin, bool pipe_stdout, Error *restrict err);
 int proc__wait(int pid, Error *err);
 void proc__kill(int pid, Error *err);
 Process* proc__list(int *restrict length, Error *restrict err); // WARNING: PROCESS* RETURN VALUE MUST BE FREED
