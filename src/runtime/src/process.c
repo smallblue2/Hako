@@ -4,34 +4,68 @@
 #include "shared.h"
 #include "unistd.h"
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../processes/c/processes.h"
 
 typedef struct {
   bool pipe_in;
   bool pipe_out;
+  const char **args;
+  int args_len;
 } process__create_opts;
 
 int lprocess__create(lua_State *L) {
-  lua_settop(L, 2);
   const char *path = luaL_checkstring(L, 1);
 
   process__create_opts opts = {
     .pipe_in = false,
     .pipe_out = false,
+    .args = NULL,
+    .args_len = 0,
   };
 
   if (lua_istable(L, 2)) {
     lua_getfield(L, 2, "pipe_in");
-    opts.pipe_in = checkboolean(L, -1);
+    if (lua_isnil(L, -1)) lua_pop(L, 1);
+    else {
+      opts.pipe_in = checkboolean(L, -1);
+    }
+
     lua_getfield(L, 2, "pipe_out");
-    opts.pipe_out = checkboolean(L, -1);
+    if (lua_isnil(L, -1)) lua_pop(L, 1);
+    else {
+      opts.pipe_out = checkboolean(L, -1);
+    }
+
+    lua_getfield(L, 2, "argv");
+    if (lua_isnil(L, -1)) lua_pop(L, 1);
+    else {
+      luaL_checktype(L, -1, LUA_TTABLE); // ensure argv is a table
+
+      lua_Integer len = luaL_len(L, -1);
+      assert(len <= INT_MAX); // the below cast should not narrow
+
+      opts.args_len = (int)len;
+      opts.args = malloc(sizeof(char *) * len);
+      if (opts.args == NULL) {
+        luaL_error(L, "out of memory");
+        return 0;
+      }
+
+      for (lua_Integer li = 1; li <= len; li++) {
+        lua_rawgeti(L, -1, li);
+        opts.args[li - 1] = luaL_checkstring(L, -1);
+      }
+    }
   }
 
   Error err = 0;
   int len = strlen(path);
-  int pid = proc__create(path, len, opts.pipe_in, opts.pipe_out, &err);
+  int pid = proc__create(path, len, opts.args, opts.args_len, opts.pipe_in, opts.pipe_out, &err);
+  if (opts.args != NULL) free(opts.args);
   if (err != 0) {
     lua_pushnil(L);
     lua_pushnumber(L, err);
@@ -230,7 +264,7 @@ int lprocess__isatty(lua_State *L) {
 
 int lprocess__exit(lua_State *L) {
   int exit_code = luaL_checknumber(L, 1);
-  Error err;
+  Error err = 0;
   proc__exit(exit_code, &err);
   if (err != 0) {
     lua_pushnumber(L, err);
@@ -240,22 +274,58 @@ int lprocess__exit(lua_State *L) {
   return 1;
 }
 
-// +1 for sentinal '\0'
-// static char input_buf[BUFSIZ + 1] = {0};
-//
-// int lprocess__input(lua_State *L) {
-//   Error err = 0;
-//   int input_read = proc__input(input_buf, BUFSIZ, &err);
-//   if (err != 0) {
-//     lua_pushnil(L);
-//     lua_pushnumber(L, err);
-//     return 2;
-//   }
-//   input_buf[input_read] = '\0';
-//   lua_pushstring(L, input_buf);
-//   lua_pushnil(L);
-//   return 2;
-// }
+// NOTE: returns "" on EOF
+int lprocess__input(lua_State *L) {
+  static char stream_buf[BUFSIZ] = {0};
 
-// int proc__input_all(char *buf, int len, Error *err);
-// int proc__input_line(char *buf, int len, Error *err);
+  Error err = 0;
+  proc__input(stream_buf, BUFSIZ, &err);
+  if (err != 0) {
+    lua_pushnil(L);
+    lua_pushnumber(L, err);
+    return 2;
+  }
+
+  lua_pushstring(L, stream_buf);
+  lua_pushnil(L);
+  return 2;
+}
+
+int lprocess__input_all(lua_State *L) {
+  Error err = 0;
+  char *read_bytes = proc__input_all(&err);
+  if (err != 0) {
+    lua_pushnil(L);
+    lua_pushnumber(L, err);
+    return 2;
+  }
+  lua_pushstring(L, read_bytes);
+  lua_pushnil(L);
+  free(read_bytes);
+  return 2;
+}
+
+int lprocess__input_line(lua_State *L) {
+  Error err = 0;
+  char *read_bytes = proc__input_line(&err);
+  if (err != 0) {
+    lua_pushnil(L);
+    lua_pushnumber(L, err);
+    return 2;
+  }
+  lua_pushstring(L, read_bytes);
+  lua_pushnil(L);
+  free(read_bytes);
+  return 2;
+}
+
+int lprocess__close_input(lua_State *L) {
+  Error err = 0;
+  proc__close_input(&err);
+  if (err != 0) {
+    lua_pushnumber(L, err);
+    return 1;
+  }
+  lua_pushnil(L);
+  return 1;
+}

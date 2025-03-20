@@ -79,11 +79,12 @@ async function initWorkerForProcess(data) {
       changeState(ProcessStates.RUNNING);
       return exitCode;
     },
-    create: (luaPath, pipeStdin = false, pipeStdout = false) => {
+    create: (luaPath, args = [], pipeStdin = false, pipeStdout = false) => {
       // Tell the manager we'd like to create a process
       self.postMessage({
         op: ProcessOperations.CREATE_PROCESS,
         luaPath,
+        args,
         sendBackBuffer: self.proc.signal.getBuffer(),
         requestor: self.proc.pid,
         pipeStdin,

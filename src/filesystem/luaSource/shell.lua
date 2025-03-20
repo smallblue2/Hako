@@ -1,16 +1,9 @@
-output("cathal smells")
-output(inspect(process.argv))
-local sr, err = file.stat("/persistent/sys/")
+local pid, err = process.create("/persistent/sys/hello.lua", { argv = {"--help"} })
 if err ~= nil then
-  output(errors.as_string(err))
-  process.exit(1)
+  output(errors.as_string())
+  return
 end
-output(inspect(sr))
-sr, err = file.stat("/persistent/sys/shell.lua")
-if err ~= nil then
-  output(errors.as_string(err))
-  process.exit(1)
-end
-output(inspect(sr))
--- output(inspect(select(1, file.stat("/persistent/sys/"))))
--- output(inspect(select(1, file.stat("/persistent/sys/shell.lua"))))
+process.start(pid)
+output("Process started, now waiting ...")
+process.wait(pid)
+output("Child process finished")

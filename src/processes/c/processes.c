@@ -91,9 +91,13 @@ EM_JS(int, proc__wait, (int pid, Error *err), {
 })
 
 // proc__create(char *buf, int len, int pipe_stdin, int pipe_stdout, Error *err)
-EM_JS(int, proc__create, (const char *restrict buf, int len, bool pipe_stdin, bool pipe_stdout, Error *restrict err), {
-  var luaPath = UTF8ToString(buf, len);
-  var createdPID = self.proc.create(luaPath, pipe_stdin, pipe_stdout);
+EM_JS(int, proc__create, (const char *restrict buf, int len, const char *restrict *args, int args_len, bool pipe_stdin, bool pipe_stdout, Error *restrict err), {
+  let jsArgs = [];
+  for (let i = 0; i < args_len; i++) {
+    jsArgs.push(UTF8ToString(getValue(args + i, 'i8*')));
+  }
+  let luaPath = UTF8ToString(buf, len);
+  let createdPID = self.proc.create(luaPath, jsArgs, pipe_stdin, pipe_stdout);
   if (createdPID < 0) {
     setValue(err, createdPID, 'i32');
     return -1;
@@ -159,7 +163,6 @@ EM_JS(bool, proc__is_stdout_pipe, (Error *err), {
 int proc__input(char *restrict buf, int max_bytes, Error *restrict err) {
   if (proc__is_stdin_pipe(err)) {
     if (*err < 0) {
-      printf("FAIL\n");
       return -1;
     }
     return proc__input_pipe(buf, max_bytes, err);
