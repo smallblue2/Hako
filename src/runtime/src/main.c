@@ -86,8 +86,8 @@ void set_argv(lua_State *L) {
 void setup_fs(void) {
 #ifdef __EMSCRIPTEN__
   MAIN_THREAD_EM_ASM({
-    FS.mkdir("/persistent");
     try {
+      FS.mkdir("/persistent");
       FS.mount(PROXYFS, { root: "/persistent", fs: window._FSM.FS }, "/persistent");
     } catch (err) {
       console.error("[JS] Failed to mount proxy filesystem:", err);
@@ -101,14 +101,14 @@ void setup_fs(void) {
             console.log("[JS] Sync completed succesfully!");
           }
         });
+
+    FS.chdir("/persistent");
   });
 #endif
 }
 
 int main(void) {
   lua_State *L = luaL_newstate();
-
-  setup_fs();
 
   // We want to have control over what builtin
   // lua functions we expose, so we very clearly
@@ -129,7 +129,11 @@ int main(void) {
   }
   lua_setglobal(L, "inspect");
 
-  Error err;
+  // We need to run this after reading static files, as we overrite the default
+  // root mountpoint
+  setup_fs();
+
+  Error err = 0;
   char *luaCodeBuffer = proc__get_lua_code(&err);
   if (err < 0) {
     fprintf(stderr, "Failed to load code from FS. Err: %d\n", err);

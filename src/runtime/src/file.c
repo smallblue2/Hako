@@ -1,5 +1,9 @@
 #include "../../filesystem/src/main.h"
 #include "file.h"
+#include "shared.h"
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <lauxlib.h>
 #include <lua.h>
@@ -30,6 +34,13 @@ int lfile__open(lua_State *L) {
 
   const char *path = luaL_checkstring(L, 1);
   const char *flagss = luaL_checkstring(L, 2);
+
+  path = absolute(path);
+  if (path == NULL) {
+    lua_pushnil(L);
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 2;
+  }
 
   bool read = can_read_s(flagss);
   bool write = can_write_s(flagss);
@@ -172,6 +183,13 @@ int lfile__goto(lua_State *L) {
 int lfile__remove(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
+
+  path = absolute(path);
+  if (path == NULL) {
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 1;
+  }
+
   Error err;
   file__remove(path, &err);
   if (err != 0) {
@@ -189,6 +207,19 @@ int lfile__move(lua_State *L) {
   lua_settop(L, 2);
   const char *old_path = luaL_checkstring(L, 1);
   const char *new_path = luaL_checkstring(L, 2);
+
+  old_path = absolute(old_path);
+  if (old_path == NULL) {
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 1;
+  }
+
+  new_path = absolute(new_path);
+  if (new_path == NULL) {
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 1;
+  }
+
   Error err;
   file__move(old_path, new_path, &err);
   if (err != 0) {
@@ -205,6 +236,13 @@ int lfile__move(lua_State *L) {
 int lfile__make_dir(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
+
+  path = absolute(path);
+  if (path == NULL) {
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 1;
+  }
+
   Error err;
   file__make_dir(path, &err);
 
@@ -222,6 +260,13 @@ int lfile__make_dir(lua_State *L) {
 int lfile__remove_dir(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
+
+  path = absolute(path);
+  if (path == NULL) {
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 1;
+  }
+
   Error err;
   file__remove_dir(path, &err);
   if (err != 0) {
@@ -238,6 +283,13 @@ int lfile__remove_dir(lua_State *L) {
 int lfile__change_dir(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
+
+  path = absolute(path);
+  if (path == NULL) {
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 1;
+  }
+
   Error err;
   file__change_dir(path, &err);
   if (err != 0) {
@@ -254,6 +306,13 @@ int lfile__change_dir(lua_State *L) {
 int lfile__read_dir(lua_State *L) {
   lua_settop(L, 2);
   const char *path = luaL_checkstring(L, 1);
+
+  path = absolute(path);
+  if (path == NULL) {
+    lua_pushnil(L);
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 2;
+  }
 
   Entry entry = {0};
   Error err = 0;
@@ -366,6 +425,14 @@ void statr_as_l(lua_State *L, StatResult *sr) {
 int lfile__stat(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
+
+  path = absolute(path);
+  if (path == NULL) {
+    lua_pushnil(L);
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 2;
+  }
+
   StatResult sr;
   Error err;
   file__stat(path, &sr, &err);
@@ -422,13 +489,19 @@ int lfile__fdstat(lua_State *L) {
 }
 
 /**
- * @@ file.permit(fd: number, flags: string) -> (err: number | nil)
+ * @@ file.permit(path: string, flags: string) -> (err: number | nil)
  */
 int lfile__permit(lua_State *L) {
   lua_settop(L, 2);
 
   const char *path = luaL_checkstring(L, 1);
   const char *flagss = luaL_checkstring(L, 2);
+
+  path = absolute(path);
+  if (path == NULL) {
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 1;
+  }
 
   bool read = can_read_s(flagss);
   bool write = can_write_s(flagss);
