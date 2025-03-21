@@ -28,3 +28,10 @@ while #line ~= 0 do
   prompt()
   line = input_line()
 end
+process.start(pid)
+output("Process started, now waiting ...")
+process.wait(pid)
+output("Child process finished")
+output("Waiting for some input...")
+input_all()
+terminal.clear()
