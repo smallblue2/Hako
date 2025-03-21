@@ -1,10 +1,30 @@
-local pid, err = process.create("/persistent/sys/hello.lua", { argv = {"--help"} })
-if err ~= nil then
-  output(errors.as_string(err))
-  return
+function prompt()
+  output("$ ", { newline = false })
 end
-assert(pid ~= nil)
-process.start(pid)
-output("Process started, now waiting ...")
-process.wait(pid)
-output("Child process finished")
+
+function parse_cmd(line)
+  local parsed = {}
+  for token in string.gmatch(line, "[^%s]+") do
+    table.insert(parsed, token)
+  end
+  return parsed
+end
+
+prompt()
+local line = input_line()
+while #line ~= 0 do
+  local cmd = parse_cmd(line)
+  if cmd[1] == "ls" then
+    local entries = file.read_dir(".")
+    for _, entry in ipairs(entries) do
+      output(entry)
+    end
+  elseif cmd[1] == "cd" then
+    local err = file.change_dir(cmd[2])
+    if err ~= nil then
+      output(string.format("cd: %s", errors.as_string(err)))
+    end
+  end
+  prompt()
+  line = input_line()
+end
