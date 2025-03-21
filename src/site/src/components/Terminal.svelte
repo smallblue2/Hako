@@ -10,7 +10,7 @@
   import { openpty } from "xterm-pty";
   import { onMount } from "svelte";
 
-  let { id, wasmModule, layerFromId } = $props();
+  let { id, layerFromId } = $props();
 
   let min = 150;
 
@@ -59,8 +59,25 @@
     }
   });
 
-  $effect(async () => {
-    terminal = new Terminal({ fontFamily: "JetBrainsMono-Regular" });
+  function onClose() {
+    console.log(`Terminal with PID ${pid} is closing.`);
+    window.ProcessManager.killProcess(pid);
+  }
+
+  onMount(async () => {
+    let { initWidth, initHeight } = lib.getInitWindowSize();
+    width = initWidth;
+    height = initHeight;
+    root.style.width = initWidth.toString() + "px";
+    root.style.height = initHeight.toString() + "px";
+
+    window.addEventListener("resize", () => {
+      if (maximized) {
+        fitAddon.fit();
+      }
+    })
+
+    terminal = new Terminal({ fontFamily: "monospace", fontSize: 20 });
     terminal.open(root);
 
     const pty = openpty();
@@ -76,25 +93,6 @@
     // Create a process which will start straight away and wont have its streams piped
     // INFO: This will be the shell when it's created
     pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false, start: true});
-  })
-
-  function onClose() {
-    console.log(`Terminal with PID ${pid} is closing.`);
-    window.ProcessManager.killProcess(pid);
-  }
-
-  onMount(() => {
-    let { initWidth, initHeight } = lib.getInitWindowSize();
-    width = initWidth;
-    height = initHeight;
-    root.style.width = initWidth.toString() + "px";
-    root.style.height = initHeight.toString() + "px";
-
-    window.addEventListener("resize", () => {
-      if (maximized) {
-        fitAddon.fit();
-      }
-    })
   })
 </script>
 
