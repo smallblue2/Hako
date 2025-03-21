@@ -8,7 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "../processes/c/processes.h"
+#include "../../filesystem/src/main.h"
 
 typedef struct {
   bool pipe_in;
@@ -19,6 +21,12 @@ typedef struct {
 
 int lprocess__create(lua_State *L) {
   const char *path = luaL_checkstring(L, 1);
+
+  path = absolute(path);
+  if (path == NULL) {
+    lua_pushnumber(L, E_DOESNTEXIST);
+    return 1;
+  }
 
   process__create_opts opts = {
     .pipe_in = false,
