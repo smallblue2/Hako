@@ -20,7 +20,7 @@ export const applications = $state([
     instances: 0,
     alwaysShow: true,
     create: () => {
-      openWindow(TERMINAL, Terminal, { props: { wasmModule: "/runtime.mjs?url" }});
+      openWindow(TERMINAL, Terminal);
     },
   },
   {
