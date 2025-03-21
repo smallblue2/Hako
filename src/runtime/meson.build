@@ -41,6 +41,8 @@ custom_target('copy_static_dir',
 if host_machine.system() == 'emscripten'
   sources = files('src/main.c', 'src/file.c', 'src/errors.c', 'src/process.c', 'src/shared.c', 'src/terminal.c')
   executable('runtime', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lproxyfs.js', 'libfilesystem.a', '-Wl,--whole-archive', 'libprocesses.a', '-pthread', '--post-js=post.js', '--pre-js=pre.js', '--js-library=emscripten-pty.js', '-sSHARED_MEMORY=1', '-sPROXY_TO_PTHREAD', '-sEXPORT_ES6', '-sENVIRONMENT=web,worker', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue,wasmMemory', '-sEXIT_RUNTIME=1', '--embed-file', 'static/'], dependencies: [lua_dep])
+
+  executable('runtime-node', sources, c_args: ['-std=gnu2x', '-O0', '-Wall', '-Wextra', '-pthread'], link_args: ['-lproxyfs.js', 'libfilesystem.a', '-Wl,--whole-archive', 'libprocesses.a', '-pthread', '--post-js=post.js', '--pre-js=pre.js', '-sSHARED_MEMORY=1', '-sPROXY_TO_PTHREAD', '-sEXPORT_ES6', '-sENVIRONMENT=node', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue,wasmMemory', '-sEXIT_RUNTIME=1', '--embed-file', 'static/', '-sASSERTIONS=2'], dependencies: [lua_dep])
 else
   sources = files('src/file.c', 'src/errors.c', 'src/process.c', 'src/shared.c', 'src/terminal.c')
   libruntime = library('runtime', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-D_FILE_OFFSET_BITS=64'], dependencies: [lua_dep.as_link_whole()], install: true)

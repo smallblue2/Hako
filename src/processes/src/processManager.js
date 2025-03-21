@@ -3,6 +3,9 @@ import Signal from "./signal.js";
 import ProcessTable from "./processTable.js";
 import Pipe from "./pipe.js";
 
+// Allow node to also run (does not have window object)
+let isNode = typeof window === 'undefined';
+
 // The max number of PIDs available to our system
 const MAX_PID = 128;
 
@@ -20,12 +23,15 @@ export default class ProcessManager {
    */
   #processesTable;
   #waitingProcesses;
-  #processesToBeInitialised
+  #processesToBeInitialised;
+  #Filesystem;
+  #onExit
 
   /**
    * Creates a new ProcessManager instance with a maximum PID capacity.
    */
-  constructor() {
+  constructor(onExit = null) {
+    this.#Filesystem = isNode ? globalThis.Filesystem : window.Filesystem;
     /**
      * The ProcessTable instance that stores all process data.
      * @private
@@ -33,6 +39,7 @@ export default class ProcessManager {
     this.#processesTable = new ProcessTable(MAX_PID);
     this.#waitingProcesses = new Map();
     this.#processesToBeInitialised = [];
+    this.#onExit = onExit;
   }
 
   /**
@@ -45,7 +52,7 @@ export default class ProcessManager {
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
   async createProcess({ luaPath = "/persistent/sys/shell.lua", args=[], slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null, start = false }) {
-    if (slave === undefined && (pipeStdin == false || pipeStdout == false)) {
+    if (!isNode && slave === undefined && (pipeStdin == false || pipeStdout == false)) {
       throw new CustomError(CustomError.symbols.PTY_PROCESS_NO_PTY);
     }
     if (!Array.isArray(args)) {
@@ -56,13 +63,13 @@ export default class ProcessManager {
 
     // Check the filesystem for the luaPath
     let luaCode = ''
-    let { error, fd } = window.Filesystem.open(luaPath, "r");
+    let { error, fd } = this.#Filesystem.open(luaPath, "r");
     if (fd < 0) {
       throw new CustomError(CustomError.symbols.LUA_FILE_NO_EXIST);
     } else {
-      let readResp = window.Filesystem.readAll(fd);
+      let readResp = this.#Filesystem.readAll(fd);
       luaCode = readResp.data;
-      window.Filesystem.close(fd);
+      this.#Filesystem.close(fd);
     }
 
     // Allocate space in the process table and retrieve references to the worker and channels
@@ -133,6 +140,7 @@ export default class ProcessManager {
   }
 
   killProcess(pid) {
+    console.log("KILL:", pid);
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, ProcessExitCodeConventions.KILLED);
   }
@@ -140,6 +148,7 @@ export default class ProcessManager {
   #exitProcess(pid, exitCode) {
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, exitCode);
+    if (this.#onExit !== null) this.#onExit({ pid, exitCode });
   }
 
   #stopAndCleanupProcess(pid) {
@@ -265,6 +274,7 @@ export default class ProcessManager {
           } else {
             sendBackSignal.write(err.code);
           }
+          sendBackSignal.wake();
         }
 
         try {
@@ -277,6 +287,7 @@ export default class ProcessManager {
           } else {
             sendBackSignal.write(err.code);
           }
+          sendBackSignal.wake();
         }
         // INFO: Calling process is awoken in the processTable when the created process is
         //       registered to an emscripten worker
@@ -343,9 +354,12 @@ export default class ProcessManager {
         break;
       }
       case ProcessOperations.EXIT_PROCESS: {
+        let sendBackSignal = new Signal(e.data.sendBackBuffer);
+        sendBackSignal.wake();
         let exitCode = e.data.exitCode;
         let pid = e.data.pid;
         this.#exitProcess(pid, exitCode);
+        break;
       }
       default:
         // Unknown request, forward onto emscripten's onmessage - as we're intercepting

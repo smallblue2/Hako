@@ -94,10 +94,10 @@ EM_JS(int, proc__wait, (int pid, Error *err), {
 EM_JS(int, proc__create, (const char *restrict buf, int len, const char *restrict *args, int args_len, bool pipe_stdin, bool pipe_stdout, Error *restrict err), {
   let jsArgs = [];
   for (let i = 0; i < args_len; i++) {
-    jsArgs.push(UTF8ToString(getValue(args + i, 'i8*')));
+    jsArgs.push(UTF8ToString(getValue(args + (i * 4), 'i8*')));
   }
   let luaPath = UTF8ToString(buf, len);
-  let createdPID = self.proc.create(luaPath, jsArgs, pipe_stdin, pipe_stdout);
+  let createdPID = self.proc.create(luaPath, jsArgs, Boolean(pipe_stdin), Boolean(pipe_stdout));
   if (createdPID < 0) {
     setValue(err, createdPID, 'i32');
     return -1;
@@ -122,8 +122,8 @@ EM_JS(Process*, proc__list, (int *restrict length, Error *restrict err), {
     procJSON.forEach((item, index) => {
       const off = index * 16;
       setValue(memPointer + off, item.pid, 'i32');
-      setValue(memPointer + off + 4, item.alive, 'i32');
-      setValue(memPointer + off + 8, item.created, 'i32');
+      setValue(memPointer + off + 4, Math.floor(item.alive), 'i32');
+      setValue(memPointer + off + 8, Math.floor(item.created), 'i32');
       setValue(memPointer + off + 12, item.state, 'i32');
     });
     setValue(err, 0, 'i32');

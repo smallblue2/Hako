@@ -55,6 +55,7 @@ static const luaL_Reg process_module[] = {
   {"input_all", lprocess__input_all},
   {"input_line", lprocess__input_line},
   {"close_input", lprocess__close_input},
+  {"close_output", lprocess__close_output},
   {NULL, NULL},
 };
 

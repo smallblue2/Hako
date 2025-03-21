@@ -7,6 +7,7 @@ int lprocess__input(lua_State *L);
 int lprocess__input_all(lua_State *L);
 int lprocess__input_line(lua_State *L);
 int lprocess__close_input(lua_State *L);
+int lprocess__close_output(lua_State *L);
 int lprocess__output(lua_State *L);
 
 int lprocess__wait(lua_State *L);

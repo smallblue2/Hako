@@ -63,6 +63,12 @@ export function initialiseAPI(Module) {
   Filesystem._UTF8Encoder = new TextEncoder();
   Filesystem._UTF8Decoder = new TextDecoder("utf-8");
 
+  // For node based tests
+  Filesystem.initialiseFSNode = Module.cwrap(
+    'file__initialiseFSNode', // Function name
+    null, // Return type
+    [], // Argument types
+  )
   // Cwraps [Function Signatures]
   Filesystem.initialiseFS = Module.cwrap(
     'file__initialiseFS', // Function name

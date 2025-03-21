@@ -103,7 +103,7 @@ export default class ProcessTable {
       },
       pty: processData.slave,
       pid: newProcessPID,
-      noExitRuntime: false // ensures exit when pthread finishes
+      noExitRuntime: false
     })
 
     process.emscriptenBuffer = Module.wasmMemory.buffer;

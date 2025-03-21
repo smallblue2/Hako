@@ -27,7 +27,7 @@
       }
     })();
 
-    LoadFilesystem.then((Module) => {
+    LoadFilesystem.then(async (Module) => {
       // Initialised the Filesystem API
       initialiseAPI(Module);
       // Attach to the global scope
@@ -36,13 +36,13 @@
       window._FSM = Module;
 
       window.Filesystem.initialiseFS();
+    
+      let { default: ProcessManager } = await import("/processManager.js?url");
+      window.ProcessManager = new ProcessManager();
+      console.log("Created process manager");
     }).catch((err) => {
       console.error("Failed to define filesystem API:", err);
     });
-    
-    let { default: ProcessManager } = await import("/processManager.js?url");
-    window.ProcessManager = new ProcessManager();
-    console.log("Created process manager");
   })
 </script>
 
