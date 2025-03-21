@@ -5,7 +5,18 @@
 #include "file.h"
 #include "process.h"
 #include "errors.h"
+#include "terminal.h"
 #include "lauxlib.h"
+
+typedef struct {
+  const char *name;
+  const luaL_Reg *registry;
+} Named_Module;
+
+typedef struct {
+  const char *namespace;
+  const char *function;
+} Namespaced_Function;
 
 #define FILE_MODULE_NAME "file"
 static const luaL_Reg file_module[] = {
@@ -53,10 +64,19 @@ static const luaL_Reg errors_module[] = {
   {NULL, NULL},
 };
 
-typedef struct {
-  const char *namespace;
-  const char *function;
-} Namespaced_Function;
+#define TERMINAL_MODULE_NAME "terminal"
+static const luaL_Reg terminal_module[] = {
+  {"clear", lterminal__clear},
+  {NULL, NULL},
+};
+
+static const Named_Module custom_modules[] = {
+  {FILE_MODULE_NAME, file_module},
+  {PROCESS_MODULE_NAME, process_module},
+  {ERRORS_MODULE_NAME, errors_module},
+  {TERMINAL_MODULE_NAME, terminal_module},
+  {NULL, NULL}
+};
 
 // Put functions you want to alias to the global namespace in here
 static const Namespaced_Function globals[] = {
