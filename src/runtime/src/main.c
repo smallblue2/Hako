@@ -7,18 +7,25 @@
 #include "../../filesystem/src/main.h"
 #include "../../processes/c/processes.h"
 
+#include "lauxlib.h"
 #include "lib.h"
 #include <unistd.h>
+
+void newlib(lua_State *L, const luaL_Reg *registry) {
+  luaL_checkversion(L);
+  int len;
+  for (len = 0; registry[len].name != NULL; len++);
+  lua_createtable(L, 0, len);
+  luaL_setfuncs(L, registry, 0);
+}
 
 void export_custom_apis(lua_State *L) {
   int top = lua_gettop(L);
 
-  luaL_newlib(L, file_module);
-  lua_setglobal(L, FILE_MODULE_NAME);
-  luaL_newlib(L, errors_module);
-  lua_setglobal(L, ERRORS_MODULE_NAME);
-  luaL_newlib(L, process_module);
-  lua_setglobal(L, PROCESS_MODULE_NAME);
+  for (int i = 0; custom_modules[i].name != NULL; i++) {
+    newlib(L, custom_modules[i].registry);
+    lua_setglobal(L, custom_modules[i].name);
+  }
 
   const Namespaced_Function* it = globals;
   while (it->namespace != NULL) {
