@@ -1,6 +1,7 @@
 export default class Signal {
   constructor(buffer = null) {
-    // Allocate extra 8 bytes for control
+    // Allocate extra 12 bytes for control 
+    // Three 32-bit integers for [readPtr, writePtr, wakeCounter] | [Data...]
     this.length = 16384;
     this.atomicsOffset = 12;
     this.attachBuffer(buffer || new SharedArrayBuffer(this.length + this.atomicsOffset));
