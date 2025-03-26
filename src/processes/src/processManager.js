@@ -232,6 +232,15 @@ export default class ProcessManager {
       case ProcessOperations.WAIT_ON_PID: {
         let requestor = e.data.requestor;
         let waiting_on = e.data.waiting_for;
+        let sendBackSignal = new Signal(e.data.sendBackBuffer);
+
+        // Check if process to await on exists
+        try {
+          this.getProcess(waiting_on);
+        } catch (e) {
+          if (!(e instanceof CustomError)) console.log("[PROC_MAN] Error waiting on a process:", e);
+          sendBackSignal.wake();
+        }
 
         // Store (waiting_for: Set{ requestor })
         let waitingSet = this.#waitingProcesses.get(waiting_on);
