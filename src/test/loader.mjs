@@ -1,8 +1,10 @@
+import fs from "node:fs";
+
 const importMap = {
-  "/runtime.js?url": "../../build/runtime/runtime-node.js",
-  "/signal.js?url": "../../build/runtime/signal.js",
-  "/pipe.js?url": "../../build/runtime/pipe.js",
-  "/common.js?url": "../../build/runtime/common.js",
+  "/runtime.mjs?url": "../../build/runtime/runtime-node.mjs",
+  "/signal.mjs?url": "../../build/runtime/signal.mjs",
+  "/pipe.mjs?url": "../../build/runtime/pipe.mjs",
+  "/common.mjs?url": "../../build/runtime/common.mjs",
   "/runtime-node.wasm?url": "../../build/runtime/runtime-node.wasm"
 }
 

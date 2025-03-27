@@ -3,14 +3,14 @@
   import { onMount } from "svelte";
 
   onMount(async () => {
-    let { initialiseAPI, Filesystem } = await import("/api.js?url");
+    let { initialiseAPI, Filesystem } = await import("/api.mjs?url");
     window.isFilesystemInitialised = false;
 
     // Define a promise for loading the Emscripten module
     const LoadFilesystem = (async () => {
       try {
         // Dynamically load the emscripten module
-        const { default: initEmscripten } = await import("/filesystem.js?url");
+        const { default: initEmscripten } = await import("/filesystem.mjs?url");
 
         // Initialise the emscripten module
         const Module = await initEmscripten({
@@ -37,7 +37,7 @@
 
       window.Filesystem.initialiseFS();
     
-      let { default: ProcessManager } = await import("/processManager.js?url");
+      let { default: ProcessManager } = await import("/processManager.mjs?url");
       window.ProcessManager = new ProcessManager();
       console.log("Created process manager");
     }).catch((err) => {

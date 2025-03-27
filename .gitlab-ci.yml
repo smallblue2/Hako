@@ -104,25 +104,25 @@ validate_artefact_persistence:
     - build_runtime
   script:
     # Ensure artifacts have persisted
-    - test -e build/filesystem/filesystem.js
+    - test -e build/filesystem/filesystem.mjs
     - test -e build/filesystem/filesystem.wasm
     - test -e build/filesystem/index.html
     - test -e build/filesystem/index.js
-    - test -e build/filesystem/api.js
-    - test -e build/filesystem/definitions.js
-    - test -e build/filesystem/filesystem.js
+    - test -e build/filesystem/api.mjs
+    - test -e build/filesystem/definitions.mjs
+    - test -e build/filesystem/filesystem.mjs
     - test -e build/filesystem/filesystem.wasm
-    - test -e build/processes/processes.js
+    - test -e build/processes/processes.mjs
     - test -e build/processes/processes.wasm
-    - test -e build/processes/signal.js
-    - test -e build/processes/common.js
-    - test -e build/processes/pipe.js
-    - test -e build/processes/processTable.js
-    - test -e build/processes/processManager.js
-    - test -e build/processes/process.js
-    - test -e build/runtime/runtime.js
+    - test -e build/processes/signal.mjs
+    - test -e build/processes/common.mjs
+    - test -e build/processes/pipe.mjs
+    - test -e build/processes/processTable.mjs
+    - test -e build/processes/processManager.mjs
+    - test -e build/processes/process.mjs
+    - test -e build/runtime/runtime.mjs
     - test -e build/runtime/runtime.wasm
-    - test -e build/runtime/runtime-node.js
+    - test -e build/runtime/runtime-node.mjs
     - test -e build/runtime/runtime-node.wasm
 
 validate_wasm:

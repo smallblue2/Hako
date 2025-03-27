@@ -1,3 +1,3 @@
-import ProcessManager from "./src/processManager.js";
+import ProcessManager from "./src/processManager.mjs";
 
 window.ProcessManager = new ProcessManager();

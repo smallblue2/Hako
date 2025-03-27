@@ -1,7 +1,7 @@
-import { ProcessOperations, StreamDescriptor, CustomError, ProcessExitCodeConventions } from "./common.js";
-import Signal from "./signal.js";
-import ProcessTable from "./processTable.js";
-import Pipe from "./pipe.js";
+import { ProcessOperations, StreamDescriptor, CustomError, ProcessExitCodeConventions } from "./common.mjs";
+import Signal from "./signal.mjs";
+import ProcessTable from "./processTable.mjs";
+import Pipe from "./pipe.mjs";
 
 // Allow node to also run (does not have window object)
 let isNode = typeof window === 'undefined';

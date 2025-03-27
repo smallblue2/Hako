@@ -1,6 +1,6 @@
 import { ProcessStates, ProcessOperations } from "./common.js";
-import Pipe from './pipe.js';
-import Signal from './signal.js';
+import Pipe from './pipe.mjs';
+import Signal from './signal.mjs';
 
 // =============== FUNCTION TO OVERRIDE =============== 
 
@@ -162,7 +162,7 @@ class Process {
     // TODO: Change this to Lua runtime/interpreter
     try {
       // Load WASM
-      const {default: initEmscripten} = await import("/runtime.js?url");
+      const {default: initEmscripten} = await import("/runtime.mjs?url");
 
       console.log(Module.pty);
 

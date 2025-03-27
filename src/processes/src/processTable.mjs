@@ -1,6 +1,6 @@
-import { ProcessStates, CustomError } from "./common.js";
-import Pipe from "./pipe.js";
-import Signal from "./signal.js";
+import { ProcessStates, CustomError } from "./common.mjs";
+import Pipe from "./pipe.mjs";
+import Signal from "./signal.mjs";
 
 /**
  * The ProcessTable class is responsible for storing and tracking all
@@ -95,7 +95,7 @@ export default class ProcessTable {
 
     let newProcessPID = this.nextPID++;
 
-    const { default: initEmscripten } = await import("/runtime.js?url");
+    const { default: initEmscripten } = await import("/runtime.mjs?url");
 
     const Module = await initEmscripten({
       onRuntimeInitialized: () => {

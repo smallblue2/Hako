@@ -1,4 +1,4 @@
-import { O_CREAT, O_RDONLY, O_WRONLY, O_RDWR, errnoToString } from './definitions.js';
+import { O_CREAT, O_RDONLY, O_WRONLY, O_RDWR, errnoToString } from './definitions.mjs';
 
 export const Filesystem = {};
 

@@ -7,9 +7,9 @@ let ProcessManager
 // function runs in webworker with data posted from processManager in main thread
 async function initWorkerForProcess(data) {
   // Import process constructs
-  const { default: Signal } = await import("/signal.js?url");
-  const { default: Pipe } = await import("/pipe.js?url");
-  const { StreamDescriptor, ProcessStates, ProcessOperations, CustomError } = await import("/common.js?url");
+  const { default: Signal } = await import("/signal.mjs?url");
+  const { default: Pipe } = await import("/pipe.mjs?url");
+  const { StreamDescriptor, ProcessStates, ProcessOperations, CustomError } = await import("/common.mjs?url");
 
   function changeState(newState) {
     self.state = newState;

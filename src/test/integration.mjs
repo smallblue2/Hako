@@ -1,4 +1,4 @@
-import { initialiseAPI, Filesystem } from "../filesystem/api/api.js";
+import { initialiseAPI, Filesystem } from "../filesystem/api/api.mjs";
 import fs from "fs";
 import assert from "node:assert";
 
@@ -11,7 +11,7 @@ let _FSM;
 const LoadFilesystem = (async () => {
   try {
     // Dynamically load the emscripten module
-    const { default: initEmscripten } = await import("../../build/filesystem/filesystem.js");
+    const { default: initEmscripten } = await import("../../build/filesystem/filesystem.mjs");
 
     // Initialise the emscripten module
     const Module = await initEmscripten({
@@ -50,7 +50,7 @@ async function main() {
   Filesystem.write(fd, luaCode);
   Filesystem.close(fd);
 
-  let { default: ProcessManager } = await import("../../build/processes/processManager.js");
+  let { default: ProcessManager } = await import("../../build/processes/processManager.mjs");
   let procmgr = new ProcessManager(onExit);
   globalThis.ProcessManager = procmgr;
 
