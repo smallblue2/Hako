@@ -97,7 +97,7 @@ test-processes: processes
 test-integration: runtime
   #!/bin/sh
   set -e
-  node --disable-warning=ExperimentalWarning --experimental-loader ./test/loader.mjs test/integration.mjs
+  npm run test
 
 [working-directory('src/site')]
 site-run-dev:
