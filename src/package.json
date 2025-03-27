@@ -1,0 +1,14 @@
+{
+  "name": "src",
+  "version": "1.0.0",
+  "description": "Top level package",
+  "license": "MIT",
+  "author": "Cathal O'Grady",
+  "type": "module",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node --disable-warning=ExperimentalWarning --experimental-loader ./test/loader.mjs test/integration.mjs"
+  }
+}
