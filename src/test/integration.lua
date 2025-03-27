@@ -83,7 +83,7 @@ test("Pipes", function ()
       error("reader failed")
     end
     assert(inp ~= nil)
-    local fd, err = file.open("/persistent/return", "wc")
+    local fd, err = file.open("/return", "wc")
     if err ~= nil then
       output(err)
       error("reader failed")
@@ -92,23 +92,23 @@ test("Pipes", function ()
     file.close(fd)
   ]]
 
-  ensure_file("/persistent/pipe-writer.lua", writer_src)
-  ensure_file("/persistent/pipe-reader.lua", reader_src)
+  ensure_file("/pipe-writer.lua", writer_src)
+  ensure_file("/pipe-reader.lua", reader_src)
 
-  local wtr = unwrap("process.create", "/persistent/pipe-writer.lua", { pipe_in = true, pipe_out = true })
-  local rdr = unwrap("process.create", "/persistent/pipe-reader.lua", { pipe_in = true, pipe_out = false })
+  local wtr = unwrap("process.create", "/pipe-writer.lua", { pipe_in = true, pipe_out = true })
+  local rdr = unwrap("process.create", "/pipe-reader.lua", { pipe_in = true, pipe_out = false })
 
   unwrap("process.pipe", wtr, rdr)
   unwrap("process.start", rdr)
   unwrap("process.start", wtr)
   unwrap("process.wait", rdr)
 
-  check(data == filedata("/persistent/return"), "Reader outputted unexpected text")
-  unwrap("file.remove", "/persistent/return")
+  check(data == filedata("/return"), "Reader outputted unexpected text")
+  unwrap("file.remove", "/return")
 end)
 
 test("File does not exist", function()
-  local _, err = file.open("/persistent/thisdoesnotexist", "")
+  local _, err = file.open("/thisdoesnotexist", "")
   check(err ~= nil, "expected file.open to error")
   local strerr = errors.as_string(err)
   local experr = "No such file or directory"
@@ -116,7 +116,7 @@ test("File does not exist", function()
 end)
 
 test("File needs open write", function()
-  local fd = unwrap("file.open", "/persistent/newfile", "c")
+  local fd = unwrap("file.open", "/newfile", "c")
   assert(fd ~= nil)
   local err = file.write(fd, "xxx")
   check(err ~= nil, "expected file.write to error")
@@ -128,11 +128,11 @@ end)
 
 test("File read all", function()
   local testdata =  "InUtdrrM60vv52rA+bBM3XvwAnXLh2hsPk1RDMd4PK"
-  local fd = unwrap("file.open", "/persistent/datatoberead", "wc")
+  local fd = unwrap("file.open", "/datatoberead", "wc")
   unwrap("file.write", fd, testdata)
   unwrap("file.close", fd)
 
-  fd = unwrap("file.open", "/persistent/datatoberead", "r")
+  fd = unwrap("file.open", "/datatoberead", "r")
   assert(fd ~= nil)
   local data = unwrap("file.read_all", fd)
   check(data == testdata, "data returned from read_all did not match the testdata")
