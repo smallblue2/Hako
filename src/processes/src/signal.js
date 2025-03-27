@@ -1,6 +1,7 @@
 export default class Signal {
   constructor(buffer = null) {
-    // Allocate extra 8 bytes for control
+    // Allocate extra 12 bytes for control 
+    // Three 32-bit integers for [readPtr, writePtr, wakeCounter] | [Data...]
     this.length = 16384;
     this.atomicsOffset = 12;
     this.attachBuffer(buffer || new SharedArrayBuffer(this.length + this.atomicsOffset));
@@ -21,12 +22,25 @@ export default class Signal {
 
   // Sleeps a calling process
   sleep() {
-    Atomics.wait(this.control, 2, 0);
+    while (true) {
+      // Load the wake counter
+      let wakeCount = Atomics.load(this.control, 2);
+      // If there's a pending awake signal, consume it and return
+      if (wakeCount > 0) {
+        Atomics.sub(this.control, 2, 1);
+        break;
+      }
+      // Otherwise wait until counter changes
+      Atomics.wait(this.control, 2, wakeCount);
+    }
   }
 
   // Wakes any slept processes
   wake() {
-    Atomics.notify(this.control, 2);
+    // Increment wake counter
+    Atomics.add(this.control, 2, 1);
+    // Notify one waiting thread
+    Atomics.notify(this.control, 2, 1);
   }
 
   write(data) {

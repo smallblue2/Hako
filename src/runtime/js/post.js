@@ -71,6 +71,7 @@ async function initWorkerForProcess(data) {
       self.postMessage({
         op: ProcessOperations.WAIT_ON_PID,
         requestor: self.proc.pid,
+        sendBackBuffer: self.proc.signal.getBuffer(),
         waiting_for: pid
       });
       changeState(ProcessStates.SLEEPING);
