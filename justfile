@@ -5,7 +5,7 @@ default: build
 
 build: exported-runtime
 build-native: runtime-native
-test: test-filesystem test-runtime test-processes
+test: test-filesystem test-runtime test-processes test-integration
 
 reconfigure: reconfigure-filesystem reconfigure-processes reconfigure-runtime
 
@@ -92,6 +92,12 @@ test-processes: processes
   #!/bin/sh
   set -e
   npm run test
+
+[working-directory('src/')]
+test-integration: runtime
+  #!/bin/sh
+  set -e
+  node --disable-warning=ExperimentalWarning --experimental-loader ./test/loader.mjs test/integration.mjs
 
 [working-directory('src/site')]
 site-run-dev:
