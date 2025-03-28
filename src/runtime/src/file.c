@@ -515,7 +515,23 @@ int lfile__permit(lua_State *L) {
   Error err;
   file__permit(path, flags, &err);
   if (err != 0) {
-    lua_pushnumber(L, errno);
+    lua_pushnumber(L, err);
+    return 1;
+  }
+
+  lua_pushnil(L);
+  return 1;
+}
+
+int lfile__truncate(lua_State *L) {
+  int fd = luaL_checknumber(L, 1);
+  int length = luaL_checknumber(L, 2);
+  luaL_argcheck(L, length >= 0, 2, "length must be 0 or more");
+
+  Error err = 0;
+  file__truncate(fd, length, &err);
+  if (err != 0) {
+    lua_pushnumber(L, err);
     return 1;
   }
 
