@@ -80,6 +80,9 @@ export default class ProcessManager {
     // Enqueue process to be initialised
     this.#processesToBeInitialised.push([pid, callerSignal]);
 
+    // Start emscripten module
+    await this.#processesTable.startEmscripten(pid);
+
     // Return the PID for external reference
     return pid;
   }

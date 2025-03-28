@@ -95,24 +95,28 @@ export default class ProcessTable {
 
     let newProcessPID = this.nextPID++;
 
+    // Attach Module to process
+    // Return the allocated PID and increment it
+    return {
+      pid: newProcessPID,
+    };
+  }
+
+  async startEmscripten(pid) {
+    let process = this.processTable[pid];
+
     const { default: initEmscripten } = await import("/runtime.mjs?url");
 
     const Module = await initEmscripten({
       onRuntimeInitialized: () => {
         console.log("Runtime emscripten module loaded");
       },
-      pty: processData.slave,
-      pid: newProcessPID,
+      pty: process.pty,
+      pid: pid,
       noExitRuntime: false
     })
 
     process.emscriptenBuffer = Module.wasmMemory.buffer;
-
-    // Attach Module to process
-    // Return the allocated PID and increment it
-    return {
-      pid: newProcessPID,
-    };
   }
 
   registerWorker(pid, worker) {
