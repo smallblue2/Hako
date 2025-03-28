@@ -1,5 +1,5 @@
 import { workerData, parentPort } from 'worker_threads';
-import Pipe from '../src/pipe.js';
+import Pipe from '../src/pipe.mjs';
 
 const { buffer, exactBytes } = workerData;
 const pipe = new Pipe(0, buffer);
