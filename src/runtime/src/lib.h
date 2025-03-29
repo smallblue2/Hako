@@ -36,6 +36,7 @@ static const luaL_Reg file_module[] = {
   {"stat", lfile__stat},
   {"fdstat", lfile__fdstat},
   {"permit", lfile__permit},
+  {"truncate", lfile__truncate},
   {NULL, NULL},
 };
 
