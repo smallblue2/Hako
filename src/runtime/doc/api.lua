@@ -47,10 +47,11 @@ function file.write(fd, text) end
 
 ---Read some text from a file.
 ---@param fd number The file descriptor associated with the file to read from.
+---@param amt number The number of bytes to read
 ---@return string | nil text The text that was read.
 ---@return number | nil err Error code.
 ---@diagnostic disable-next-line: unused-local
-function file.read(fd) end
+function file.read(fd, amt) end
 
 ---Read all the text from a file.
 ---@param fd number The file descriptor associated with the file to read from.

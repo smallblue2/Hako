@@ -86,9 +86,12 @@ void set_argv(lua_State *L) {
 void setup_fs(void) {
 #ifdef __EMSCRIPTEN__
   MAIN_THREAD_EM_ASM({
+    const isNode = typeof window == "undefined";
+    const _FSM = isNode ? globalThis._FSM : window._FSM;
+
+    FS.mkdir("/persistent");
     try {
-      FS.mkdir("/persistent");
-      FS.mount(PROXYFS, { root: "/persistent", fs: window._FSM.FS }, "/persistent");
+      FS.mount(PROXYFS, { root: "/persistent", fs: _FSM.FS }, "/persistent");
     } catch (err) {
       console.error("[JS] Failed to mount proxy filesystem:", err);
     }
@@ -117,6 +120,7 @@ int main(void) {
   luaL_requiref(L, LUA_TABLIBNAME, luaopen_table, 1);
   luaL_requiref(L, LUA_MATHLIBNAME, luaopen_math, 1);
   luaL_requiref(L, LUA_GNAME, luaopen_base, 1);
+  luaL_requiref(L, LUA_DBLIBNAME, luaopen_debug, 1);
 
   exclude_globals(L);
   export_custom_apis(L);
@@ -137,28 +141,31 @@ int main(void) {
   char *luaCodeBuffer = proc__get_lua_code(&err);
   if (err < 0) {
     fprintf(stderr, "Failed to load code from FS. Err: %d\n", err);
+    proc__exit(1, &err);
+    return 1;
   }
-
-  int current_pid = proc__get_pid(&err);
-  assert(err == 0);
 
   if (luaL_loadstring(L, luaCodeBuffer) == LUA_OK) {
     if (lua_pcall(L, 0, 0, 0) == LUA_OK) {
       lua_pop(L, lua_gettop(L));
     } else {
-      const char *err = lua_tostring(L, -1);
-      fprintf(stderr, "Process failed: %s\n", err);
+      const char *err_ = lua_tostring(L, -1);
+      fprintf(stderr, "Process failed: %s\n", err_);
+      proc__exit(1, &err);
+      return 1;
     }
   } else {
-    const char *err = lua_tostring(L, -1);
-    fprintf(stderr, "Process failed: %s\n", err);
+    const char *err_ = lua_tostring(L, -1);
+    fprintf(stderr, "Process failed: %s\n", err_);
+    proc__exit(1, &err);
+    return 1;
   }
 
   free(luaCodeBuffer);
   fflush(stdout);
 
-  proc__kill(current_pid, &err);
-
   lua_close(L);
+  proc__exit(0, &err);
+
   return 0;
 }

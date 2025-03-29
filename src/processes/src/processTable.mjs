@@ -1,6 +1,6 @@
-import { ProcessStates, CustomError } from "./common.js";
-import Pipe from "./pipe.js";
-import Signal from "./signal.js";
+import { ProcessStates, CustomError } from "./common.mjs";
+import Pipe from "./pipe.mjs";
+import Signal from "./signal.mjs";
 
 /**
  * The ProcessTable class is responsible for storing and tracking all
@@ -95,24 +95,28 @@ export default class ProcessTable {
 
     let newProcessPID = this.nextPID++;
 
-    const { default: initEmscripten } = await import("/runtime.js?url");
-
-    const Module = await initEmscripten({
-      onRuntimeInitialized: () => {
-        console.log("Runtime emscripten module loaded");
-      },
-      pty: processData.slave,
-      pid: newProcessPID,
-      noExitRuntime: false // ensures exit when pthread finishes
-    })
-
-    process.emscriptenBuffer = Module.wasmMemory.buffer;
-
     // Attach Module to process
     // Return the allocated PID and increment it
     return {
       pid: newProcessPID,
     };
+  }
+
+  async startEmscripten(pid) {
+    let process = this.processTable[pid];
+
+    const { default: initEmscripten } = await import("/runtime.mjs?url");
+
+    const Module = await initEmscripten({
+      onRuntimeInitialized: () => {
+        console.log("Runtime emscripten module loaded");
+      },
+      pty: process.pty,
+      pid: pid,
+      noExitRuntime: false
+    })
+
+    process.emscriptenBuffer = Module.wasmMemory.buffer;
   }
 
   registerWorker(pid, worker) {

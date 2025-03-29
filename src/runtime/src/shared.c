@@ -20,7 +20,7 @@ const char *absolute(const char *path) {
   if (is_absolute) {
     // Make sure to add the root prefix, blindly
     // as any absolute path should implicitly be based from that prefix
-    memcpy(resolved_without_prefix, path, strlen(path));
+    memcpy(resolved_without_prefix, path, strlen(path) + 1);
     return resolved_with_prefix;
   }
   static char resolved[PATH_MAX] = {0};

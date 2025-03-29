@@ -88,6 +88,54 @@ void file__pushToPersist() {
   return;
 }
 
+void file__initialiseFSNode() {
+  printf("[C] Starting up persistent filesystem at '%s'...\n",
+         PERSISTENT_ROOT_NAME);
+
+#ifdef __EMSCRIPTEN__
+  MAIN_THREAD_EM_ASM(
+      {
+        let persistentRoot = UTF8ToString($0);
+        FS.mkdir(persistentRoot);
+
+        console.log("Moving fresh system files in...");
+
+        // Initialise system files
+        let systemFilePath = "/persistent/sys";
+
+        // WARNING: IDBFS requires write access - however users will not be
+        //          able modify regardless due to the PROTECTED_BIT being
+        //          raised signifying it's a system file (0o010)
+        FS.mkdir(systemFilePath, 0o710);
+
+        // Move lua files into correct place in IDBFS
+        for (const luaFile of FS.readdir("/luaSource")) {
+          if (luaFile == "." || luaFile == "..") continue;
+
+          let sourcePath = `/luaSource/${luaFile}`;
+          let systemPath = `${systemFilePath}/${luaFile}`;
+
+          // Move files into systemFilePath
+          let data = FS.readFile(sourcePath);
+          FS.writeFile(systemPath, data);
+
+          // Set correct permissions on file
+          FS.chmod(systemPath, 0o710);
+
+          console.log(`ADDED: ${systemPath}`);
+        }
+        // Set correct permissions so parent directory cannot be modified either
+        // INFO: I don't believe we're currently using dir permission bits, but future proofing regardless
+        FS.chmod(systemFilePath, 0o710);
+
+        console.log("Finished bootstrap");
+
+      },
+      PERSISTENT_ROOT_NAME);
+#endif
+  return;
+}
+
 // Mounts filesystem, creating structurje if required.
 void file__initialiseFS() {
   printf("[C] Starting up persistent filesystem at '%s'...\n",

@@ -5,7 +5,7 @@ default: build
 
 build: exported-runtime
 build-native: runtime-native
-test: test-filesystem test-runtime test-processes
+test: test-filesystem test-runtime test-processes test-integration
 
 reconfigure: reconfigure-filesystem reconfigure-processes reconfigure-runtime
 
@@ -52,17 +52,17 @@ processes:
 
 [working-directory('src/site')]
 exported-runtime: runtime
-  cp ../../build/runtime/runtime.js static/
+  cp ../../build/runtime/runtime.mjs static/
   cp ../../build/runtime/runtime.wasm static/
-  cp ../../build/runtime/signal.js static/
-  cp ../../build/runtime/common.js static/
-  cp ../../build/runtime/pipe.js static/
-  cp ../../build/runtime/processTable.js static/
-  cp ../../build/runtime/processManager.js static/
-  cp ../../build/runtime/process.js static/
-  cp ../../build/filesystem/api.js static/
-  cp ../../build/filesystem/definitions.js static/
-  cp ../../build/filesystem/filesystem.js static/
+  cp ../../build/runtime/signal.mjs static/
+  cp ../../build/runtime/common.mjs static/
+  cp ../../build/runtime/pipe.mjs static/
+  cp ../../build/runtime/processTable.mjs static/
+  cp ../../build/runtime/processManager.mjs static/
+  cp ../../build/runtime/process.mjs static/
+  cp ../../build/filesystem/api.mjs static/
+  cp ../../build/filesystem/definitions.mjs static/
+  cp ../../build/filesystem/filesystem.mjs static/
   cp ../../build/filesystem/filesystem.wasm static/
 
 [working-directory('src/site')]
@@ -89,6 +89,12 @@ test-runtime: runtime-native
 
 [working-directory('src/processes')]
 test-processes: processes
+  #!/bin/sh
+  set -e
+  npm run test
+
+[working-directory('src/')]
+test-integration: runtime
   #!/bin/sh
   set -e
   npm run test

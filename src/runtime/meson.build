@@ -11,15 +11,15 @@ endif
 if host_machine.system() == 'emscripten'
   configure_file(input: '../../build/filesystem/libfilesystem.a', output: 'libfilesystem.a', copy: true)
   configure_file(input: '../../build/processes/libprocesses.a', output: 'libprocesses.a', copy: true)
-  configure_file(input: '../../build/processes/signal.js', output: 'signal.js', copy: true)
-  configure_file(input: '../../build/processes/common.js', output: 'common.js', copy: true)
-  configure_file(input: '../../build/processes/pipe.js', output: 'pipe.js', copy: true)
-  configure_file(input: '../../build/processes/processTable.js', output: 'processTable.js', copy: true)
-  configure_file(input: '../../build/processes/processManager.js', output: 'processManager.js', copy: true)
-  configure_file(input: '../../build/processes/process.js', output: 'process.js', copy: true)
-  configure_file(input: '../../build/filesystem/api.js', output: 'api.js', copy: true)
-  configure_file(input: '../../build/filesystem/definitions.js', output: 'definitions.js', copy: true)
-  configure_file(input: '../../build/filesystem/filesystem.js', output: 'filesystem.js', copy: true)
+  configure_file(input: '../../build/processes/signal.mjs', output: 'signal.mjs', copy: true)
+  configure_file(input: '../../build/processes/common.mjs', output: 'common.mjs', copy: true)
+  configure_file(input: '../../build/processes/pipe.mjs', output: 'pipe.mjs', copy: true)
+  configure_file(input: '../../build/processes/processTable.mjs', output: 'processTable.mjs', copy: true)
+  configure_file(input: '../../build/processes/processManager.mjs', output: 'processManager.mjs', copy: true)
+  configure_file(input: '../../build/processes/process.mjs', output: 'process.mjs', copy: true)
+  configure_file(input: '../../build/filesystem/api.mjs', output: 'api.mjs', copy: true)
+  configure_file(input: '../../build/filesystem/definitions.mjs', output: 'definitions.mjs', copy: true)
+  configure_file(input: '../../build/filesystem/filesystem.mjs', output: 'filesystem.mjs', copy: true)
   configure_file(input: '../../build/filesystem/filesystem.wasm', output: 'filesystem.wasm', copy: true)
 else
   configure_file(input: '../../build-native/filesystem/libfilesystem.a', output: 'libfilesystem.a', copy: true)
@@ -40,7 +40,9 @@ custom_target('copy_static_dir',
 
 if host_machine.system() == 'emscripten'
   sources = files('src/main.c', 'src/file.c', 'src/errors.c', 'src/process.c', 'src/shared.c', 'src/terminal.c')
-  executable('runtime', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lproxyfs.js', 'libfilesystem.a', '-Wl,--whole-archive', 'libprocesses.a', '-pthread', '--post-js=post.js', '--pre-js=pre.js', '--js-library=emscripten-pty.js', '-sSHARED_MEMORY=1', '-sPROXY_TO_PTHREAD', '-sEXPORT_ES6', '-sENVIRONMENT=web,worker', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue,wasmMemory', '-sEXIT_RUNTIME=1', '--embed-file', 'static/'], dependencies: [lua_dep])
+  executable('runtime', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lproxyfs.js', 'libfilesystem.a', '-Wl,--whole-archive', 'libprocesses.a', '-pthread', '--post-js=post.js', '--pre-js=pre.js', '--js-library=emscripten-pty.js', '-sSHARED_MEMORY=1', '-sPROXY_TO_PTHREAD', '-sEXPORT_ES6', '-sENVIRONMENT=web,worker', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue,wasmMemory', '-sEXIT_RUNTIME=1', '--embed-file', 'static/'], dependencies: [lua_dep])
+
+  executable('runtime-node', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-O0', '-Wall', '-Wextra', '-pthread'], link_args: ['-lproxyfs.js', 'libfilesystem.a', '-Wl,--whole-archive', 'libprocesses.a', '-pthread', '--post-js=post.js', '--pre-js=pre.js', '-sSHARED_MEMORY=1', '-sPROXY_TO_PTHREAD', '-sEXPORT_ES6', '-sENVIRONMENT=node', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue,wasmMemory', '-sEXIT_RUNTIME=1', '--embed-file', 'static/', '-sASSERTIONS=2'], dependencies: [lua_dep])
 else
   sources = files('src/file.c', 'src/errors.c', 'src/process.c', 'src/shared.c', 'src/terminal.c')
   libruntime = library('runtime', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-D_FILE_OFFSET_BITS=64'], dependencies: [lua_dep.as_link_whole()], install: true)

@@ -66,6 +66,7 @@ int lprocess__create(lua_State *L) {
       for (lua_Integer li = 1; li <= len; li++) {
         lua_rawgeti(L, -1, li);
         opts.args[li - 1] = luaL_checkstring(L, -1);
+        lua_pop(L, 1);
       }
     }
   }
@@ -330,6 +331,17 @@ int lprocess__input_line(lua_State *L) {
 int lprocess__close_input(lua_State *L) {
   Error err = 0;
   proc__close_input(&err);
+  if (err != 0) {
+    lua_pushnumber(L, err);
+    return 1;
+  }
+  lua_pushnil(L);
+  return 1;
+}
+
+int lprocess__close_output(lua_State *L) {
+  Error err = 0;
+  proc__close_output(&err);
   if (err != 0) {
     lua_pushnumber(L, err);
     return 1;

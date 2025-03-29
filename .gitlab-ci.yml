@@ -101,34 +101,42 @@ validate_artefact_persistence:
   dependencies:
     - build_filesystem
     - build_processes
+    - build_runtime
   script:
     # Ensure artifacts have persisted
-    - test -e build/filesystem/filesystem.js
+    - test -e build/filesystem/filesystem.mjs
     - test -e build/filesystem/filesystem.wasm
     - test -e build/filesystem/index.html
     - test -e build/filesystem/index.js
-    - test -e build/filesystem/api.js
-    - test -e build/filesystem/definitions.js
-    - test -e build/filesystem/filesystem.js
+    - test -e build/filesystem/api.mjs
+    - test -e build/filesystem/definitions.mjs
+    - test -e build/filesystem/filesystem.mjs
     - test -e build/filesystem/filesystem.wasm
-    - test -e build/processes/processes.js
+    - test -e build/processes/processes.mjs
     - test -e build/processes/processes.wasm
-    - test -e build/processes/signal.js
-    - test -e build/processes/common.js
-    - test -e build/processes/pipe.js
-    - test -e build/processes/processTable.js
-    - test -e build/processes/processManager.js
-    - test -e build/processes/process.js
+    - test -e build/processes/signal.mjs
+    - test -e build/processes/common.mjs
+    - test -e build/processes/pipe.mjs
+    - test -e build/processes/processTable.mjs
+    - test -e build/processes/processManager.mjs
+    - test -e build/processes/process.mjs
+    - test -e build/runtime/runtime.mjs
+    - test -e build/runtime/runtime.wasm
+    - test -e build/runtime/runtime-node.mjs
+    - test -e build/runtime/runtime-node.wasm
 
 validate_wasm:
   stage: validate
   dependencies:
     - build_filesystem
     - build_processes
+    - build_runtime
   script:
     - apt-get update && apt-get install -y wabt
     - wasm-validate --enable-threads build/filesystem/filesystem.wasm
     - wasm-validate --enable-threads build/processes/processes.wasm
+    - wasm-validate --enable-threads build/runtime/runtime.wasm
+    - wasm-validate --enable-threads build/runtime/runtime-node.wasm
 
 # ----------------- TESTING ----------------- 
 
@@ -158,6 +166,12 @@ test_runtime:
     - apt-get install -y chromium-browser meson
     - just test-runtime
 
+test_integration:
+  stage: test
+  script:
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update
+    - apt-get install -y meson
+    - just test-integration
+
 # ----------------- DEPLOYMENT ----------------- 
-
-

@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { Worker } from 'worker_threads';
-import Pipe from '../src/pipe.js';
+import Pipe from '../src/pipe.mjs';
 
 describe('Pipe Tests', function() {
   this.timeout(10000);

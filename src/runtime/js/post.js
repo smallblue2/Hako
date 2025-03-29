@@ -1,3 +1,5 @@
+let ProcessManager
+
 /*
  * This file intercepts Emscripten's process system and registers it to our own.
  */
@@ -5,9 +7,9 @@
 // function runs in webworker with data posted from processManager in main thread
 async function initWorkerForProcess(data) {
   // Import process constructs
-  const { default: Signal } = await import("/signal.js?url");
-  const { default: Pipe } = await import("/pipe.js?url");
-  const { StreamDescriptor, ProcessStates, ProcessOperations, CustomError } = await import("/common.js?url");
+  const { default: Signal } = await import("/signal.mjs?url");
+  const { default: Pipe } = await import("/pipe.mjs?url");
+  const { StreamDescriptor, ProcessStates, ProcessOperations, CustomError } = await import("/common.mjs?url");
 
   function changeState(newState) {
     self.state = newState;
@@ -165,6 +167,10 @@ async function initWorkerForProcess(data) {
         pid: self.proc.pid,
         exitCode
       })
+      // We do not do any state changes
+      // as all we are blocking on is to keep the emscripten
+      // module alive
+      self.proc.signal.sleep();
     }
   }
 
@@ -203,12 +209,15 @@ function interceptMainThread() {
     return;
   }
   // Register the worker to a process
-  window.ProcessManager.registerWorker(running);
+  ProcessManager.registerWorker(running);
 }
 
 if (ENVIRONMENT_IS_PTHREAD) {
   interceptThreadCreation();
 } else {
+  const isNode = typeof window == "undefined";
+  ProcessManager = isNode ? globalThis.ProcessManager : window.ProcessManager;
+
   interceptMainThread();
   // const syncfsOld = IDBFS.syncfs;
   // const inotifyChannel = new BroadcastChannel("inotify");
