@@ -153,4 +153,7 @@ void file__fdstat(int fd, StatResult *restrict sr, Error *restrict err);
 // INFO: Ensures `path` isn't a system node
 void file__permit(const char *restrict path, int flags, Error *restrict err);
 
+// Force file to be `length` size in bytes
+void file__truncate(int fd, int length, Error *err);
+
 #endif

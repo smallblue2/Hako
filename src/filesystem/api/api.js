@@ -483,4 +483,16 @@ export function initialiseAPI(Module) {
 
     return { error: errorStr }
   }
+  Filesystem.truncate = (fd, length) => {
+    let { errno } = callWithErrno(
+      "file__truncate",
+      null,
+      ["number", "number"],
+      [fd, length],
+    );
+    if (errno > 0) {
+      return { error: errnoToString(errno) };
+    }
+    return { error: null };
+  }
 };

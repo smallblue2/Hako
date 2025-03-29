@@ -650,4 +650,34 @@ describe("Filesystem tests", () => {
     assert.deepStrictEqual(stat0, stat1, "Two stats should be exactly equal");
   });
 
+  it("Truncate a file after writing", async () => {
+    await initFS(page);
+
+    const assertions = await page.evaluate(() => {
+      let fd, error;
+      let assertions = [];
+
+      ({ fd, error } = window.Filesystem.open("/persistent/truncate.txt", "rwc"));
+      assertions.push({ cond: error === null, msg: "error opening file" });
+      ({ error } = window.Filesystem.write(fd, "Hello, world!"));
+      assertions.push({ cond: error === null, msg: "error writing file"});
+      ({ error } = window.Filesystem.truncate(fd, 5));
+      assertions.push({ cond: error === null, msg: "error truncating file"});
+      ({ error } = window.Filesystem.goto(fd, 0));
+      assertions.push({ cond: error === null, msg: "error moving cursor"});
+      let data, size;
+      ({ error, data, size } = window.Filesystem.readAll(fd))
+      assertions.push({ cond: error === null, msg: "failed to read file"});
+      assertions.push({ cond: size === 5, msg: "truncate did not reduce file to expected size"});
+      assertions.push({ cond: data === "Hello", msg: "truncate did not leave the correct data in the file"});
+      ({ error } = window.Filesystem.close(fd));
+      assertions.push({ cond: error === null, msg: "error closing file"});
+
+      return assertions;
+    });
+
+    for (let assertion of assertions) {
+      assert.ok(assertion.cond, assertion.msg);
+    }
+  });
 });

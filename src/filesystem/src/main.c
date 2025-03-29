@@ -642,3 +642,10 @@ void file__permit(const char *restrict path, int flags, Error *restrict err) {
   *err = 0;
   return;
 }
+
+void file__truncate(int fd, int length, Error *err) {
+  if (ftruncate(fd, length) == -1) {
+    *err = translate_errors(errno);
+    return;
+  }
+}

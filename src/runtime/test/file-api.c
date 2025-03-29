@@ -507,6 +507,47 @@ void test_file_permit(void) {
   lua_settop(L, top);
 }
 
+void test_file_truncate(void) {
+  TEST_ASSERT_MESSAGE(L != NULL, "Lua is not initialized properly");
+  int top = lua_gettop(L);
+
+  snprintf(static_fmt_buf, STATIC_FMT_SIZE,
+      "local fd, err = file.open('/tmp/%d-file-truncate', 'rwc')\n"
+      "if err ~= nil then\n"
+      "  return err\n"
+      "end\n"
+      "err = file.write(fd, 'Hello, world!')"
+      "if err ~= nil then\n"
+      "  return err\n"
+      "end\n"
+      "err = file.truncate(fd, 4)\n"
+      "if err ~= nil then\n"
+      "  return err\n"
+      "end\n"
+      "err = file.jump(fd, 0)\n"
+      "if err ~= nil then\n"
+      "  return err\n"
+      "end\n"
+      "local rr, err = file.read_all(fd)"
+      "if err ~= nil then\n"
+      "  return err\n"
+      "end\n"
+      "if rr ~= 'Hell' then\n"
+      "  return ''"
+      "end\n"
+      "return 0", unique_test_id);
+  if (LUA_OK != luaL_dostring(L, static_fmt_buf)) {
+    const char *err = lua_tostring(L, -1);
+    fprintf(stderr, "lua code failed to run: %s\n", err);
+    TEST_FAIL();
+  }
+
+  TEST_ASSERT_EQUAL_INT_MESSAGE(LUA_TNUMBER, lua_type(L, -1), "contents of file were not as expected");
+  TEST_ASSERT_EQUAL_INT_MESSAGE(0, lua_tonumber(L, -1), "api function returned an error code");
+
+  lua_settop(L, top);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_file_open);
@@ -524,5 +565,6 @@ int main(void) {
   RUN_TEST(test_file_stat);
   RUN_TEST(test_file_fdstat);
   RUN_TEST(test_file_permit);
+  RUN_TEST(test_file_truncate);
   return UNITY_END();
 }
