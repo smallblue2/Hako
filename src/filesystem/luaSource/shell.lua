@@ -1,3 +1,47 @@
+-- Envrionment Variables
+local env_table = {
+  PATH = "/sys",
+  HOME = "/"
+}
+
+function set_env_var(key, value)
+  env_table[key] = value
+end
+
+function get_env_var(key, value)
+  return env_table[key]
+end
+
+-- seperates `<key>=<value>` into k, v
+function separate_key_value(kv_combined)
+  local key, value = string.match(kv_combined, "([^=]+)=([^=]+)")
+  return key, value
+end
+
+-- export command, for setting env vars
+function export(cmd)
+    local usage = "Usage: export <key>=<value>"
+    if #cmd ~= 2 then
+      -- error
+      output(usage)
+      return
+    end
+    local k, v = separate_key_value(cmd[2])
+    if not (k and v) then
+      -- error
+      output(usage)
+      return
+    end
+    set_env_var(k, v)
+end
+
+-- env command, lists all shell's instance environment vars
+function env()
+  for k, v in pairs(env_table) do
+    output(k.."="..v)
+  end
+end
+
 function prompt()
   output("$ ", { newline = false })
 end
@@ -24,6 +68,10 @@ while #line ~= 0 do
     if err ~= nil then
       output(string.format("cd: %s", errors.as_string(err)))
     end
+  elseif cmd[1] == "export" then
+    export(cmd)
+  elseif cmd[1] == "env" then
+    env()
   end
   prompt()
   line = input_line()
