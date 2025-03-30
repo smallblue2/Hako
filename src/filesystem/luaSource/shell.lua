@@ -36,6 +36,25 @@ function export(cmd)
     set_env_var(k, v)
 end
 
+-- Searches the PATH for command, returns path | nil
+function find_exec_file(name)
+  local exec_path = get_env_var("PATH")
+  if not exec_path then
+    output("Error: PATH environment variable not set")
+    return
+  end
+  local paths = split_paths(exec_path)
+  for _, path in ipairs(paths) do
+    local looking_for = join_paths(path, name)
+    local fd, err = file.open(looking_for, "r")
+    if not err then
+      file.close(fd)
+      return looking_for
+    end
+  end
+  return nil
+end
+
 -- env command, lists all shell's instance environment vars
 function env()
   for k, v in pairs(env_table) do
@@ -65,31 +84,11 @@ function split_paths(paths)
   return individual_paths
 end
 
--- Searches the PATH for command, returns path | nil
-function parse_command(cmd)
-  
-  local exec_path = get_env_var("PATH")
-  if not exec_path then
-    output("Error: PATH environment variable not set")
-    return
-  end
-  local paths = split_paths(exec_path)
-  for _, path in ipairs(paths) do
-    local looking_for = join_paths(path, cmd[1])
-    local fd, err = file.open(looking_for, "r")
-    if not err then
-      file.close(fd)
-      return looking_for
-    end
-  end
-  return nil
-end
-
 -- Runs a command from PATH if it can find it
 function run_command(cmd)
     local exec_path = find_exec_file(cmd.argv[1])
     if not exec_path then
-      output("Command not found: "..cmd[1])
+      output("Command not found: "..cmd.argv[1])
       return
     end
     local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false })
