@@ -1,4 +1,7 @@
--- Envrionment Variables
+-- #####################################
+-- ####### Envrionment Variables #######
+-- #####################################
+
 local env_table = {
   PATH = "/sys",
   HOME = "/",
@@ -13,10 +16,27 @@ function get_env_var(key)
   return env_table[key]
 end
 
--- seperates `<key>=<value>` into k, v
-function separate_key_value(kv_combined)
-  local key, value = string.match(kv_combined, "([^=]+)=([^=]+)")
-  return key, value
+-- ###############################
+-- ####### Shell Built-ins #######
+-- ###############################
+
+-- Checks for and executes a built-in
+-- returns `true` if a built-in was executed, `false` otherwise
+function built_in(cmd)
+  if cmd.argv[1] == "ls" then
+    ls(cmd)
+    return true
+  elseif cmd.argv[1] == "cd" then
+    cd(cmd)
+    return true
+  elseif cmd.argv[1] == "export" then
+    export(cmd)
+    return true
+  elseif cmd.argv[1] == "env" then
+    env()
+    return true
+  end
+  return false
 end
 
 -- export command, for setting env vars
@@ -35,6 +55,32 @@ function export(cmd)
     end
     set_env_var(k, v)
 end
+
+-- env command, lists all shell's instance environment vars
+function env()
+  for k, v in pairs(env_table) do
+    output(k.."="..v)
+  end
+end
+
+function cd(cmd)
+  local err = file.change_dir(cmd.argv[2])
+  if err ~= nil then
+    output(string.format("cd: %s", errors.as_string(err)))
+  end
+end
+
+function ls(cmd)
+  -- TODO: take into account possible arguments
+  local entries = file.read_dir(".")
+  for _, entry in ipairs(entries) do
+    output(entry)
+  end
+end
+
+-- #####################
+-- ####### Utils #######
+-- #####################
 
 -- Searches the PATH for command, returns path | nil
 function find_exec_file(name)
@@ -55,11 +101,10 @@ function find_exec_file(name)
   return nil
 end
 
--- env command, lists all shell's instance environment vars
-function env()
-  for k, v in pairs(env_table) do
-    output(k.."="..v)
-  end
+-- seperates `<key>=<value>` into k, v
+function separate_key_value(kv_combined)
+  local key, value = string.match(kv_combined, "([^=]+)=([^=]+)")
+  return key, value
 end
 
 -- Safely joins two paths
@@ -84,37 +129,9 @@ function split_paths(paths)
   return individual_paths
 end
 
--- Runs a command from PATH if it can find it
-function run_command(cmd)
-    local exec_path = find_exec_file(cmd.argv[1])
-    if not exec_path then
-      output("Command not found: "..cmd.argv[1])
-      return
-    end
-    local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false })
-    if create_err then
-      output("Failed to create process (err:"..err..")")
-      return
-    end
-    local start_err = process.start(pid)
-    if start_err then
-      output("Failed to start process (err:"..err..")")
-      return
-    end
-    -- If it's a background, don't wait
-    if not cmd.background then
-      local wait_err = process.wait(pid)
-      if wait_err then
-        output("Failed to wait on process (err:"..err..")")
-        return
-      end
-    end
-end
-
-function prompt()
-  local PROMPT = get_env_var("PROMPT") or "$ "
-  output(PROMPT, { newline = false })
-end
+-- #######################
+-- ####### Parsing #######
+-- #######################
 
 -- Parses line of input, returns a `cmd` table
 function parse_cmd(line)
@@ -155,39 +172,46 @@ function parse_cmd(line)
   return cmd
 end
 
-function cd(cmd)
-  local err = file.change_dir(cmd.argv[2])
-  if err ~= nil then
-    output(string.format("cd: %s", errors.as_string(err)))
-  end
+-- #################################
+-- ####### Command Execution #######
+-- #################################
+
+-- Runs a command from PATH if it can find it
+function run_command(cmd)
+    local exec_path = find_exec_file(cmd.argv[1])
+    if not exec_path then
+      output("Command not found: "..cmd.argv[1])
+      return
+    end
+    local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false })
+    if create_err then
+      output("Failed to create process (err:"..err..")")
+      return
+    end
+    local start_err = process.start(pid)
+    if start_err then
+      output("Failed to start process (err:"..err..")")
+      return
+    end
+    -- If it's a background, don't wait
+    if not cmd.background then
+      local wait_err = process.wait(pid)
+      if wait_err then
+        output("Failed to wait on process (err:"..err..")")
+        return
+      end
+    end
 end
 
-function ls(cmd)
-  -- TODO: take into account possible arguments
-  local entries = file.read_dir(".")
-  for _, entry in ipairs(entries) do
-    output(entry)
-  end
+-- #########################
+-- ####### Main Loop #######
+-- #########################
+
+function prompt()
+  local PROMPT = get_env_var("PROMPT") or "$ "
+  output(PROMPT, { newline = false })
 end
 
--- Checks for and executes a built-in
--- returns `true` if a built-in was executed, `false` otherwise
-function built_in(cmd)
-  if cmd.argv[1] == "ls" then
-    ls(cmd)
-    return true
-  elseif cmd.argv[1] == "cd" then
-    cd(cmd)
-    return true
-  elseif cmd.argv[1] == "export" then
-    export(cmd)
-    return true
-  elseif cmd.argv[1] == "env" then
-    env()
-    return true
-  end
-  return false
-end
 
 prompt()
 local line = input_line()
@@ -199,10 +223,3 @@ while #line ~= 0 do
   prompt()
   line = input_line()
 end
-process.start(pid)
-output("Process started, now waiting ...")
-process.wait(pid)
-output("Child process finished")
-output("Waiting for some input...")
-input_all()
-terminal.clear()
