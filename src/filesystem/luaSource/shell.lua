@@ -20,34 +20,15 @@ end
 -- ####### Shell Built-ins #######
 -- ###############################
 
--- Checks for and executes a built-in
--- returns `true` if a built-in was executed, `false` otherwise
-function built_in(cmd)
-  if cmd.argv[1] == "ls" then
-    ls(cmd)
-    return true
-  elseif cmd.argv[1] == "cd" then
-    cd(cmd)
-    return true
-  elseif cmd.argv[1] == "export" then
-    export(cmd)
-    return true
-  elseif cmd.argv[1] == "env" then
-    env()
-    return true
-  end
-  return false
-end
-
 -- export command, for setting env vars
 function export(cmd)
     local usage = "Usage: export <key>=<value>"
-    if #cmd ~= 2 then
+    if #cmd.argv < 2 then
       -- error
       output(usage)
       return
     end
-    local k, v = separate_key_value(cmd[2])
+    local k, v = separate_key_value(cmd.argv[2])
     if not (k and v) then
       -- error
       output(usage)
@@ -76,6 +57,24 @@ function ls(cmd)
   for _, entry in ipairs(entries) do
     output(entry)
   end
+end
+
+local built_in_table = {
+  ["ls"] = ls,
+  ["cd"] = cd,
+  ["export"] = export,
+  ["env"] = env
+}
+
+-- Checks for and executes a built-in
+-- returns `true` if a built-in was executed, `false` otherwise
+function built_in(cmd)
+  local builtin = built_in_table[cmd.argv[1]]
+  if builtin then
+    builtin(cmd)
+    return true
+  end
+  return false
 end
 
 -- #####################
@@ -185,19 +184,19 @@ function run_command(cmd)
     end
     local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false })
     if create_err then
-      output("Failed to create process (err:"..err..")")
+      output("Failed to create process (err:"..create_err..")")
       return
     end
     local start_err = process.start(pid)
     if start_err then
-      output("Failed to start process (err:"..err..")")
+      output("Failed to start process (err:"..start_err..")")
       return
     end
     -- If it's a background, don't wait
     if not cmd.background then
       local wait_err = process.wait(pid)
       if wait_err then
-        output("Failed to wait on process (err:"..err..")")
+        output("Failed to wait on process (err:"..wait_err..")")
         return
       end
     end
