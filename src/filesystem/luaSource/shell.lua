@@ -91,8 +91,6 @@ function run_command(cmd)
       output("Command not found: "..cmd[1])
       return
     end
-    output("Found file at: "..exec_path)
-    output("Running")
     local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false })
     if create_err then
       output("Failed to create process (err:"..err..")")
@@ -108,7 +106,6 @@ function run_command(cmd)
       output("Failed to wait on process (err:"..err..")")
       return
     end
-    output("Finished!")
 end
 
 function prompt()
