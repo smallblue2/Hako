@@ -66,7 +66,8 @@ function split_paths(paths)
 end
 
 -- Searches the PATH for command, returns path | nil
-function find_exec_file(cmd)
+function parse_command(cmd)
+  
   local exec_path = get_env_var("PATH")
   if not exec_path then
     output("Error: PATH environment variable not set")
@@ -86,7 +87,7 @@ end
 
 -- Runs a command from PATH if it can find it
 function run_command(cmd)
-    local exec_path = find_exec_file(cmd)
+    local exec_path = find_exec_file(cmd.argv[1])
     if not exec_path then
       output("Command not found: "..cmd[1])
       return
@@ -101,10 +102,13 @@ function run_command(cmd)
       output("Failed to start process (err:"..err..")")
       return
     end
-    local wait_err = process.wait(pid)
-    if wait_err then
-      output("Failed to wait on process (err:"..err..")")
-      return
+    -- If it's a background, don't wait
+    if not cmd.background then
+      local wait_err = process.wait(pid)
+      if wait_err then
+        output("Failed to wait on process (err:"..err..")")
+        return
+      end
     end
 end
 
@@ -113,34 +117,84 @@ function prompt()
   output(PROMPT, { newline = false })
 end
 
+-- Parses line of input, returns a `cmd` table
 function parse_cmd(line)
-  local parsed = {}
+  local tokens = {}
   for token in string.gmatch(line, "[^%s]+") do
-    table.insert(parsed, token)
+    table.insert(tokens, token)
   end
-  return parsed
+
+  local cmd = {
+    argv = {}, -- Positional arguments
+    redirect_in_file = nil, -- string or nil
+    redirect_out_file = nil, -- string or nil
+    process_pipe_in = nil,
+    process_pipe_out = nil,
+    background = false -- bool
+  }
+
+  local i = 1
+  while i <= #tokens do
+    local t = tokens[i]
+    if t == ">" then
+      -- next token should be filename
+      i = i + 1
+      cmd.redirect_out_file = tokens[i]
+    elseif t == "<" then
+      -- next token should be filename
+      i = i + 1
+      cmd.redirect_in_file = tokens[i]
+    elseif t == "&" then
+      cmd.background = true
+    else
+      -- treat as an argument
+      table.insert(cmd.argv, t)
+    end
+    i = i + 1
+  end
+  
+  return cmd
+end
+
+function cd(cmd)
+  local err = file.change_dir(cmd.argv[2])
+  if err ~= nil then
+    output(string.format("cd: %s", errors.as_string(err)))
+  end
+end
+
+function ls(cmd)
+  -- TODO: take into account possible arguments
+  local entries = file.read_dir(".")
+  for _, entry in ipairs(entries) do
+    output(entry)
+  end
+end
+
+-- Checks for and executes a built-in
+-- returns `true` if a built-in was executed, `false` otherwise
+function built_in(cmd)
+  if cmd.argv[1] == "ls" then
+    ls(cmd)
+    return true
+  elseif cmd.argv[1] == "cd" then
+    cd(cmd)
+    return true
+  elseif cmd.argv[1] == "export" then
+    export(cmd)
+    return true
+  elseif cmd.argv[1] == "env" then
+    env()
+    return true
+  end
+  return false
 end
 
 prompt()
 local line = input_line()
 while #line ~= 0 do
   local cmd = parse_cmd(line)
-  if cmd[1] == "ls" then
-    local entries = file.read_dir(".")
-    for _, entry in ipairs(entries) do
-      output(entry)
-    end
-  elseif cmd[1] == "cd" then
-    local err = file.change_dir(cmd[2])
-    if err ~= nil then
-      output(string.format("cd: %s", errors.as_string(err)))
-    end
-  elseif cmd[1] == "export" then
-    export(cmd)
-  elseif cmd[1] == "env" then
-    env()
-  else
-    -- Not a built-in, try and find executable on FS and run it
+  if not built_in(cmd) then
     run_command(cmd)
   end
   prompt()
