@@ -1,14 +1,15 @@
 -- Envrionment Variables
 local env_table = {
   PATH = "/sys",
-  HOME = "/"
+  HOME = "/",
+  PROMPT = "$ "
 }
 
 function set_env_var(key, value)
   env_table[key] = value
 end
 
-function get_env_var(key, value)
+function get_env_var(key)
   return env_table[key]
 end
 
@@ -111,7 +112,8 @@ function run_command(cmd)
 end
 
 function prompt()
-  output("$ ", { newline = false })
+  local PROMPT = get_env_var("PROMPT") or "$ "
+  output(PROMPT, { newline = false })
 end
 
 function parse_cmd(line)
