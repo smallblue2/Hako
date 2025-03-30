@@ -42,6 +42,74 @@ function env()
   end
 end
 
+-- Safely joins two paths
+function join_paths(base, add)
+  -- Check if ends with a path
+  local end_of_base = string.sub(base, -1)
+  if end_of_base == "/" then
+    base = string.sub(base, 1, -2)
+  end
+  local start_of_add = string.sub(add, 1)
+  if start_of_add == "/" then
+    add = string.sub(add, 2, -1)
+  end
+  return base.."/"..add
+end
+
+function split_paths(paths)
+  local individual_paths = {}
+  for path in string.gmatch(paths, "([^:]+)") do
+    table.insert(individual_paths, path)
+  end
+  return individual_paths
+end
+
+-- Searches the PATH for command, returns path | nil
+function find_exec_file(cmd)
+  local exec_path = get_env_var("PATH")
+  if not exec_path then
+    output("Error: PATH environment variable not set")
+    return
+  end
+  local paths = split_paths(exec_path)
+  for _, path in ipairs(paths) do
+    local looking_for = join_paths(path, cmd[1])
+    local fd, err = file.open(looking_for, "r")
+    if not err then
+      file.close(fd)
+      return looking_for
+    end
+  end
+  return nil
+end
+
+-- Runs a command from PATH if it can find it
+function run_command(cmd)
+    local exec_path = find_exec_file(cmd)
+    if not exec_path then
+      output("Command not found: "..cmd[1])
+      return
+    end
+    output("Found file at: "..exec_path)
+    output("Running")
+    local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false })
+    if create_err then
+      output("Failed to create process (err:"..err..")")
+      return
+    end
+    local start_err = process.start(pid)
+    if start_err then
+      output("Failed to start process (err:"..err..")")
+      return
+    end
+    local wait_err = process.wait(pid)
+    if wait_err then
+      output("Failed to wait on process (err:"..err..")")
+      return
+    end
+    output("Finished!")
+end
+
 function prompt()
   output("$ ", { newline = false })
 end
@@ -72,6 +140,9 @@ while #line ~= 0 do
     export(cmd)
   elseif cmd[1] == "env" then
     env()
+  else
+    -- Not a built-in, try and find executable on FS and run it
+    run_command(cmd)
   end
   prompt()
   line = input_line()
