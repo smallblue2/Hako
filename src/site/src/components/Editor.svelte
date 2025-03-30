@@ -73,7 +73,9 @@
 
   function onSave() {
     window.Filesystem.goto(fd, 0);
-    window.Filesystem.write(fd, view.state.doc.text.join("\n"));
+    const text = view.state.doc.text.join("\n");
+    window.Filesystem.write(fd, text);
+    window.Filesystem.truncate(fd, text.length);
     window.Filesystem.close(fd);
     fd = window.Filesystem.open(filePath, "rw").fd;
   }

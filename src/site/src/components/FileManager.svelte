@@ -1,10 +1,14 @@
 <script>
   import FolderIcon from "/src/folder.svg?raw";
+  import PlaceHolderIcon from "/src/placeholder.svg?raw";
   import Window from "./Window.svelte";
   import Editor from "./Editor.svelte";
+  import ContextMenu from "./ContextMenu.svelte";
+  import InputText from "./InputText.svelte";
   import * as lib from "$lib";
   import * as win from "$lib/windows.svelte.js";
   import { onMount } from "svelte";
+    import { stopPropagation } from "svelte/legacy";
 
   let { id, layerFromId } = $props();
 
@@ -16,7 +20,7 @@
   let height = 260;
   let min = 150;
 
-  let currentDir = "/persistent";
+  let currentPath = [];
   let files = $state([]);
 
   onMount(() => {
@@ -26,16 +30,45 @@
     root.style.width = initWidth.toString() + "px";
     root.style.height = initHeight.toString() + "px";
 
-    files = window.Filesystem.read_dir(currentDir).entries;
+    changeDir("persistent")
 
     const inotifyChannel = new BroadcastChannel("inotify");
     inotifyChannel.onmessage = (ev) => {
-      console.log(ev);
-      const entries = window.Filesystem.read_dir(currentDir).entries;
-      console.log(entries);
-      files = entries;
+      updateFiles();
     };
   })
+
+  function changeDir(name) {
+    if (name === ".") {
+      return;
+    } else if (name === "..") {
+      currentPath.pop();
+      updateFiles();
+    } else {
+      currentPath.push(name);
+      updateFiles();
+    }
+  }
+
+  function cwd() {
+    return `/${currentPath.join("/")}`;
+  }
+
+  function relative(entry) {
+    return `/${cwd()}/${entry}`;
+  }
+
+  function updateFiles() {
+    const entries = window.Filesystem.read_dir(cwd()).entries;
+    files = entries.map((entry) => {
+      let { error, stat } = window.Filesystem.stat(relative(entry));
+      if (error !== null) {
+        console.log(error);
+        return { type: "file", name: entry };
+      }
+      return { type: stat.type, name: entry };
+    });
+  }
 
   /**
    * @param {number} dw
@@ -48,19 +81,69 @@
     root.style.height = height.toString() + "px";
     return true; // you can return false to say you can't resize
   }
+
+  function clickedFolder(file) {
+    return () => {
+      changeDir(file.name);
+    };
+  }
+
+  function clickedFile(file) {
+    return () => {
+      win.openWindow(win.EDITOR, Editor, { props: { filePath: relative(file.name) } });
+    };
+  }
+
+  // State for the context menu of file manager
+  let rightClick = $state();
+  let globalOperations = [
+    {name: "New File", onclick: newFile},
+    {name: "Create Directory", onclick: createDir},
+  ];
+  let operations = $state(globalOperations);
+
+  function newFile(ev) {
+    console.log("TODO");
+  }
+
+  function createDir(ev) {
+    console.log("TODO");
+  }
+
+  async function renameFile(fileName, ev) {
+    const newName = await openRenameFileModal("Rename File", fileName);
+    if (newName.length !== 0) {
+      window.Filesystem.move(relative(fileName), relative(newName));
+    }
+  }
+
+  let openRenameFileModal = $state();
 </script>
 
 <Window title="File Manager" bind:maximized {layerFromId} {id} {onResize} dataRef={root}>
   {#snippet data()}
-    <div bind:this={root} class="file-manager">
+    <InputText bind:open={openRenameFileModal}></InputText>
+    <ContextMenu bind:oncontextmenu={rightClick} items={operations}></ContextMenu>
+    <div oncontextmenu={(ev) => {
+      operations = globalOperations;
+      rightClick(null, ev);
+    }} bind:this={root} class="file-manager">
       {#each files as file}
-        <div class="folder">
-          <button class="remove-button-styles folder-icon" onclick={() => {
-            win.openWindow(win.EDITOR, Editor, { props: { filePath: `${currentDir}/${file}` } });
-          }}>
-            {@html FolderIcon}
+        <div oncontextmenu={(ev) => {
+          ev.stopPropagation();
+          operations = file.type === "file" ? [
+            {name: "Rename File", onclick: (ev) => renameFile(file.name, ev)}
+          ] : globalOperations;
+          rightClick(file, ev);
+        }} class="fm-object">
+          <button class="remove-button-styles fm-icon" onclick={file.type === "file" ? clickedFile(file) : clickedFolder(file)}>
+            {#if file.type === "file"}
+              {@html PlaceHolderIcon}
+            {:else}
+              {@html FolderIcon}
+            {/if}
           </button>
-          <p>{file}</p>
+          <p>{file.name}</p>
         </div>
       {/each}
     </div>
@@ -77,17 +160,17 @@
     gap: 0.5rem;
     flex-wrap: wrap;
   }
-  .folder > p {
+  .fm-object > p {
     padding: 0;
     margin: 0;
   }
-  .folder {
+  .fm-object {
     display: flex;
     flex-direction: column;
     align-items: center;
     user-select: none;
   }
-  :global(.folder-icon > svg) {
+  :global(.fm-icon > svg) {
     width: 4.5rem;
     height: 4.5rem;
   }
