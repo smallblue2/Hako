@@ -87,6 +87,8 @@ export default class ProcessTable {
       pty: processData.slave,
       pipeStdin: processData.pipeStdin,
       pipeStdout: processData.pipeStdout,
+      redirectStdin: processData.redirectStdin,
+      redirectStdout: processData.redirectStdout,
       start: processData.start
     }
 
@@ -137,6 +139,8 @@ export default class ProcessTable {
         stderr: registeredProcess.stderr.getBuffer(),
         pipeStdin: registeredProcess.pipeStdin,
         pipeStdout: registeredProcess.pipeStdout,
+        redirectStdin: registeredProcess.redirectStdin,
+        redirectStdout: registeredProcess.redirectStdout,
         luaCode: registeredProcess.luaCode
     }
 

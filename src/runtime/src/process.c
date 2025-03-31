@@ -15,6 +15,8 @@
 typedef struct {
   bool pipe_in;
   bool pipe_out;
+  const char *redirect_in;
+  const char *redirect_out;
   const char **args;
   int args_len;
 } process__create_opts;
@@ -31,6 +33,8 @@ int lprocess__create(lua_State *L) {
   process__create_opts opts = {
     .pipe_in = false,
     .pipe_out = false,
+    .redirect_in = NULL,
+    .redirect_out = NULL,
     .args = NULL,
     .args_len = 0,
   };
@@ -46,6 +50,18 @@ int lprocess__create(lua_State *L) {
     if (lua_isnil(L, -1)) lua_pop(L, 1);
     else {
       opts.pipe_out = checkboolean(L, -1);
+    }
+
+    lua_getfield(L, 2, "redirect_in");
+    if (lua_isnil(L, -1)) lua_pop(L, 1);
+    else {
+      opts.redirect_in = luaL_checkstring(L, -1);
+    }
+
+    lua_getfield(L, 2, "redirect_out");
+    if (lua_isnil(L, -1)) lua_pop(L, 1);
+    else {
+      opts.redirect_out = luaL_checkstring(L, -1);
     }
 
     lua_getfield(L, 2, "argv");
@@ -73,7 +89,7 @@ int lprocess__create(lua_State *L) {
 
   Error err = 0;
   int len = strlen(path);
-  int pid = proc__create(path, len, opts.args, opts.args_len, opts.pipe_in, opts.pipe_out, &err);
+  int pid = proc__create(path, len, opts.args, opts.args_len, opts.pipe_in, opts.pipe_out, opts.redirect_in, opts.redirect_out, &err);
   if (opts.args != NULL) free(opts.args);
   if (err != 0) {
     lua_pushnil(L);

@@ -19,12 +19,18 @@ async function initWorkerForProcess(data) {
     });
   }
 
+  console.log(data)
+  console.log(`redirectStdin: ${data.redirectStdin}`)
+  console.log(`redirectStdout: ${data.redirectStdout}`)
+
   self.proc = {
     pid: data.pid,
     args: data.args,
     stdin: new Pipe(0, data.stdin),
     stdout: new Pipe(0, data.stdout),
     stderr: new Pipe(0, data.stderr),
+    redirectStdin: data.redirectStdin,
+    redirectStdout: data.redirectStdout,
     isInATTY: false,
     isOutATTY: false,
     isErrATTY: false,
@@ -82,7 +88,7 @@ async function initWorkerForProcess(data) {
       changeState(ProcessStates.RUNNING);
       return exitCode;
     },
-    create: (luaPath, args = [], pipeStdin = false, pipeStdout = false) => {
+    create: (luaPath, args = [], pipeStdin = false, pipeStdout = false, redirectStdin = null, redirectStdout = null) => {
       // Tell the manager we'd like to create a process
       self.postMessage({
         op: ProcessOperations.CREATE_PROCESS,
@@ -91,7 +97,9 @@ async function initWorkerForProcess(data) {
         sendBackBuffer: self.proc.signal.getBuffer(),
         requestor: self.proc.pid,
         pipeStdin,
-        pipeStdout
+        pipeStdout,
+        redirectStdin,
+        redirectStdout
       });
       changeState(ProcessStates.SLEEPING);
       self.proc.signal.sleep();
