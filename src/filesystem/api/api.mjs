@@ -501,4 +501,16 @@ export function initialiseAPI(Module) {
     }
     return { error: null };
   }
+  Filesystem.cwd = () => {
+    let { returnVal, errno } = callWithErrno(
+      "file__cwd",
+      "string",
+      [],
+      []
+    );
+    if (errno > 0) {
+      return { error: errnoToString(errno) };
+    }
+    return { cwd: returnVal, error: null };
+  }
 };

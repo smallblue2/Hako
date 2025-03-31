@@ -281,14 +281,6 @@ char *proc__input_line(Error *err) {
     return NULL;
   }
 
-  int len = strnlen(lineptr, n);
-  if (!feof(stdin)) {
-    // This means that the newline was included
-    // Replace it with a null byte
-    assert(lineptr[len - 1] == '\n');
-    lineptr[len - 1] = '\0';
-  }
-
   *err = 0;
   return lineptr;
 }
