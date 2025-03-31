@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "processes.h"
+#include "../../filesystem/src/main.h"
 
 // void proc__close_input(Error *err);
 EM_JS(void, proc__close_input, (Error *err), {
@@ -143,6 +144,20 @@ EM_JS(Process*, proc__list, (int *restrict length, Error *restrict err), {
 EM_JS(int, proc__get_pid, (Error *err), {
   setValue(err, 0, 'i32');
   return self.proc.pid;
+})
+
+// proc__get_redirect_in(Error *err)
+EM_JS(char*, proc__get_redirect_in, (Error *err), {
+  const ptr = stringToNewUTF8(self.proc.redirectStdin ?? "");
+  setValue(err, 0, 'i32');
+  return ptr;
+})
+
+// proc__get_redirect_out(Error *err)
+EM_JS(char*, proc__get_redirect_out, (Error *err), {
+  const ptr = stringToNewUTF8(self.proc.redirectStdout ?? "");
+  setValue(err, 0, 'i32');
+  return ptr;
 })
 
 // proc__pipe(int out_pid, int in_pid, Error *err)
@@ -286,6 +301,23 @@ char *proc__input_line(Error *err) {
 }
 
 void proc__output(const char *restrict buf, int len, Error *restrict err) {
+
+  char *file_redirect = proc__get_redirect_out(err);
+  if (strcmp(file_redirect, "")) {
+    int fd = file__open(file_redirect, O_CREAT | O_RDWR, err);
+    if (fd == -1 && *err == E_EXISTS) {
+      fd = file__open(file_redirect, O_RDWR, err);
+    }
+    if (fd == -1) return;
+
+    file__write(fd, buf, err);
+    file__close(fd, err);
+
+    free(file_redirect);
+
+    return;
+  }
+
   if (proc__is_stdout_pipe(err)) {
     if (*err != 0) {
       return;

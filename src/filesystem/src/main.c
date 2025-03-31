@@ -283,10 +283,7 @@ void file__write(int fd, const char *restrict content, Error *restrict err) {
   // NOTE: no perm checks as the user already has the file descriptor
 
   int contentLength = strlen(content);
-  printf("[C] Passed in fd: %d\n", fd);
-  printf("[C] Passed in string: \"%s\" (%d)\n", content, contentLength);
   int written = write(fd, content, contentLength);
-  printf("[C] Written returned => {%d}\n", written);
   if (written < 0) {
     *err = translate_errors(errno);
     return;

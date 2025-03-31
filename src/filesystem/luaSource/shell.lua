@@ -174,11 +174,11 @@ function parse_cmd(line)
     if t == ">" then
       -- next token should be filename
       i = i + 1
-      cmd.redirect_out_file = tokens[i]
+      cmd.redirect_out_file = join_paths(file.cwd(), tokens[i])
     elseif t == "<" then
       -- next token should be filename
       i = i + 1
-      cmd.redirect_in_file = tokens[i]
+      cmd.redirect_in_file = join_paths(file.cwd(), tokens[i])
     elseif t == "&" then
       cmd.background = true
     else
@@ -197,6 +197,7 @@ end
 
 -- Runs a command from PATH if it can find it
 function run_command(cmd)
+    output(inspect(cmd))
     local exec_path = find_exec_file(cmd.argv[1])
     if not exec_path then
       output("Command not found: "..cmd.argv[1])

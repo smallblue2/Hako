@@ -37,3 +37,7 @@ const char *absolute(const char *path) {
 #endif
 }
 
+char *absolute_alloc(const char *path) {
+  return strdup(absolute(path));
+}
+

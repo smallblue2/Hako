@@ -10,5 +10,6 @@
 
 bool checkboolean(lua_State *L, int narg);
 const char *absolute(const char *path);
+char *absolute_alloc(const char *path);
 
 #endif
