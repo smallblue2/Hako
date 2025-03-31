@@ -182,7 +182,7 @@ function run_command(cmd)
       output("Command not found: "..cmd.argv[1])
       return
     end
-    local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false })
+    local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false, redirect_in = cmd.redirect_in_file, redirect_out = cmd.redirect_out_file })
     if create_err then
       output("Failed to create process (err:"..create_err..")")
       return
