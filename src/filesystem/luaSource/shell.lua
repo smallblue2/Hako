@@ -198,7 +198,6 @@ end
 
 -- Runs a command from PATH if it can find it
 function run_command(cmd)
-    output(inspect(cmd))
     local exec_path = find_exec_file(cmd.argv[1])
     if not exec_path then
       output("Command not found: "..cmd.argv[1])
