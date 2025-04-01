@@ -211,7 +211,7 @@ function prompt()
   output(PROMPT, { newline = false })
 end
 
-
+output(inspect(terminal))
 local line = terminal.prompt("$ ")
 while #line ~= 0 do
   local cmd = parse_cmd(line)

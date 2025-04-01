@@ -85,17 +85,27 @@ build_vendor:
   stage: build
   script:
     - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update
+    - apt-get install -y gpg
     - just build-ncurses
     - just build-libedit
+  artifacts:
+    paths:
+      - src/runtime/vendor/ncurses/lib/libncurses.a
+      - src/runtime/vendor/libedit/libedit.a
+      - src/runtime/vendor/libedit/src/
+    expire_in: 1 month
   cache:
     key:
       files:
-        - src/runtime/vendor/ncurses
-        - src/runtime/vendor/libedit
+        - src/runtime/vendor/ncurses/
+        - src/runtime/vendor/libedit/
 
 build_runtime:
   stage: build
-  dependencies:
+  needs:
+    - build_filesystem
+    - build_processes
     - build_vendor
   script:
     - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/

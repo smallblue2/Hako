@@ -39,7 +39,8 @@ int lterminal__prompt(lua_State *L) {
   }
 
   lua_pushstring(L, line);
+  lua_pushnil(L);
   free(line);
-  return 1;
+  return 2;
 }
 #endif

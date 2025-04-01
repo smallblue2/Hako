@@ -69,7 +69,9 @@ static const luaL_Reg errors_module[] = {
 #define TERMINAL_MODULE_NAME "terminal"
 static const luaL_Reg terminal_module[] = {
   {"clear", lterminal__clear},
+#ifdef __EMSCRIPTEN__
   {"prompt", lterminal__prompt},
+#endif
   {NULL, NULL},
 };
 

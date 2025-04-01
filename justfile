@@ -78,8 +78,8 @@ build-ncurses:
   if [ ! -d "ncurses" ]; then
     curl -LO https://ftp.gnu.org/gnu/ncurses/ncurses-{{ncurses_version}}.tar.gz
     curl -LO https://ftp.gnu.org/gnu/ncurses/ncurses-{{ncurses_version}}.tar.gz.sig
-    gpg --recv-key 19882D92DDA4C400C22C0D56CC2AF4472167BE03
-    gpg --verify ncurses-{{ncurses_version}}.tar.gz.sig
+    curl -LO https://ftp.gnu.org/gnu/gnu-keyring.gpg
+    gpg --verify --keyring ./gnu-keyring.gpg ncurses-{{ncurses_version}}.tar.gz.sig
     tar xf ncurses-{{ncurses_version}}.tar.gz
     mv ncurses-{{ncurses_version}} ncurses/
     rm ncurses-{{ncurses_version}}.tar.gz
