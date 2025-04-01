@@ -95,6 +95,8 @@ build_vendor:
 
 build_runtime:
   stage: build
+  dependencies:
+    - build_vendor
   script:
     - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
     - apt-get update
