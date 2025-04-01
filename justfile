@@ -1,6 +1,9 @@
 alias conf := reconfigure
 alias srd := site-run-dev
 
+ncurses_version := "6.5"
+libedit_version := "20250104-3.1"
+
 default: build
 
 build: exported-runtime
@@ -42,9 +45,12 @@ filesystem:
   if [ ! -d build/filesystem ]; then just reconfigure-filesystem; fi
   ninja -C build/filesystem
 
-runtime:
+runtime-novendor:
   if [ ! -d build/runtime ]; then just reconfigure-runtime; fi
   ninja -C build/runtime
+
+runtime: build-ncurses build-libedit
+  just runtime-novendor
 
 processes:
   if [ ! -d build/processes ]; then just reconfigure-processes; fi
@@ -64,6 +70,44 @@ exported-runtime: runtime
   cp ../../build/filesystem/definitions.mjs static/
   cp ../../build/filesystem/filesystem.mjs static/
   cp ../../build/filesystem/filesystem.wasm static/
+
+[working-directory('src/runtime/vendor')]
+build-ncurses:
+  #!/bin/sh
+  set -e
+  if [ ! -d "ncurses" ]; then
+    curl -LO https://ftp.gnu.org/gnu/ncurses/ncurses-{{ncurses_version}}.tar.gz
+    curl -LO https://ftp.gnu.org/gnu/ncurses/ncurses-{{ncurses_version}}.tar.gz.sig
+    gpg --recv-key 19882D92DDA4C400C22C0D56CC2AF4472167BE03
+    gpg --verify ncurses-{{ncurses_version}}.tar.gz.sig
+    tar xf ncurses-{{ncurses_version}}.tar.gz
+    mv ncurses-{{ncurses_version}} ncurses/
+    rm ncurses-{{ncurses_version}}.tar.gz
+    rm ncurses-{{ncurses_version}}.tar.gz.sig
+  fi
+  cd ncurses/
+  if [ ! -f "lib/libncurses.a" ]; then
+    CFLAGS="-pthread" emconfigure ./configure --host wasm32-unknown-emscripten --disable-widec
+    emmake make -j4
+  fi
+
+[working-directory('src/runtime/vendor')]
+build-libedit:
+  #!/bin/sh
+  set -e
+  if [ ! -d "libedit" ]; then
+    curl -LO https://www.thrysoee.dk/editline/libedit-{{libedit_version}}.tar.gz
+    sha256sum -c libedit-20250104-3.1.tar.gz.sha256
+    tar xf libedit-{{libedit_version}}.tar.gz
+    mv libedit-{{libedit_version}} libedit/
+    rm libedit-{{libedit_version}}.tar.gz
+  fi
+  cd libedit/
+  if [ ! -f "libedit.a" ]; then
+    LDFLAGS="-L$(realpath ../ncurses/lib/)" CFLAGS="-I$(realpath ../ncurses/include) -D__STDC_ISO_10646__ -pthread" emconfigure ./configure --host wasm32-unknown-emscripten
+    emmake make -j4
+    emar cru libedit.a src/chared.o src/chartype.o src/common.o src/eln.o src/el.o src/emacs.o src/filecomplete.o src/hist.o src/historyn.o src/history.o src/keymacro.o src/literal.o src/map.o src/parse.o src/prompt.o src/readline.o src/read.o src/reallocarr.o src/refresh.o src/search.o src/sig.o src/terminal.o src/tokenizern.o src/tokenizer.o src/tty.o src/unvis.o src/vi.o src/vis.o
+  fi
 
 [working-directory('src/site')]
 site: exported-runtime
@@ -106,3 +150,7 @@ site-run-dev:
 clean:
   rm -rf build/
   rm -rf build-native/
+
+clean-vendor:
+  rm -rf src/runtime/vendor/ncurses
+  rm -rf src/runtime/vendor/libedit

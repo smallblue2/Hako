@@ -81,13 +81,25 @@ build_processes:
       - build/processes/
     expire_in: 1 day
 
+build_vendor:
+  stage: build
+  script:
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - just build-ncurses
+    - just build-libedit
+  cache:
+    key:
+      files:
+        - src/runtime/vendor/ncurses
+        - src/runtime/vendor/libedit
+
 build_runtime:
   stage: build
   script:
     - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
     - apt-get update
     - apt-get install -y meson
-    - just runtime
+    - just runtime-novendor
   # Artifacts are to be kept between jobs
   artifacts:
     paths:
@@ -101,6 +113,7 @@ validate_artefact_persistence:
   dependencies:
     - build_filesystem
     - build_processes
+    - build_vendor
     - build_runtime
   script:
     # Ensure artifacts have persisted

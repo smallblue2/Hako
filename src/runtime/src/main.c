@@ -9,6 +9,10 @@
 
 #include "lauxlib.h"
 #include "lib.h"
+#include "stdlib.h"
+#ifdef __EMSCRIPTEN__
+#include "../vendor/libedit/src/editline/readline.h"
+#endif
 #include <unistd.h>
 
 void newlib(lua_State *L, const luaL_Reg *registry) {
@@ -136,6 +140,15 @@ int main(void) {
   // We need to run this after reading static files, as we overrite the default
   // root mountpoint
   setup_fs();
+
+#ifdef __EMSCRIPTEN__
+  setenv("TERMINFO", "/usr/share/terminfo", 1);
+  setenv("TERM", "xterm-256color", 1);
+
+  rl_readline_name = "lsh";
+
+  stifle_history(10);
+#endif
 
   Error err = 0;
   char *luaCodeBuffer = proc__get_lua_code(&err);
