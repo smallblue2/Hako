@@ -161,6 +161,55 @@ void file__initialiseFS() {
           console.error("[JS] Failed to mount filesystem:", err);
         }
 
+        function ifNotExists(path, doit) {
+          if (!FS.analyzePath(path, false).exists) {
+            return doit(path);
+          }
+        }
+
+        function moveFilesIn() {
+          console.log("Moving fresh system files in...");
+
+          // Initialise system files
+          let systemFilePath = "/persistent/sys";
+
+          // WARNING: IDBFS requires write access - however users will not be
+          //          able modify regardless due to the PROTECTED_BIT being
+          //          raised signifying it's a system file (0o010)
+          ifNotExists(systemFilePath, (p) => FS.mkdir(p, 0o710));
+
+          // Move lua files into correct place in IDBFS
+          for (const luaFile of FS.readdir("/luaSource")) {
+            if (luaFile == "." || luaFile == "..") continue;
+
+            let sourcePath = `/luaSource/${luaFile}`;
+            let systemPath = `${systemFilePath}/${luaFile}`;
+
+            // Move files into systemFilePath
+            let data = FS.readFile(sourcePath);
+            ifNotExists(systemPath, (p) =>{
+              FS.writeFile(p, data);
+              // Set correct permissions on file
+              FS.chmod(p, 0o710);
+              console.log(`ADDED: ${p}`);
+            });
+          }
+          // Set correct permissions so parent directory cannot be modified either
+          // INFO: I don't believe we're currently using dir permission bits, but future proofing regardless
+          FS.chmod(systemFilePath, 0o710);
+
+          FS.syncfs(
+            false, function(err) {
+              if (err) {
+                console.error("[JS] Error during sync:", err);
+              } else {
+                console.log("[JS] Sync completed succesfully!");
+              }
+          });
+
+          console.log("Finished bootstrap");
+        }
+
         // Pull in previous data after mounting
         FS.syncfs(
           true, function(err) {
@@ -168,49 +217,9 @@ void file__initialiseFS() {
               console.error("[JS] Error during sync:", err);
             } else {
               console.log("[JS] Sync completed succesfully!");
+              moveFilesIn();
             }
         });
-
-        console.log("Moving fresh system files in...");
-
-        // Initialise system files
-        let systemFilePath = "/persistent/sys";
-
-        // WARNING: IDBFS requires write access - however users will not be
-        //          able modify regardless due to the PROTECTED_BIT being
-        //          raised signifying it's a system file (0o010)
-        FS.mkdir(systemFilePath, 0o710);
-
-        // Move lua files into correct place in IDBFS
-        for (const luaFile of FS.readdir("/luaSource")) {
-          if (luaFile == "." || luaFile == "..") continue;
-
-          let sourcePath = `/luaSource/${luaFile}`;
-          let systemPath = `${systemFilePath}/${luaFile}`;
-
-          // Move files into systemFilePath
-          let data = FS.readFile(sourcePath);
-          FS.writeFile(systemPath, data);
-
-          // Set correct permissions on file
-          FS.chmod(systemPath, 0o710);
-
-          console.log(`ADDED: ${systemPath}`);
-        }
-        // Set correct permissions so parent directory cannot be modified either
-        // INFO: I don't believe we're currently using dir permission bits, but future proofing regardless
-        FS.chmod(systemFilePath, 0o710);
-
-        FS.syncfs(
-          false, function(err) {
-            if (err) {
-              console.error("[JS] Error during sync:", err);
-            } else {
-              console.log("[JS] Sync completed succesfully!");
-            }
-        });
-
-        console.log("Finished bootstrap");
 
       },
       PERSISTENT_ROOT_NAME);
