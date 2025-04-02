@@ -179,12 +179,33 @@ EM_JS(bool, proc__is_stdout_pipe, (Error *err), {
 })
 
 int proc__input(char *restrict buf, int max_bytes, Error *restrict err) {
+  // Short-circuit evaluation as to where we take input
+  //  1. File
+  //  2. Pipe
+  //  3. Stdin
+
+  // Check and take from file
+  char *file_redirect = proc__get_redirect_in(err);
+  if (file_redirect[0] != '\0') {
+    int fd = file__open(file_redirect, O_RDONLY, err);
+    if (fd == -1) return -1;
+    ReadResult rr;
+    file__read(fd, max_bytes, &rr, err);
+    file__close(fd, err);
+    memcpy(buf, rr.data, rr.size);
+    free(rr.data);
+    return rr.size;
+  }
+
+  // Check and take from pipe
   if (proc__is_stdin_pipe(err)) {
     if (*err < 0) {
       return -1;
     }
     return proc__input_pipe(buf, max_bytes, err);
   }
+
+  // Take from stdin
   size_t bytesRead = fread(buf, 1, max_bytes - 1, stdin);
   if (ferror(stdin)) {
     *err = -9; // TODO: What error to report here?
@@ -197,6 +218,22 @@ int proc__input(char *restrict buf, int max_bytes, Error *restrict err) {
 }
 
 int proc__input_exact(char *restrict buf, int exact_bytes, Error *restrict err) {
+  // Short-circuit evaluation as to where we take input
+  //  1. File
+  //  2. Pipe
+  //  3. Stdin
+
+  // Check and take from file redirection
+  char *file_redirect = proc__get_redirect_in(err);
+  if (file_redirect[0] != '\0') {
+    int fd = file__open(file_redirect, O_RDONLY, err);
+    if (fd == -1) return -1;
+    // file__read_exact()
+    printf("NOT YET IMPLEMENTED FOR INPUT_EXACT!");
+    return 0;
+  }
+
+  // Check and take from pipe
   if (proc__is_stdin_pipe(err)) {
     if (*err < 0) {
       printf("FAIL\n");
@@ -204,6 +241,8 @@ int proc__input_exact(char *restrict buf, int exact_bytes, Error *restrict err) 
     }
     return proc__input_exact_pipe(buf, exact_bytes, err);
   }
+
+  // Handle from stdin
 
   // Block until `exact_bytes` have been read
   size_t totalBytesRead = 0;
@@ -240,12 +279,31 @@ int proc__input_exact(char *restrict buf, int exact_bytes, Error *restrict err) 
 
 // WARNING: MUST FREE BUF
 char *proc__input_all(Error *err) {
+  // Short-circuit evaluation as to where we take input
+  //  1. File
+  //  2. Pipe
+  //  3. Stdin
+
+  // Check and take from file
+  char *file_redirect = proc__get_redirect_in(err);
+  if (file_redirect[0] != '\0') {
+    int fd = file__open(file_redirect, O_RDONLY, err);
+    if (fd == -1) return NULL;
+    ReadResult rr;
+    file__read_all(fd, &rr, &err);
+    file__close(fd, &err);
+    return rr.data;
+  }
+  
+  // Check and take from pipe
   if (proc__is_stdin_pipe(err)) {
     if (*err != 0) {
       return NULL;
     }
     return proc__input_all_pipe(err);
   }
+
+  // Take input from stdin
 
   // Initial size
   size_t capacity = 1024;
@@ -282,6 +340,23 @@ char *proc__input_all(Error *err) {
 }
 
 char *proc__input_line(Error *err) {
+  // Short-circuit evaluation as to where we take input
+  //  1. File
+  //  2. Pipe
+  //  3. Stdin
+
+  // Check and handle file redirection
+  char *file_redirect = proc__get_redirect_in(err);
+  if (file_redirect[0] != '\0') {
+    int fd = file__open(file_redirect, O_RDONLY, err);
+    if (fd == -1) return NULL;
+    ReadResult rr;
+    file__read_line(fd, &rr, &err);
+    file__close(fd, &err);
+    return rr.data;
+  }
+
+  // Check and handle pipe redirection
   if (proc__is_stdin_pipe(err)) {
     if (*err != 0) {
       return NULL;
@@ -289,6 +364,7 @@ char *proc__input_line(Error *err) {
     return proc__input_line_pipe(err);
   }
 
+  // Take input from stdin
   size_t n = 0;
   char *lineptr = NULL;
   if (getline(&lineptr, &n, stdin) == -1 && ferror(stdin)) {
@@ -301,9 +377,14 @@ char *proc__input_line(Error *err) {
 }
 
 void proc__output(const char *restrict buf, int len, Error *restrict err) {
+  // Short-circuit evaluation as to where we direct output
+  //  1. File
+  //  2. Pipe
+  //  3. Stdout
 
+  // Check if we redirect to a file instead
   char *file_redirect = proc__get_redirect_out(err);
-  if (strcmp(file_redirect, "")) {
+  if (file_redirect[0] != '\0') {
     int fd = file__open(file_redirect, O_CREAT | O_RDWR, err);
     if (fd == -1 && *err == E_EXISTS) {
       fd = file__open(file_redirect, O_RDWR, err);
@@ -318,6 +399,7 @@ void proc__output(const char *restrict buf, int len, Error *restrict err) {
     return;
   }
 
+  // Check if it's a pipe
   if (proc__is_stdout_pipe(err)) {
     if (*err != 0) {
       return;
@@ -326,6 +408,7 @@ void proc__output(const char *restrict buf, int len, Error *restrict err) {
     return;
   }
 
+  // Write to stdout
   int num_written = fwrite(buf, 1, len, stdout);
   if (num_written < len) {
     *err = -13; // Failed to write to stdout (processes.js/js/common.js)

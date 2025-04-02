@@ -118,14 +118,15 @@ end
 
 -- Safely joins two paths
 function join_paths(base, add)
-  -- Check if ends with a path
-  local end_of_base = string.sub(base, -1)
+  -- Check if ends with `/`
+  local end_of_base = base:sub(-1, -1)
   if end_of_base == "/" then
-    base = string.sub(base, 1, -2)
+    base = base:sub(1, -2)
   end
-  local start_of_add = string.sub(add, 1)
+  -- Check if starts with `/`
+  local start_of_add = add:sub(1, 1)
   if start_of_add == "/" then
-    add = string.sub(add, 2, -1)
+    add = add:sub(2, -1)
   end
   return base.."/"..add
 end
