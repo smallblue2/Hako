@@ -69,12 +69,95 @@ export function initialiseAPI(Module) {
     null, // Return type
     [], // Argument types
   )
+
+  Filesystem.initialiseFS = async () => {
+    let M = window._FSM;
+    let persistentRoot = "/persistent";
+    let check = M.FS.analyzePath(persistentRoot, false);
+    if (check.exists) {
+      console.log("[JS]", persistentRoot, "already exists!");
+      console.log("[JS] Directory info:", check);
+    } else {
+      console.log("[JS] Creating directory:", persistentRoot);
+      M.FS.mkdir(persistentRoot);
+    }
+
+    // Mount IDBFS
+    console.log("[JS] Mounting IDBFS at", persistentRoot);
+    try {
+      M.FS.mount(M.IDBFS, {autoPersist : true}, persistentRoot);
+    } catch (err) {
+      console.error("[JS] Failed to mount filesystem:", err);
+    }
+
+    function ifNotExists(path, doit) {
+      if (!M.FS.analyzePath(path, false).exists) {
+        return doit(path);
+      }
+    }
+
+    function moveFilesIn() {
+      console.log("Moving fresh system files in...");
+
+      // Initialise system files
+      let systemFilePath = "/persistent/sys";
+
+      // WARNING: IDBFS requires write access - however users will not be
+      //          able modify regardless due to the PROTECTED_BIT being
+      //          raised signifying it's a system file (0o010)
+      ifNotExists(systemFilePath, (p) => M.FS.mkdir(p, 0o710));
+
+      // Move lua files into correct place in IDBFS
+      for (const luaFile of M.FS.readdir("/luaSource")) {
+        if (luaFile == "." || luaFile == ".." || luaFile == "luaSource") continue;
+
+        let sourcePath = `/luaSource/${luaFile}`;
+        let systemPath = `${systemFilePath}/${luaFile}`;
+
+        // Move files into systemFilePath
+        let data = M.FS.readFile(sourcePath);
+        ifNotExists(systemPath, (p) => {
+          M.FS.writeFile(p, data);
+          // Set correct permissions on file
+          M.FS.chmod(p, 0o710);
+          console.log(`ADDED: ${p}`);
+        });
+      }
+      // Set correct permissions so parent directory cannot be modified either
+      // INFO: I don't believe we're currently using dir permission bits, but future proofing regardless
+      M.FS.chmod(systemFilePath, 0o710);
+
+      return new Promise((res, rej) => {
+        M.FS.syncfs(
+          false, function(err) {
+            if (err) {
+              console.error("[JS] Error during sync:", err);
+              rej("Failed to syncronize");
+            } else {
+              console.log("[JS] Sync completed succesfully!");
+              res();
+            }
+        });
+      })
+    }
+
+    return new Promise((res, rej) => {
+      // Pull in previous data after mounting
+      M.FS.syncfs(
+        true, async (err) => {
+          if (err) {
+            console.error("[JS] Error during sync:", err);
+            rej("Failed to syncronize")
+          } else {
+            console.log("[JS] Sync completed succesfully!");
+            await moveFilesIn(res);
+            res();
+          }
+      });
+    });
+  };
+
   // Cwraps [Function Signatures]
-  Filesystem.initialiseFS = Module.cwrap(
-    'file__initialiseFS', // Function name
-    null, // Return type
-    [], // Argument types
-  )
   Filesystem.sync = Module.cwrap(
     'file__pullFromPersist', // Function name
     null, // Return type
