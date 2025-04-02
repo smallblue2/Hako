@@ -118,14 +118,15 @@ end
 
 -- Safely joins two paths
 function join_paths(base, add)
-  -- Check if ends with a path
-  local end_of_base = string.sub(base, -1)
+  -- Check if ends with `/`
+  local end_of_base = base:sub(-1, -1)
   if end_of_base == "/" then
-    base = string.sub(base, 1, -2)
+    base = base:sub(1, -2)
   end
-  local start_of_add = string.sub(add, 1)
+  -- Check if starts with `/`
+  local start_of_add = add:sub(1, 1)
   if start_of_add == "/" then
-    add = string.sub(add, 2, -1)
+    add = add:sub(2, -1)
   end
   return base.."/"..add
 end
@@ -174,11 +175,11 @@ function parse_cmd(line)
     if t == ">" then
       -- next token should be filename
       i = i + 1
-      cmd.redirect_out_file = tokens[i]
+      cmd.redirect_out_file = join_paths(file.cwd(), tokens[i])
     elseif t == "<" then
       -- next token should be filename
       i = i + 1
-      cmd.redirect_in_file = tokens[i]
+      cmd.redirect_in_file = join_paths(file.cwd(), tokens[i])
     elseif t == "&" then
       cmd.background = true
     else
@@ -225,6 +226,11 @@ end
 -- #########################
 -- ####### Main Loop #######
 -- #########################
+
+function prompt()
+  local PROMPT = get_env_var("PROMPT") or "$ "
+  output(PROMPT, { newline = false })
+end
 
 local line = terminal.prompt("$ ")
 while true do

@@ -1,4 +1,5 @@
 #include "main.h"
+#include <stdio.h>
 
 // Emscripten uses its own errno convention when compiled which
 // makes accurate error reporting convoluted - use our own.
@@ -283,10 +284,7 @@ void file__write(int fd, const char *restrict content, Error *restrict err) {
   // NOTE: no perm checks as the user already has the file descriptor
 
   int contentLength = strlen(content);
-  printf("[C] Passed in fd: %d\n", fd);
-  printf("[C] Passed in string: \"%s\" (%d)\n", content, contentLength);
   int written = write(fd, content, contentLength);
-  printf("[C] Written returned => {%d}\n", written);
   if (written < 0) {
     *err = translate_errors(errno);
     return;
@@ -402,6 +400,34 @@ void file__read_all(int fd, ReadResult *restrict rr, Error *restrict err) {
   free(buf);
 
   // No error
+  *err = 0;
+  return;
+}
+
+void file__read_line(int fd, ReadResult *restrict rr, Error *err) {
+  FILE *stream = fdopen(fd, "r");
+  if (ferror(stream)) {
+    *err = translate_errors(errno);
+    return;
+  }
+
+  rr->data = NULL;
+  rr->size = -1;
+
+  char *line = NULL;
+  size_t buffer_size = 0;
+
+  ssize_t read_length = getline(&line, &buffer_size, stream);
+  if (read_length == -1) {
+    if (ferror(stream)) *err = translate_errors(errno);
+    else *err = 0; // EOF
+    fclose(stream);
+    free(line);
+    return;
+  }
+
+  rr->data = line;
+  rr->size = (int)read_length;
   *err = 0;
   return;
 }

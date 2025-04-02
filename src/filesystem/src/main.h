@@ -108,6 +108,10 @@ void file__close(int fd, Error *err);
 // Writes to an open file
 void file__write(int fd, const char *restrict content, Error *restrict err);
 
+// Reads from an open file until newline or EOF
+// WARNING: rr->data MUST be freed
+void file__read_line(int fd, ReadResult *restrict rr, Error *err);
+
 // Reads `amt` bytes in an open file
 // WARNING: rr->data MUST be freed in WASM/JS
 void file__read(int fd, int amt, ReadResult *restrict rr, Error *restrict err);

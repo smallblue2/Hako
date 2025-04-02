@@ -31,6 +31,7 @@ export default class ProcessManager {
    * Creates a new ProcessManager instance with a maximum PID capacity.
    */
   constructor(onExit = null) {
+    console.log("HELLOOO!!")
     this.#Filesystem = isNode ? globalThis.Filesystem : window.Filesystem;
     /**
      * The ProcessTable instance that stores all process data.

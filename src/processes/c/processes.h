@@ -46,6 +46,8 @@ int proc__wait(int pid, Error *err);
 void proc__kill(int pid, Error *err);
 Process* proc__list(int *restrict length, Error *restrict err); // WARNING: PROCESS* RETURN VALUE MUST BE FREED
 int proc__get_pid(Error *err);
+char *proc__get_redirect_in(Error *err);
+char *proc__get_redirect_out(Error *err);
 void proc__start(int pid, Error *err);
 void proc__exit(int exit_code, Error *err);
 void proc__args(int *restrict argc, char *restrict **argv, Error *restrict err); // WARNING: MUST FREE OUTPARAM `ARGV`

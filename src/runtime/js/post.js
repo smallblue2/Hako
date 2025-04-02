@@ -19,6 +19,10 @@ async function initWorkerForProcess(data) {
     });
   }
 
+  console.log(data)
+  console.log(`redirectStdin: ${data.redirectStdin}`)
+  console.log(`redirectStdout: ${data.redirectStdout}`)
+
   self.proc = {
     pid: data.pid,
     args: data.args,
