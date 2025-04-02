@@ -198,29 +198,42 @@ void file__initialiseFS() {
           // INFO: I don't believe we're currently using dir permission bits, but future proofing regardless
           FS.chmod(systemFilePath, 0o710);
 
-          FS.syncfs(
-            false, function(err) {
-              if (err) {
-                console.error("[JS] Error during sync:", err);
-              } else {
-                console.log("[JS] Sync completed succesfully!");
-              }
-          });
+          // FS.syncfs(
+          //   false, function(err) {
+          //     if (err) {
+          //       console.error("[JS] Error during sync:", err);
+          //     } else {
+          //       console.log("[JS] Sync completed succesfully!");
+          //     }
+          // });
 
           console.log("Finished bootstrap");
         }
 
+        function wait(check) {
+          setTimeout(() => {
+            if (!check) {
+              wait();
+            }
+          }, 100);
+        }
+
+        let done = false;
+
         // Pull in previous data after mounting
         FS.syncfs(
-          true, function(err) {
+          true, (err) => {
             if (err) {
               console.error("[JS] Error during sync:", err);
+              rej("Failed to syncronize")
             } else {
               console.log("[JS] Sync completed succesfully!");
               moveFilesIn();
+              done = true;
             }
         });
 
+        wait(() => done);
       },
       PERSISTENT_ROOT_NAME);
 #endif

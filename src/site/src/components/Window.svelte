@@ -1,6 +1,7 @@
 <script>
   import * as lib from "$lib";
   import * as windows from "$lib/windows.svelte.js";
+  import _, * as overlay from "./Overlay.svelte";
   import { onMount } from "svelte";
 
   /**
@@ -47,16 +48,14 @@
     if (!maximized) {
       document.addEventListener("mousemove", onDragWindow);
       document.addEventListener("mouseup", onReleaseDecorations);
-      let overlay = document.getElementById("event-overlay");
-      overlay.style.display = "block";
+      overlay.toggleGrab();
     }
   }
 
   function onReleaseDecorations() {
     document.removeEventListener("mousemove", onDragWindow);
     document.removeEventListener("mouseup", onReleaseDecorations);
-    let overlay = document.getElementById("event-overlay");
-    overlay.style.display = "none";
+    overlay.toggleGrab();
   }
 
   /**
@@ -148,15 +147,13 @@
       document.addEventListener("mousemove", onDragResize);
       document.addEventListener("mouseup", onReleaseResizeArea);
 
-      let overlay = document.getElementById("event-overlay");
-      overlay.style.display = "block";
-      overlay.style.cursor = lib.SECTION_CURSORS[globalSect];
+      overlay.toggleGrab();
+      overlay.setCursor(lib.SECTION_CURSORS[globalSect])
     }
   }
 
   function onReleaseResizeArea() {
-    let overlay = document.getElementById("event-overlay");
-    overlay.style.display = "none";
+    overlay.toggleGrab();
     root.classList.toggle(lib.SECTION_STYLE[globalSect]);
     resizing = false;
     document.removeEventListener("mousemove", onDragResize);
@@ -167,8 +164,7 @@
   function onExitResizeArea() {
     if (!resizing) {
       document.documentElement.style.cursor = "revert";
-      let overlay = document.getElementById("event-overlay");
-      overlay.style.cursor = "auto";
+      overlay.setCursor("auto");
     }
   }
 

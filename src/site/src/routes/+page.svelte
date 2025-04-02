@@ -1,8 +1,14 @@
 <script>
   import Desktop from "../components/Desktop.svelte";
+  import Overlay, * as overlay from "../components/Overlay.svelte";
   import { onMount } from "svelte";
 
+  /** @type {HTMLDialogElement | undefined} */
+  let loadingPopup = $state();
+
   onMount(async () => {
+    loadingPopup?.showModal();
+
     let { initialiseAPI, Filesystem } = await import("/api.mjs?url");
     window.isFilesystemInitialised = false;
 
@@ -40,6 +46,9 @@
       let { default: ProcessManager } = await import("/processManager.mjs?url");
       window.ProcessManager = new ProcessManager();
       console.log("Created process manager");
+
+      overlay.toggleLoaded();
+      loadingPopup?.close();
     }).catch((err) => {
       console.error("Failed to define filesystem API:", err);
     });
@@ -48,7 +57,14 @@
 
 <Desktop></Desktop>
 
-<div id="event-overlay"></div>
+<Overlay></Overlay>
+<dialog bind:this={loadingPopup} class="popup" oncancel={(e) => e.preventDefault()}>
+ <div class="loader-wrapper">
+   <!-- CREDIT: https://cssloaders.github.io/ -->
+   <span class="loader"></span>
+   <p>Starting up system...</p>
+ </div>
+</dialog>
 
 <style>
 :global(html) {
@@ -63,13 +79,41 @@
   overflow: hidden;
 }
 
-:global(#event-overlay) {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: none;
-  z-index: 1000;
+.popup {
+  outline: none;
+  border: 4px solid var(--window-outline);
+}
+
+.loader-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loader {
+  color: var(--md-sys-color-on-surface);
+  font-family: Consolas, Menlo, Monaco, monospace;
+  font-weight: bold;
+  font-size: 4rem;
+  opacity: 0.8;
+}
+
+.loader:before {
+  content: "{";
+  display: inline-block;
+  animation: pulse 0.4s alternate infinite ease-in-out;
+}
+
+.loader:after {
+  content: "}";
+  display: inline-block;
+  animation: pulse 0.4s 0.3s alternate infinite ease-in-out;
+}
+
+@keyframes pulse {
+  to {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
 }
 </style>
