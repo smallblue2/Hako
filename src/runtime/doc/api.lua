@@ -258,3 +258,18 @@ errors = {}
 ---@return string errs The string form of error code.
 ---@diagnostic disable-next-line: unused-local, missing-return
 function errors.as_string(code) end
+
+---Terminal specific functions.
+terminal = {}
+
+---Clear/Reset the terminal text.
+---@return number | nil err Error code.
+---@diagnostic disable-next-line: unused-local, missing-return
+function terminal.clear() end
+
+---Draw a prompt and support REPL like functionality.
+---@param prompt_text string the prompt to print
+---@return string | nil user inputted line.
+---@return number | nil err Error code.
+---@diagnostic disable-next-line: unused-local, missing-return
+function terminal.prompt(prompt_text) end

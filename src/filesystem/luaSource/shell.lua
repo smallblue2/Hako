@@ -211,14 +211,12 @@ function prompt()
   output(PROMPT, { newline = false })
 end
 
-
-prompt()
-local line = input_line()
+output(inspect(terminal))
+local line = terminal.prompt("$ ")
 while #line ~= 0 do
   local cmd = parse_cmd(line)
   if not built_in(cmd) then
     run_command(cmd)
   end
-  prompt()
-  line = input_line()
+  line = terminal.prompt("$ ")
 end

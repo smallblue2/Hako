@@ -8,3 +8,6 @@ filesystem.wasm
 
 processes.js
 processes.wasm
+
+src/runtime/vendor/ncurses/
+src/runtime/vendor/libedit/

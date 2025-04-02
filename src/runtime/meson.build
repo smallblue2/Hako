@@ -6,6 +6,9 @@ if host_machine.system() == 'emscripten'
   configure_file(input: 'js/emscripten-pty.js', output: 'emscripten-pty.js', copy: true)
   configure_file(input: 'js/pre.js', output: 'pre.js', copy: true)
   configure_file(input: 'js/post.js', output: 'post.js', copy: true)
+  configure_file(input: 'xterm-256color.terminfo', output: 'xterm-256color.terminfo', copy: true)
+  configure_file(input: 'vendor/ncurses/lib/libncurses.a', output: 'libncurses.a', copy: true)
+  configure_file(input: 'vendor/libedit/libedit.a', output: 'libedit.a', copy: true)
 endif
 
 if host_machine.system() == 'emscripten'
@@ -40,9 +43,9 @@ custom_target('copy_static_dir',
 
 if host_machine.system() == 'emscripten'
   sources = files('src/main.c', 'src/file.c', 'src/errors.c', 'src/process.c', 'src/shared.c', 'src/terminal.c')
-  executable('runtime', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lproxyfs.js', 'libfilesystem.a', '-Wl,--whole-archive', 'libprocesses.a', '-pthread', '--post-js=post.js', '--pre-js=pre.js', '--js-library=emscripten-pty.js', '-sSHARED_MEMORY=1', '-sPROXY_TO_PTHREAD', '-sEXPORT_ES6', '-sENVIRONMENT=web,worker', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue,wasmMemory', '-sEXIT_RUNTIME=1', '--embed-file', 'static/'], dependencies: [lua_dep])
+  executable('runtime', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lproxyfs.js', 'libedit.a', 'libncurses.a', 'libfilesystem.a', '-Wl,--whole-archive', 'libprocesses.a', '-pthread', '--post-js=post.js', '--pre-js=pre.js', '--js-library=emscripten-pty.js', '-sSHARED_MEMORY=1', '-sPROXY_TO_PTHREAD', '-sEXPORT_ES6', '-sENVIRONMENT=web,worker', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue,wasmMemory', '-sEXIT_RUNTIME=1', '--embed-file', 'static/', '--embed-file', 'xterm-256color.terminfo@/usr/share/terminfo/x/xterm-256color'], dependencies: [lua_dep])
 
-  executable('runtime-node', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-O0', '-Wall', '-Wextra', '-pthread'], link_args: ['-lproxyfs.js', 'libfilesystem.a', '-Wl,--whole-archive', 'libprocesses.a', '-pthread', '--post-js=post.js', '--pre-js=pre.js', '-sSHARED_MEMORY=1', '-sPROXY_TO_PTHREAD', '-sEXPORT_ES6', '-sENVIRONMENT=node', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue,wasmMemory', '-sEXIT_RUNTIME=1', '--embed-file', 'static/', '-sASSERTIONS=2'], dependencies: [lua_dep])
+  executable('runtime-node', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread', '-Ivendor/libedit/src/'], link_args: ['-lproxyfs.js', 'libedit.a', 'libncurses.a', 'libfilesystem.a', '-Wl,--whole-archive', 'libprocesses.a', '-pthread', '--post-js=post.js', '--pre-js=pre.js', '-sSHARED_MEMORY=1', '-sPROXY_TO_PTHREAD', '-sEXPORT_ES6', '-sENVIRONMENT=node', '-sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,stringToNewUTF8,setValue,wasmMemory', '-sEXIT_RUNTIME=1', '--embed-file', 'static/', '--embed-file', 'xterm-256color.terminfo@/usr/local/share/terminfo/x/xterm-256color', '-sASSERTIONS=2'], dependencies: [lua_dep])
 else
   sources = files('src/file.c', 'src/errors.c', 'src/process.c', 'src/shared.c', 'src/terminal.c')
   libruntime = library('runtime', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-D_FILE_OFFSET_BITS=64'], dependencies: [lua_dep.as_link_whole()], install: true)
