@@ -164,5 +164,4 @@ void file__truncate(int fd, int length, Error *restrict err);
 // Returns the current working directory
 char *file__cwd(Error *restrict err);
 
-
 #endif
