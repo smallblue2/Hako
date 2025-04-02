@@ -385,7 +385,7 @@ void proc__output(const char *restrict buf, int len, Error *restrict err) {
   // Check if we redirect to a file instead
   char *file_redirect = proc__get_redirect_out(err);
   if (file_redirect[0] != '\0') {
-//     int fd = file__open(file_redirect, O_CREAT | O_RDWR, err);
+    int fd = file__open(file_redirect, O_CREAT | O_RDWR, err);
     if (fd == -1 && *err == E_EXISTS) {
       fd = file__open(file_redirect, O_RDWR, err);
     }
