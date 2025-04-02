@@ -51,7 +51,7 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  async createProcess({ luaPath = "/persistent/sys/shell.lua", args=[], slave = undefined, pipeStdin = false, pipeStdout = false, callerSignal = null, start = false }) {
+  async createProcess({ luaPath = "/persistent/sys/shell.lua", args = [], slave = undefined, pipeStdin = false, pipeStdout = false, redirectStdin = null, redirectStdout = null, callerSignal = null, start = false }) {
     if (!isNode && slave === undefined && (pipeStdin == false || pipeStdout == false)) {
       throw new CustomError(CustomError.symbols.PTY_PROCESS_NO_PTY);
     }
@@ -74,7 +74,7 @@ export default class ProcessManager {
 
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
-      { args, slave, pipeStdin, pipeStdout, start, luaCode }, // Defined behaviour for web-worker
+      { args, slave, pipeStdin, pipeStdout, redirectStdin, redirectStdout, start, luaCode }, // Defined behaviour for web-worker
     );
 
     // Enqueue process to be initialised
@@ -143,7 +143,6 @@ export default class ProcessManager {
   }
 
   killProcess(pid) {
-    console.log("KILL:", pid);
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, ProcessExitCodeConventions.KILLED);
   }
@@ -281,7 +280,7 @@ export default class ProcessManager {
         }
 
         try {
-          await this.createProcess({ luaPath: e.data.luaPath, args: e.data.args, slave: requestor.pty, pipeStdin, pipeStdout, callerSignal: sendBackSignal });
+          await this.createProcess({ luaPath: e.data.luaPath, args: e.data.args, slave: requestor.pty, pipeStdin, pipeStdout, redirectStdin: e.data.redirectStdin, redirectStdout: e.data.redirectStdout, callerSignal: sendBackSignal });
           // INFO: PID is written to callerSignal after a process is registered to it
         } catch (err) {
           if (!(err instanceof CustomError)) {

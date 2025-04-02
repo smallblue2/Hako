@@ -16,10 +16,11 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <limits.h>
 
 // ======================= Filesystem Definitions =======================
 
-// The root of our persisten filesystem
+// The root of our persistent filesystem
 #define PERSISTENT_ROOT_NAME "/persistent"
 
 // Buffer size for reading
@@ -107,6 +108,10 @@ void file__close(int fd, Error *err);
 // Writes to an open file
 void file__write(int fd, const char *restrict content, Error *restrict err);
 
+// Reads from an open file until newline or EOF
+// WARNING: rr->data MUST be freed
+void file__read_line(int fd, ReadResult *restrict rr, Error *err);
+
 // Reads `amt` bytes in an open file
 // WARNING: rr->data MUST be freed in WASM/JS
 void file__read(int fd, int amt, ReadResult *restrict rr, Error *restrict err);
@@ -154,6 +159,10 @@ void file__fdstat(int fd, StatResult *restrict sr, Error *restrict err);
 void file__permit(const char *restrict path, int flags, Error *restrict err);
 
 // Force file to be `length` size in bytes
-void file__truncate(int fd, int length, Error *err);
+void file__truncate(int fd, int length, Error *restrict err);
+
+// Returns the current working directory
+char *file__cwd(Error *restrict err);
+
 
 #endif

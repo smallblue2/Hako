@@ -116,7 +116,6 @@ class Process {
       this.signal.sleep();
       this.changeState(ProcessStates.RUNNING);
       let data = this.signal.read();
-      console.log("This:", data);
       return Number(data);
     }
     self.kill = (pid) => {
@@ -147,7 +146,6 @@ class Process {
           // state: entry.state
       let offsetCounter = 0;
       list.forEach((item, index) => {
-        console.log("Assigning:", item);
         Module.setValue(offsetCounter + memPointer, item.pid, 'i32');
         Module.setValue(offsetCounter + memPointer + 4, item.alive, 'i32');
         Module.setValue(offsetCounter + memPointer + 8, Number(BigInt(item.created) & 0xFFFFFFFFn), 'i32');

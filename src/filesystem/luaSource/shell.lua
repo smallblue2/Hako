@@ -59,11 +59,21 @@ function ls(cmd)
   end
 end
 
+function pwd(cmd)
+  local cwd, err = file.cwd()
+  if err ~= nil then
+    output(string.format("pwd: %s", errors.as_string(err)))
+    return
+  end
+  output(cwd)
+end
+
 local built_in_table = {
   ["ls"] = ls,
   ["cd"] = cd,
   ["export"] = export,
-  ["env"] = env
+  ["env"] = env,
+  ["pwd"] = pwd
 }
 
 -- Checks for and executes a built-in
@@ -108,14 +118,15 @@ end
 
 -- Safely joins two paths
 function join_paths(base, add)
-  -- Check if ends with a path
-  local end_of_base = string.sub(base, -1)
+  -- Check if ends with `/`
+  local end_of_base = base:sub(-1, -1)
   if end_of_base == "/" then
-    base = string.sub(base, 1, -2)
+    base = base:sub(1, -2)
   end
-  local start_of_add = string.sub(add, 1)
+  -- Check if starts with `/`
+  local start_of_add = add:sub(1, 1)
   if start_of_add == "/" then
-    add = string.sub(add, 2, -1)
+    add = add:sub(2, -1)
   end
   return base.."/"..add
 end
@@ -132,8 +143,18 @@ end
 -- ####### Parsing #######
 -- #######################
 
+function smelly_hacks(line)
+  if line == "\n" or line == "" then
+    return nil
+  end
+  return line
+end
+
 -- Parses line of input, returns a `cmd` table
 function parse_cmd(line)
+  line = smelly_hacks(line)
+  if not line then return nil end
+
   local tokens = {}
   for token in string.gmatch(line, "[^%s]+") do
     table.insert(tokens, token)
@@ -154,11 +175,11 @@ function parse_cmd(line)
     if t == ">" then
       -- next token should be filename
       i = i + 1
-      cmd.redirect_out_file = tokens[i]
+      cmd.redirect_out_file = join_paths(file.cwd(), tokens[i])
     elseif t == "<" then
       -- next token should be filename
       i = i + 1
-      cmd.redirect_in_file = tokens[i]
+      cmd.redirect_in_file = join_paths(file.cwd(), tokens[i])
     elseif t == "&" then
       cmd.background = true
     else
@@ -182,7 +203,7 @@ function run_command(cmd)
       output("Command not found: "..cmd.argv[1])
       return
     end
-    local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false })
+    local pid, create_err = process.create(exec_path, { argv = cmd, pipe_in = false, pipe_out = false, redirect_in = cmd.redirect_in_file, redirect_out = cmd.redirect_out_file })
     if create_err then
       output("Failed to create process (err:"..create_err..")")
       return
@@ -211,11 +232,14 @@ function prompt()
   output(PROMPT, { newline = false })
 end
 
-output(inspect(terminal))
 local line = terminal.prompt("$ ")
-while #line ~= 0 do
+while true do
+  if line == nil then
+    output("\nEOF: exiting")
+    break
+  end;
   local cmd = parse_cmd(line)
-  if not built_in(cmd) then
+  if cmd and not built_in(cmd) then
     run_command(cmd)
   end
   line = terminal.prompt("$ ")

@@ -146,6 +146,8 @@ STDOUT --[[@type number]] = nil
 ---@field pipe_in? boolean Whether to pipe standard input.
 ---@field pipe_out? boolean Whether to pipe standard output.
 ---@field argv? string[] The command line arguments passed to the created process.
+-- @field redirect_in? string Redirect input from this file.
+-- @field redirect_out? string Redirect output to this file, if it doesn't exist it creates it.
 
 ---@diagnostic disable-next-line: undefined-doc-name
 ---@alias Stream_Type (STDIN | STDOUT)
