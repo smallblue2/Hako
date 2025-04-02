@@ -55,11 +55,25 @@ lint_processes_tests:
     - npm run lint-tests
 
 # ----------------- BUILDING ----------------- 
+
+cached_dependencies:
+  stage: build
+  script:
+    - if [ -f ./install.sh ]; then echo "Using cached build"; exit 0; fi
+    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh > install.sh
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  artifacts:
+    paths:
+      - ./install.sh
+    expire_in: 1 week
   
 build_filesystem:
   stage: build
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin
     - apt-get update
     - apt-get install -y meson
     - just filesystem
@@ -68,11 +82,17 @@ build_filesystem:
     paths:
       - build/filesystem/
     expire_in: 1 day
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  needs:
+    - cached_dependencies
 
 build_processes:
   stage: build
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin/
     - apt-get update
     - apt-get install -y meson
     - just processes
@@ -80,26 +100,37 @@ build_processes:
     paths:
       - build/processes/
     expire_in: 1 day
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  needs:
+    - cached_dependencies
 
 build_vendor:
   stage: build
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - if [ -d src/runtime/vendor/ncurses ]; then echo "Using cached build"; exit 0; fi
+    - cat ./install.sh | bash -s -- --to /usr/local/bin/
     - apt-get update
     - apt-get install -y gpg
     - just build-ncurses
     - just build-libedit
   artifacts:
     paths:
-      - src/runtime/vendor/ncurses/lib/libncurses.a
-      - src/runtime/vendor/libedit/libedit.a
-      - src/runtime/vendor/libedit/src/
+      - src/runtime/vendor/ncurses/
+      - src/runtime/vendor/libedit/
     expire_in: 1 month
   cache:
-    key:
-      files:
+    - key: vendor-dependencies
+      paths:
         - src/runtime/vendor/ncurses/
         - src/runtime/vendor/libedit/
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  needs:
+    - cached_dependencies
 
 build_runtime:
   stage: build
@@ -108,7 +139,7 @@ build_runtime:
     - build_processes
     - build_vendor
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin/
     - apt-get update
     - apt-get install -y meson
     - just runtime-novendor
@@ -117,6 +148,10 @@ build_runtime:
     paths:
       - build/runtime/
     expire_in: 1 day
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
 
 # ----------------- VALIDATION ----------------- 
 
