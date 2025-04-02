@@ -37,9 +37,7 @@
 
       window.Filesystem.initialiseFS();
     
-      console.log("A")
       let { default: ProcessManager } = await import("/processManager.mjs?url");
-      console.log("B")
       window.ProcessManager = new ProcessManager();
       console.log("Created process manager");
     }).catch((err) => {
