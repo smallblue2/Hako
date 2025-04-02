@@ -143,7 +143,6 @@ export default class ProcessManager {
   }
 
   killProcess(pid) {
-    console.log("KILL:", pid);
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, ProcessExitCodeConventions.KILLED);
   }
@@ -281,7 +280,6 @@ export default class ProcessManager {
         }
 
         try {
-          console.log(e.data)
           await this.createProcess({ luaPath: e.data.luaPath, args: e.data.args, slave: requestor.pty, pipeStdin, pipeStdout, redirectStdin: e.data.redirectStdin, redirectStdout: e.data.redirectStdout, callerSignal: sendBackSignal });
           // INFO: PID is written to callerSignal after a process is registered to it
         } catch (err) {

@@ -100,7 +100,6 @@ EM_JS(int, proc__create, (const char *restrict buf, int len, const char *restric
   let luaPath = UTF8ToString(buf, len);
   let redirectIn = UTF8ToString(redirect_in);
   let redirectOut = UTF8ToString(redirect_out);
-  console.log(redirectIn, redirectOut);
   let createdPID = self.proc.create(luaPath, jsArgs, Boolean(pipe_stdin), Boolean(pipe_stdout), redirectIn, redirectOut);
   if (createdPID < 0) {
     setValue(err, createdPID, 'i32');
@@ -385,9 +384,9 @@ void proc__output(const char *restrict buf, int len, Error *restrict err) {
   // Check if we redirect to a file instead
   char *file_redirect = proc__get_redirect_out(err);
   if (file_redirect[0] != '\0') {
-    int fd = file__open(file_redirect, O_CREAT | O_RDWR, err);
+    int fd = file__open(file_redirect, O_CREAT | O_WRONLY, err);
     if (fd == -1 && *err == E_EXISTS) {
-      fd = file__open(file_redirect, O_RDWR, err);
+      fd = file__open(file_redirect, O_WRONLY, err);
     }
     if (fd == -1) return;
 
