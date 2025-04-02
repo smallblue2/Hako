@@ -59,11 +59,21 @@ function ls(cmd)
   end
 end
 
+function pwd(cmd)
+  local cwd, err = file.cwd()
+  if err ~= nil then
+    output(string.format("pwd: %s", errors.as_string(err)))
+    return
+  end
+  output(cwd)
+end
+
 local built_in_table = {
   ["ls"] = ls,
   ["cd"] = cd,
   ["export"] = export,
-  ["env"] = env
+  ["env"] = env,
+  ["pwd"] = pwd
 }
 
 -- Checks for and executes a built-in
@@ -132,8 +142,18 @@ end
 -- ####### Parsing #######
 -- #######################
 
+function smelly_hacks(line)
+  if line == "\n" or line == "" then
+    return nil
+  end
+  return line
+end
+
 -- Parses line of input, returns a `cmd` table
 function parse_cmd(line)
+  line = smelly_hacks(line)
+  if not line then return nil end
+
   local tokens = {}
   for token in string.gmatch(line, "[^%s]+") do
     table.insert(tokens, token)
@@ -206,16 +226,14 @@ end
 -- ####### Main Loop #######
 -- #########################
 
-function prompt()
-  local PROMPT = get_env_var("PROMPT") or "$ "
-  output(PROMPT, { newline = false })
-end
-
-output(inspect(terminal))
 local line = terminal.prompt("$ ")
-while #line ~= 0 do
+while true do
+  if line == nil then
+    output("\nEOF: exiting")
+    break
+  end;
   local cmd = parse_cmd(line)
-  if not built_in(cmd) then
+  if cmd and not built_in(cmd) then
     run_command(cmd)
   end
   line = terminal.prompt("$ ")

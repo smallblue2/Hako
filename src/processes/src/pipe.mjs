@@ -203,7 +203,7 @@ export default class Pipe {
       if (byte == this.#EOF) return this.decoder.decode(new Uint8Array(result));
 
       // Consume
-      result.push(this.data[rd]);
+      result.push(byte);
       const newRd = (rd + 1) % this.data.length;
       Atomics.store(this.control, 0, newRd);
       Atomics.notify(this.control, 0, 1);

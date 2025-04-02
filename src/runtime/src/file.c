@@ -1,33 +1,26 @@
-#include "../../filesystem/src/main.h"
 #include "file.h"
+#include "../../filesystem/src/main.h"
 #include "shared.h"
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <lauxlib.h>
 #include <lua.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
-#include <errno.h>
+#include <unistd.h>
 
-bool can_read_s(const char *flags) {
-  return strchr(flags, 'r') != NULL;
-}
+bool can_read_s(const char *flags) { return strchr(flags, 'r') != NULL; }
 
-bool can_write_s(const char *flags) {
-  return strchr(flags, 'w') != NULL;
-}
+bool can_write_s(const char *flags) { return strchr(flags, 'w') != NULL; }
 
-bool can_exec_s(const char *flags) {
-  return strchr(flags, 'x') != NULL;
-}
+bool can_exec_s(const char *flags) { return strchr(flags, 'x') != NULL; }
 
-bool can_create_s(const char *flags) {
-  return strchr(flags, 'c') != NULL;
-}
+bool can_create_s(const char *flags) { return strchr(flags, 'c') != NULL; }
 
 /**
- * @@ file.open(path: string, flags: string) -> (fd: int | nil, err: number | nil)
+ * @@ file.open(path: string, flags: string) -> (fd: int | nil, err: number |
+ * nil)
  */
 int lfile__open(lua_State *L) {
   lua_settop(L, 2);
@@ -45,14 +38,18 @@ int lfile__open(lua_State *L) {
   bool read = can_read_s(flagss);
   bool write = can_write_s(flagss);
   bool create = can_create_s(flagss);
- 
+
   int flags = 0;
- 
-  if (read && write) flags |= O_RDWR;
-  else if (read) flags |= O_RDONLY;
-  else if (write) flags |=  O_WRONLY;
- 
-  if (create) flags |= O_CREAT;
+
+  if (read && write)
+    flags |= O_RDWR;
+  else if (read)
+    flags |= O_RDONLY;
+  else if (write)
+    flags |= O_WRONLY;
+
+  if (create)
+    flags |= O_CREAT;
 
   Error err = 0;
   int fd = file__open(path, flags, &err);
@@ -370,21 +367,28 @@ void statr_as_l(lua_State *L, StatResult *sr) {
 
   char perm[4] = {0};
   int i = 0;
-  if (read) perm[i++] = 'r';
-  if (write) perm[i++] = 'w';
-  if (exec) perm[i] = 'x';
+  if (read)
+    perm[i++] = 'r';
+  if (write)
+    perm[i++] = 'w';
+  if (exec)
+    perm[i] = 'x';
 
   lua_pushstring(L, perm);
   lua_setfield(L, -2, "perm");
 
   // Fill up those time fields
-  static const char *time_fields[] = { "atime", "mtime", "ctime" };
-  static const size_t time_offsets[] = { offsetof(StatResult, atime), offsetof(StatResult, mtime), offsetof(StatResult, ctime) };
+  static const char *time_fields[] = {"atime", "mtime", "ctime"};
+  static const size_t time_offsets[] = {offsetof(StatResult, atime),
+                                        offsetof(StatResult, mtime),
+                                        offsetof(StatResult, ctime)};
 
   for (size_t i = 0; i < sizeof(time_fields) / sizeof(time_fields[0]); i++) {
     lua_createtable(L, 0, 2);
     char *srr = (char *)sr; // we view the stat result as bytes
-    Time *time = (Time *)(srr + time_offsets[i]); // then just extract the field by byte offset
+    Time *time =
+        (Time *)(srr +
+                 time_offsets[i]); // then just extract the field by byte offset
 
     lua_pushnumber(L, time->sec);
     lua_setfield(L, -2, "sec");
@@ -393,7 +397,6 @@ void statr_as_l(lua_State *L, StatResult *sr) {
 
     lua_setfield(L, -2, time_fields[i]);
   }
-
 }
 
 /**
@@ -404,7 +407,8 @@ void statr_as_l(lua_State *L, StatResult *sr) {
  *   blocks: number,
  *   blocksize: number,
  *   ino: number,
- *   perm: number, -- permissions (Only user: 01 Read, 001 Write, 0001 Execute) 20
+ *   perm: number, -- permissions (Only user: 01 Read, 001 Write, 0001 Execute)
+ * 20
  *
  *   type: number, -- compare to FILE and DIRECTORY constants
  *   atime: {
@@ -454,8 +458,9 @@ int lfile__stat(lua_State *L) {
  *   blocks: number,
  *   blocksize: number,
  *   ino: number,
- *   perm: number, -- permissions (Only user: 01 Read, 001 Write, 0001 Execute) 20
- * 
+ *   perm: number, -- permissions (Only user: 01 Read, 001 Write, 0001 Execute)
+ * 20
+ *
  *   type: number, -- compare to FILE and DIRECTORY constants
  *   atime: {
  *     sec: number,
@@ -508,9 +513,12 @@ int lfile__permit(lua_State *L) {
   bool exec = can_exec_s(flagss);
 
   int flags = 0;
-  if (read) flags |= 0400;
-  if (write) flags |= 0200;
-  if (exec) flags |= 0100;
+  if (read)
+    flags |= 0400;
+  if (write)
+    flags |= 0200;
+  if (exec)
+    flags |= 0100;
 
   Error err;
   file__permit(path, flags, &err);
@@ -537,4 +545,25 @@ int lfile__truncate(lua_State *L) {
 
   lua_pushnil(L);
   return 1;
+}
+
+int lfile__cwd(lua_State *L) {
+  Error err = 0;
+  char *cwd = file__cwd(&err);
+  if (err != 0) {
+    lua_pushnil(L);
+    lua_pushnumber(L, err);
+    return 2;
+  }
+
+  int shift = sizeof("persistent");
+  const char *no_prefix = cwd + shift;
+  memmove(cwd, no_prefix, strlen(no_prefix) + 1);
+  if (cwd[0] == '\0') {
+    strcpy(cwd, "/");
+  }
+
+  lua_pushstring(L, cwd);
+  lua_pushnil(L);
+  return 2;
 }

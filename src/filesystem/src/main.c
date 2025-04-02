@@ -1,6 +1,4 @@
 #include "main.h"
-#include <fcntl.h>
-#include <sys/stat.h>
 
 // Emscripten uses its own errno convention when compiled which
 // makes accurate error reporting convoluted - use our own.
@@ -696,4 +694,14 @@ void file__truncate(int fd, int length, Error *err) {
     *err = translate_errors(errno);
     return;
   }
+}
+
+char *file__cwd(Error *err) {
+  static char cwd[PATH_MAX] = {0};
+  char *errorPtr = getcwd(cwd, PATH_MAX);
+  if (errorPtr == NULL) {
+    *err = translate_errors(errno);
+    return NULL;
+  }
+  return cwd;
 }

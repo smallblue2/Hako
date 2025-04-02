@@ -22,7 +22,7 @@ custom_target('copy_lua_source_dir',
 )
 
 if host_machine.system() == 'emscripten'
-  executable('filesystem', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lidbfs.js', '-sFORCE_FILESYSTEM', '-sEXPORTED_FUNCTIONS=_file__pushToPersist,_file__pullFromPersist,_file__initialiseFS,_file__initialiseFSNode,_file__open,_file__close,_file__read,_file__write,_file__read_all,_file__shift,_file__goto,_file__remove,_file__move,_file__make_dir,_file__remove_dir,_file__read_dir,_file__stat,_file__fdstat,_file__change_dir,_file__permit,_file__truncate,_malloc,_free', '-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue,stackAlloc,stackSave,stackRestore,UTF8ToString,FS,SYSCALLS,IDBFS', '--embed-file', 'luaSource', '-sEXPORT_ES6'])
+  executable('filesystem', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lidbfs.js', '-sFORCE_FILESYSTEM', '-sEXPORTED_FUNCTIONS=_file__pushToPersist,_file__pullFromPersist,_file__initialiseFS,_file__initialiseFSNode,_file__open,_file__close,_file__read,_file__write,_file__read_all,_file__shift,_file__goto,_file__remove,_file__move,_file__make_dir,_file__remove_dir,_file__read_dir,_file__stat,_file__fdstat,_file__change_dir,_file__permit,_file__truncate,_file__cwd,_malloc,_free', '-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue,stackAlloc,stackSave,stackRestore,UTF8ToString,FS,SYSCALLS,IDBFS', '--embed-file', 'luaSource', '-sEXPORT_ES6'])
 
   library('filesystem', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lidbfs.js', '-sFORCE_FILESYSTEM', '-pthread', '-sEXPORT_ES6', '-sPROXY_TO_PTHREAD', '-sENVIRONMENT=web,worker'], install: true)
 else

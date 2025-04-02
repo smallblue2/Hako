@@ -16,10 +16,11 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <limits.h>
 
 // ======================= Filesystem Definitions =======================
 
-// The root of our persisten filesystem
+// The root of our persistent filesystem
 #define PERSISTENT_ROOT_NAME "/persistent"
 
 // Buffer size for reading
@@ -154,6 +155,9 @@ void file__fdstat(int fd, StatResult *restrict sr, Error *restrict err);
 void file__permit(const char *restrict path, int flags, Error *restrict err);
 
 // Force file to be `length` size in bytes
-void file__truncate(int fd, int length, Error *err);
+void file__truncate(int fd, int length, Error *restrict err);
+
+// Returns the current working directory
+char *file__cwd(Error *restrict err);
 
 #endif
