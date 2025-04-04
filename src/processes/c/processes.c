@@ -98,45 +98,6 @@ EM_JS(int, proc__wait, (int pid, Error *err), {
 // proc__create(const char *restrict buf, int len, const char *restrict *args,
 // int args_len, bool pipe_stdin, bool pipe_stdout, const char *restrict
 // redirect_in, const char *restrict redirect_out, Error *restrict err)
-// int proc__create(const char *restrict buf, int len, const char *restrict *args,
-//                 int args_len, bool pipe_stdin, bool pipe_stdout,
-//                 const char *restrict redirect_in,
-//                 const char *restrict redirect_out, Error *restrict err) {
-//   char *cwd = file__cwd(&err);
-//   return EM_ASM_INT(
-//       {
-//         let jsArgs = [];
-//         for (let i = 0; i < $3; i++) {
-//           jsArgs.push(UTF8ToString(getValue($2 + (i * 4), 'i8*')));
-//         }
-//         let luaPath = UTF8ToString($0, $1);
-//         let redirectIn = UTF8ToString($6);
-//         let redirectOut = UTF8ToString($7);
-//         let createdPID = self.proc.create(luaPath, jsArgs, Boolean($4),
-//                                           Boolean($5), $6, $7, $9);
-//         if (createdPID < 0) {
-//           setValue(err, createdPID, 'i32');
-//           return -1;
-//         }
-//         setValue(err, 0, 'i32');
-//         return createdPID;
-//       },
-//       buf,          // $0
-//       len,          // $1
-//       args,         // $2
-//       args_len,     // $3
-//       pipe_stdin,   // $4
-//       pipe_stdout,  // $5
-//       redirect_in,  // $6
-//       redirect_out, // $7
-//       err,          // $8
-//       cwd           // $9
-//   );
-// }
-
-// proc__create(const char *restrict buf, int len, const char *restrict *args,
-// int args_len, bool pipe_stdin, bool pipe_stdout, const char *restrict
-// redirect_in, const char *restrict redirect_out, Error *restrict err)
 EM_JS(int, proc__create,
       (const char *restrict buf, int len, const char *restrict *args,
        int args_len, bool pipe_stdin, bool pipe_stdout,
