@@ -133,6 +133,12 @@ function file.fdstat(fd) end
 ---@diagnostic disable-next-line: unused-local
 function file.permit(fd, flags) end
 
+---Get the current working directory of the current process.
+---@return string | nil cwd Current working directory.
+---@return number | nil err Error code.
+---@diagnostic disable-next-line: unused-local
+function file.cwd() end
+
 ---Process specific functionality.
 process = {}
 

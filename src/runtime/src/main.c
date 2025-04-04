@@ -114,6 +114,24 @@ void setup_fs(void) {
 #endif
 }
 
+int setup_env(void) {
+  // CWD
+  #ifdef __EMSCRIPTEN__
+  char *cwd = EM_ASM_PTR({
+    return stringToNewUTF8(self.proc.cwd);
+  });
+  int err;
+  file__change_dir(cwd, &err);
+  free(cwd);
+  if (err != 0) {
+    fprintf(stderr, "Failed to setup process's working directory. Err: %d\n", err);
+    proc__exit(-1, &err);
+    return -1;
+  }
+  #endif
+  return 0;
+}
+
 int main(void) {
   lua_State *L = luaL_newstate();
 
@@ -140,6 +158,7 @@ int main(void) {
   // We need to run this after reading static files, as we overrite the default
   // root mountpoint
   setup_fs();
+  if (setup_env() == -1) return 0;
 
 #ifdef __EMSCRIPTEN__
   setenv("TERMINFO", "/usr/share/terminfo", 1);

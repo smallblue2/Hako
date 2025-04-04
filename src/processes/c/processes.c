@@ -1,15 +1,15 @@
+#include <assert.h>
 #include <emscripten.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "processes.h"
 #include "../../filesystem/src/main.h"
+#include "processes.h"
 
 // void proc__close_input(Error *err);
 EM_JS(void, proc__close_input, (Error *err), {
@@ -30,24 +30,26 @@ EM_JS(void, proc__close_error, (Error *err), {
 })
 
 // int proc__input_pipe(char* buf, int max_bytes, Error *err);
-EM_JS(int, proc__input_pipe, (char *restrict buf, int max_bytes, Error *restrict err), {
-  let s = self.proc.input(max_bytes - 1); // -1 for null terminator
-  stringToUTF8(s, buf, max_bytes);
-  setValue(err, 0, 'i32');
-  return s.length + 1; // +1 for null terminator
-})
+EM_JS(int, proc__input_pipe,
+      (char *restrict buf, int max_bytes, Error *restrict err), {
+        let s = self.proc.input(max_bytes - 1); // -1 for null terminator
+        stringToUTF8(s, buf, max_bytes);
+        setValue(err, 0, 'i32');
+        return s.length + 1; // +1 for null terminator
+      })
 
 // int proc__input_exact_pipe(char *buf, int exact_byes, Error *err);
-EM_JS(int, proc__input_exact_pipe, (char *restrict buf, int exact_bytes, Error *restrict err), {
-  let s = self.proc.inputExact(exact_bytes - 1); // -1 for null terminator
-  stringToUTF8(s, buf, exact_bytes);
-  setValue(err, 0, 'i32');
-  return s.length + 1; // +1 for null terminator
-})
+EM_JS(int, proc__input_exact_pipe,
+      (char *restrict buf, int exact_bytes, Error *restrict err), {
+        let s = self.proc.inputExact(exact_bytes - 1); // -1 for null terminator
+        stringToUTF8(s, buf, exact_bytes);
+        setValue(err, 0, 'i32');
+        return s.length + 1; // +1 for null terminator
+      })
 
 // WARNING: BUF MUST BE FREED
 // char *proc__input_all_pipe(Error *err)
-EM_JS(char *, proc__input_all_pipe, (Error *err), {
+EM_JS(char *, proc__input_all_pipe, (Error * err), {
   const ptr = stringToNewUTF8(self.proc.inputAll());
   if (!ptr) {
     setValue(err, ERROR_CODES.ENOMEM, 'i32');
@@ -59,7 +61,7 @@ EM_JS(char *, proc__input_all_pipe, (Error *err), {
 
 // WARNING: BUF MUST BE FREED
 // char *proc__input_line_pipe(Error *err)
-EM_JS(char *, proc__input_line_pipe, (Error *err), {
+EM_JS(char *, proc__input_line_pipe, (Error * err), {
   const ptr = stringToNewUTF8(self.proc.inputLine());
   if (!ptr) {
     setValue(err, ERROR_CODES.ENOMEM, 'i32');
@@ -70,19 +72,21 @@ EM_JS(char *, proc__input_line_pipe, (Error *err), {
 })
 
 // proc__output_pipe(char* buf, int len, Error *err)
-EM_JS(void, proc__output_pipe, (const char *restrict buf, int len, Error *restrict err), {
-  var s = UTF8ToString(buf, len);
-  self.proc.output(s);
-  setValue(err, 0, 'i32');
-})
+EM_JS(void, proc__output_pipe,
+      (const char *restrict buf, int len, Error *restrict err), {
+        var s = UTF8ToString(buf, len);
+        self.proc.output(s);
+        setValue(err, 0, 'i32');
+      })
 
 // proc__error_pipe(char* buf, int len, Error *err)
-EM_JS(void, proc__error_pipe, (const char *restrict buf, int len, Error *restrict err), {
-  var s = UTF8ToString(buf, len);
-  self.proc.error(s);
-  setValue(err, 0, 'i32');
-  return s.length;
-})
+EM_JS(void, proc__error_pipe,
+      (const char *restrict buf, int len, Error *restrict err), {
+        var s = UTF8ToString(buf, len);
+        self.proc.error(s);
+        setValue(err, 0, 'i32');
+        return s.length;
+      })
 
 // proc__wait(int pid, Error *err)
 EM_JS(int, proc__wait, (int pid, Error *err), {
@@ -91,23 +95,72 @@ EM_JS(int, proc__wait, (int pid, Error *err), {
   return exitCode;
 })
 
-// proc__create(char *buf, int len, int pipe_stdin, int pipe_stdout, Error *err)
-EM_JS(int, proc__create, (const char *restrict buf, int len, const char *restrict *args, int args_len, bool pipe_stdin, bool pipe_stdout, const char *restrict redirect_in, const char *restrict redirect_out, Error *restrict err), {
-  let jsArgs = [];
-  for (let i = 0; i < args_len; i++) {
-    jsArgs.push(UTF8ToString(getValue(args + (i * 4), 'i8*')));
-  }
-  let luaPath = UTF8ToString(buf, len);
-  let redirectIn = UTF8ToString(redirect_in);
-  let redirectOut = UTF8ToString(redirect_out);
-  let createdPID = self.proc.create(luaPath, jsArgs, Boolean(pipe_stdin), Boolean(pipe_stdout), redirectIn, redirectOut);
-  if (createdPID < 0) {
-    setValue(err, createdPID, 'i32');
-    return -1;
-  }
-  setValue(err, 0, 'i32');
-  return createdPID;
-})
+// proc__create(const char *restrict buf, int len, const char *restrict *args,
+// int args_len, bool pipe_stdin, bool pipe_stdout, const char *restrict
+// redirect_in, const char *restrict redirect_out, Error *restrict err)
+// int proc__create(const char *restrict buf, int len, const char *restrict *args,
+//                 int args_len, bool pipe_stdin, bool pipe_stdout,
+//                 const char *restrict redirect_in,
+//                 const char *restrict redirect_out, Error *restrict err) {
+//   char *cwd = file__cwd(&err);
+//   return EM_ASM_INT(
+//       {
+//         let jsArgs = [];
+//         for (let i = 0; i < $3; i++) {
+//           jsArgs.push(UTF8ToString(getValue($2 + (i * 4), 'i8*')));
+//         }
+//         let luaPath = UTF8ToString($0, $1);
+//         let redirectIn = UTF8ToString($6);
+//         let redirectOut = UTF8ToString($7);
+//         let createdPID = self.proc.create(luaPath, jsArgs, Boolean($4),
+//                                           Boolean($5), $6, $7, $9);
+//         if (createdPID < 0) {
+//           setValue(err, createdPID, 'i32');
+//           return -1;
+//         }
+//         setValue(err, 0, 'i32');
+//         return createdPID;
+//       },
+//       buf,          // $0
+//       len,          // $1
+//       args,         // $2
+//       args_len,     // $3
+//       pipe_stdin,   // $4
+//       pipe_stdout,  // $5
+//       redirect_in,  // $6
+//       redirect_out, // $7
+//       err,          // $8
+//       cwd           // $9
+//   );
+// }
+
+// proc__create(const char *restrict buf, int len, const char *restrict *args,
+// int args_len, bool pipe_stdin, bool pipe_stdout, const char *restrict
+// redirect_in, const char *restrict redirect_out, Error *restrict err)
+EM_JS(int, proc__create,
+      (const char *restrict buf, int len, const char *restrict *args,
+       int args_len, bool pipe_stdin, bool pipe_stdout,
+       const char *restrict redirect_in, const char *restrict redirect_out,
+       const char *restrict cwd, Error *restrict err),
+      {
+        let jsArgs = [];
+        for (let i = 0; i < args_len; i++) {
+          jsArgs.push(UTF8ToString(getValue(args + (i * 4), 'i8*')));
+        }
+        let luaPath = UTF8ToString(buf, len);
+        let redirectIn = UTF8ToString(redirect_in);
+        let redirectOut = UTF8ToString(redirect_out);
+        let jsCwd = UTF8ToString(cwd);
+        let createdPID =
+            self.proc.create(luaPath, jsArgs, Boolean(pipe_stdin),
+                             Boolean(pipe_stdout), redirectIn, redirectOut, jsCwd);
+        if (createdPID < 0) {
+          setValue(err, createdPID, 'i32');
+          return -1;
+        }
+        setValue(err, 0, 'i32');
+        return createdPID;
+      })
 
 // proc__kill(int pid)
 EM_JS(void, proc__kill, (int pid, Error *err), {
@@ -116,7 +169,7 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
 })
 
 // proc__list(int *length, Error *err)
-EM_JS(Process*, proc__list, (int *restrict length, Error *restrict err), {
+EM_JS(Process *, proc__list, (int *restrict length, Error *restrict err), {
   try {
     let procJSON = self.proc.list();
     let heapAllocationSize = procJSON.length * 16; // C 'Process' struct is 16 bytes long
@@ -140,20 +193,20 @@ EM_JS(Process*, proc__list, (int *restrict length, Error *restrict err), {
 })
 
 // proc__get_pid(Error *err)
-EM_JS(int, proc__get_pid, (Error *err), {
+EM_JS(int, proc__get_pid, (Error * err), {
   setValue(err, 0, 'i32');
   return self.proc.pid;
 })
 
 // proc__get_redirect_in(Error *err)
-EM_JS(char*, proc__get_redirect_in, (Error *err), {
+EM_JS(char *, proc__get_redirect_in, (Error * err), {
   const ptr = stringToNewUTF8(self.proc.redirectStdin ?? "");
   setValue(err, 0, 'i32');
   return ptr;
 })
 
 // proc__get_redirect_out(Error *err)
-EM_JS(char*, proc__get_redirect_out, (Error *err), {
+EM_JS(char *, proc__get_redirect_out, (Error * err), {
   const ptr = stringToNewUTF8(self.proc.redirectStdout ?? "");
   setValue(err, 0, 'i32');
   return ptr;
@@ -166,13 +219,13 @@ EM_JS(void, proc__pipe, (int out_pid, int in_pid, Error *err), {
 })
 
 // proc__is_stdin_pipe(Error *err)
-EM_JS(bool, proc__is_stdin_pipe, (Error *err), {
+EM_JS(bool, proc__is_stdin_pipe, (Error * err), {
   setValue(err, 0, 'i32');
   return self.proc.isPipeable(self.proc.StreamDescriptor.STDIN);
 })
 
 // proc__is_stdout_pipe(Error *err)
-EM_JS(bool, proc__is_stdout_pipe, (Error *err), {
+EM_JS(bool, proc__is_stdout_pipe, (Error * err), {
   setValue(err, 0, 'i32');
   return self.proc.isPipeable(self.proc.StreamDescriptor.STDOUT);
 })
@@ -187,7 +240,8 @@ int proc__input(char *restrict buf, int max_bytes, Error *restrict err) {
   char *file_redirect = proc__get_redirect_in(err);
   if (file_redirect[0] != '\0') {
     int fd = file__open(file_redirect, O_RDONLY, err);
-    if (fd == -1) return -1;
+    if (fd == -1)
+      return -1;
     ReadResult rr;
     file__read(fd, max_bytes, &rr, err);
     file__close(fd, err);
@@ -216,7 +270,8 @@ int proc__input(char *restrict buf, int max_bytes, Error *restrict err) {
   return (int)bytesRead;
 }
 
-int proc__input_exact(char *restrict buf, int exact_bytes, Error *restrict err) {
+int proc__input_exact(char *restrict buf, int exact_bytes,
+                      Error *restrict err) {
   // Short-circuit evaluation as to where we take input
   //  1. File
   //  2. Pipe
@@ -226,7 +281,8 @@ int proc__input_exact(char *restrict buf, int exact_bytes, Error *restrict err) 
   char *file_redirect = proc__get_redirect_in(err);
   if (file_redirect[0] != '\0') {
     int fd = file__open(file_redirect, O_RDONLY, err);
-    if (fd == -1) return -1;
+    if (fd == -1)
+      return -1;
     // file__read_exact()
     printf("NOT YET IMPLEMENTED FOR INPUT_EXACT!");
     return 0;
@@ -287,13 +343,14 @@ char *proc__input_all(Error *err) {
   char *file_redirect = proc__get_redirect_in(err);
   if (file_redirect[0] != '\0') {
     int fd = file__open(file_redirect, O_RDONLY, err);
-    if (fd == -1) return NULL;
+    if (fd == -1)
+      return NULL;
     ReadResult rr;
     file__read_all(fd, &rr, &err);
     file__close(fd, &err);
     return rr.data;
   }
-  
+
   // Check and take from pipe
   if (proc__is_stdin_pipe(err)) {
     if (*err != 0) {
@@ -348,7 +405,8 @@ char *proc__input_line(Error *err) {
   char *file_redirect = proc__get_redirect_in(err);
   if (file_redirect[0] != '\0') {
     int fd = file__open(file_redirect, O_RDONLY, err);
-    if (fd == -1) return NULL;
+    if (fd == -1)
+      return NULL;
     ReadResult rr;
     file__read_line(fd, &rr, &err);
     file__close(fd, &err);
@@ -388,7 +446,8 @@ void proc__output(const char *restrict buf, int len, Error *restrict err) {
     if (fd == -1 && *err == E_EXISTS) {
       fd = file__open(file_redirect, O_WRONLY, err);
     }
-    if (fd == -1) return;
+    if (fd == -1)
+      return;
 
     file__write(fd, buf, err);
     file__close(fd, err);
@@ -424,7 +483,7 @@ EM_JS(void, proc__start, (int pid, Error *err), {
 })
 
 // const char *proc__get_lua_code(char *buf, int len, Error *err)
-EM_JS(char *, proc__get_lua_code, (Error *err), {
+EM_JS(char *, proc__get_lua_code, (Error * err), {
   const ptr = stringToNewUTF8(self.proc.luaCode);
   if (!ptr) {
     setValue(err, ERROR_CODES.ENOMEM, 'i32');
@@ -440,27 +499,28 @@ EM_JS(void, proc__exit, (int exit_code, Error *err), {
 
 // WARNING: NEED TO CLEAR ARGV IN C
 // void proc__args(int *argc, char ***argv, Error *err);
-EM_JS(void, proc__args, (int *restrict argc, char *restrict **argv, Error *restrict err), {
-  const jsArgs = self.proc.args;
+EM_JS(void, proc__args,
+      (int *restrict argc, char *restrict **argv, Error *restrict err), {
+        const jsArgs = self.proc.args;
 
-  // Set argc
-  const length = jsArgs.length;
-  setValue(argc, length, 'i32');
+        // Set argc
+        const length = jsArgs.length;
+        setValue(argc, length, 'i32');
 
-  // Set argv
-  let argvPointer =
-      _malloc((length + 1) * 4); // Emscripten is 32-bit (4 bit pointer)
-  for (let i = 0; i < length; i++) {
-    const strPtr = stringToNewUTF8(jsArgs[i].toString());
-    setValue(argvPointer + i * 4, strPtr, '*');
-  }
+        // Set argv
+        let argvPointer =
+            _malloc((length + 1) * 4); // Emscripten is 32-bit (4 bit pointer)
+        for (let i = 0; i < length; i++) {
+          const strPtr = stringToNewUTF8(jsArgs[i].toString());
+          setValue(argvPointer + i * 4, strPtr, '*');
+        }
 
-  // null terminate argv array
-  setValue(argvPointer + length * 4, 0, 'i8');
+        // null terminate argv array
+        setValue(argvPointer + length * 4, 0, 'i8');
 
-  // set argv
-  setValue(argv, argvPointer, '*');
+        // set argv
+        setValue(argv, argvPointer, '*');
 
-  // Set Error to 0
-  setValue(err, 0, 'i32');
-})
+        // Set Error to 0
+        setValue(err, 0, 'i32');
+      })

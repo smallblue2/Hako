@@ -21,6 +21,7 @@ async function initWorkerForProcess(data) {
 
   self.proc = {
     pid: data.pid,
+    cwd: data.cwd,
     args: data.args,
     stdin: new Pipe(0, data.stdin),
     stdout: new Pipe(0, data.stdout),
@@ -84,7 +85,7 @@ async function initWorkerForProcess(data) {
       changeState(ProcessStates.RUNNING);
       return exitCode;
     },
-    create: (luaPath, args = [], pipeStdin = false, pipeStdout = false, redirectStdin = null, redirectStdout = null) => {
+    create: (luaPath, args = [], pipeStdin = false, pipeStdout = false, redirectStdin = null, redirectStdout = null, cwd = "/persistent/") => {
       // Tell the manager we'd like to create a process
       self.postMessage({
         op: ProcessOperations.CREATE_PROCESS,
@@ -95,7 +96,8 @@ async function initWorkerForProcess(data) {
         pipeStdin,
         pipeStdout,
         redirectStdin,
-        redirectStdout
+        redirectStdout,
+        cwd
       });
       changeState(ProcessStates.SLEEPING);
       self.proc.signal.sleep();
@@ -177,7 +179,6 @@ async function initWorkerForProcess(data) {
       self.proc.signal.sleep();
     }
   }
-
 }
 
 // Function intercepts thread creation to add a MessageChannel
