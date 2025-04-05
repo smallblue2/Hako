@@ -146,7 +146,9 @@ end
 local token_types = {
   STR = { "STRING" }, -- String
   RIN = { "IN" }, -- Redirect in
-  ROU = { "OUT" } -- Redirect out
+  ROU = { "OUT" }, -- Redirect out
+  PIP = { "PIPE" }, -- Pipe
+  BGP = { "BG" } -- BG Process
 }
 
 local escape_map = {
@@ -179,6 +181,14 @@ local redirect_in_map = {
 
 local redirect_out_map = {
   ['>'] = true
+}
+
+local pipe_map = {
+  ['|'] = true
+}
+
+local bg_map = {
+  ['&'] = true
 }
 
 ---Handles an escaped character
@@ -221,9 +231,8 @@ function lex_char_chain(input, position)
       end
       table.insert(buffer, escaped_char)
       position = new_pos
-    elseif redirect_in_map[char] or redirect_out_map[char] then
-      return table.concat(buffer), position - 1, nil
-    elseif string_map[char] then
+    -- If it's a special character, end
+    elseif redirect_in_map[char] or redirect_out_map[char] or string_map[char] or pipe_map[char] or bg_map[char] then
       return table.concat(buffer), position - 1, nil
     else
       table.insert(buffer, char)
@@ -293,11 +302,14 @@ function tokenise(input)
       end
       table.insert(tokens, { type = token_types.STR, value = string })
       position = end_of_string_pos
-      -- Otherwise, assume a string without delimiters
     elseif redirect_in_map[char] then
       table.insert(tokens, { type = token_types.RIN, value = char })
     elseif redirect_out_map[char] then
       table.insert(tokens, { type = token_types.ROU, value = char })
+    elseif pipe_map[char] then
+      table.insert(tokens, { type = token_types.PIP, value = char })
+    elseif bg_map[char] then
+      table.insert(tokens, { type = token_types.BGP, value = char })
     else
       local chain, end_of_chain, err = lex_char_chain(input, position)
       if err then
@@ -348,6 +360,12 @@ function parse(tokens)
       if file.value == "" then
         return nil, 'Cannot redirect input to an empty file ""'
       end
+      if cmd.redirect_in_file then
+        return nil, string.format("Multiple input redirections '%s' and '%s'", cmd.redirect_in_file, file.value)
+      end
+      if tokens[1].type ~= token_types.STR then
+        return nil, "First argument has to be an string, not '<'"
+      end
       cmd.redirect_in_file = file.value
       -- If it's a redirect out, validate and set it
     elseif tokens[i].type == token_types.ROU then
@@ -362,7 +380,37 @@ function parse(tokens)
       if file.value == "" then
         return nil, 'Cannot redirect output to an empty file ""'
       end
+      if cmd.redirect_out_file then
+        return nil, string.format("Multiple output redirections '%s' and '%s'", cmd.redirect_out_file, file.value)
+      end
+      if tokens[1].type ~= token_types.STR then
+        return nil, "First argument has to be a string, not '>'"
+      end
       cmd.redirect_out_file = file.value
+    elseif tokens[i].type == token_types.PIP then
+      i = i + 1
+      local proc = tokens[i]
+      if not proc then
+        return nil, "No process for pipe redirection"
+      end
+      if proc.type ~= token_types.STR then
+        return nil, string.format("Trying to pipe into an invalid process '%s'", proc.value)
+      end
+      if tokens[1].type ~= token_types.STR then
+        return nil, "First argument has to be a string, not '|'"
+      end
+      -- TODO: Pipes not yet implemented!
+      return nil, "Pipes not yet implemented!"
+    elseif tokens[i].type == token_types.BGP then
+      if cmd.background then
+        return nil, "Multiple background declarations '&'"
+      end
+      if tokens[1].type ~= token_types.STR then
+        return nil, "First argument has to be a string, not '&'"
+      end
+      cmd.background = true
+      -- TODO: Implement background processes
+      return nil, "Background processes not yet implemented"
     else
       return nil, string.format("Unfamiliar token %s", tokens[i].value)
     end
@@ -427,12 +475,14 @@ while true do
   end;
   local tokens, err = tokenise(line)
   if err == nil then
-    local cmd, err = parse(tokens)
-    if err == nil then
-      output(inspect(cmd))
-      run_command(cmd)
-    else
-      output("Error: " .. err)
+    if #tokens ~= 0 then
+      local cmd, err = parse(tokens)
+      if err == nil then
+        output(inspect(cmd))
+        run_command(cmd)
+      else
+        output("Error: " .. err)
+      end
     end
   else
     output("Error: " .. err)
