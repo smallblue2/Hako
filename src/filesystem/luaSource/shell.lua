@@ -474,11 +474,10 @@ while true do
     break
   end;
   local tokens, err = tokenise(line)
-  if err == nil then
+  if not err then
     if #tokens ~= 0 then
       local cmd, err = parse(tokens)
-      if err == nil then
-        output(inspect(cmd))
+      if not err then
         run_command(cmd)
       else
         output("Error: " .. err)
