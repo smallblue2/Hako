@@ -22,25 +22,25 @@ end
 
 -- export command, for setting env vars
 function export(cmd)
-    local usage = "Usage: export <key>=<value>"
-    if #cmd.argv < 2 then
-      -- error
-      output(usage)
-      return
-    end
-    local k, v = separate_key_value(cmd.argv[2])
-    if not (k and v) then
-      -- error
-      output(usage)
-      return
-    end
-    set_env_var(k, v)
+  local usage = "Usage: export <key>=<value>"
+  if #cmd.argv < 2 then
+    -- error
+    output(usage)
+    return
+  end
+  local k, v = separate_key_value(cmd.argv[2])
+  if not (k and v) then
+    -- error
+    output(usage)
+    return
+  end
+  set_env_var(k, v)
 end
 
 -- env command, lists all shell's instance environment vars
 function env()
   for k, v in pairs(env_table) do
-    output(k.."="..v)
+    output(k .. "=" .. v)
   end
 end
 
@@ -127,7 +127,7 @@ function join_paths(base, add)
   if start_of_add == "/" then
     add = add:sub(2, -1)
   end
-  return base.."/"..add
+  return base .. "/" .. add
 end
 
 function split_paths(paths)
@@ -143,9 +143,9 @@ end
 -- ######################
 
 local token_types = {
-  STR={"STRING"}, -- String
-  RIN={"IN"}, -- Redirect in
-  ROU={"OUT"}  -- Redirect out
+  STR = { "STRING" }, -- String
+  RIN = { "IN" }, -- Redirect in
+  ROU = { "OUT" } -- Redirect out
 }
 
 local escape_map = {
@@ -189,7 +189,7 @@ local redirect_out_map = {
 ---@return string | nil Error message, nil if no error
 function handle_escape(input, position)
   local escape_pos = position + 1
-  local escape_char = input:sub(escape_pos,escape_pos)
+  local escape_char = input:sub(escape_pos, escape_pos)
   local resolved = escape_map[escape_char] or nil
   if not resolved then
     return nil, nil, string.format("Unrecognised escape character '%s'", input:sub(position, escape_pos))
@@ -204,14 +204,13 @@ end
 ---@return number | nil Position of the end of tokenised character chain, nil on error
 ---@return string | nil Error message, nil if no error
 function lex_char_chain(input, position)
-
   local buffer = {}
 
   -- Keep going until whitespace
   while position <= #input do
-    local char = input:sub(position,position)
+    local char = input:sub(position, position)
 
-    -- If 
+    -- If
     if white_space_map[char] then
       return table.concat(buffer), position, nil
     elseif char == '\\' then
@@ -243,7 +242,6 @@ end
 ---@return number | nil Position of the end of tokenised string, nil on error
 ---@return string | nil Error message, nil if no error
 function lex_string(input, position)
-
   local string_marker = input:sub(position, position)
   local string_pos = position + 1
 
@@ -283,10 +281,10 @@ function tokenise(input)
   local position = 1
 
   while position <= #input do
-    local char = input:sub(position,position)
+    local char = input:sub(position, position)
     -- If whitespace, just continue
     if white_space_map[char] then
-    -- If character is the start of a string
+      -- If character is the start of a string
     elseif string_map[char] then
       local string, end_of_string_pos, err = lex_string(input, position)
       if err then
@@ -294,7 +292,7 @@ function tokenise(input)
       end
       table.insert(tokens, { type = token_types.STR, value = string })
       position = end_of_string_pos
-    -- Otherwise, assume a string without delimiters
+      -- Otherwise, assume a string without delimiters
     elseif redirect_in_map[char] then
       table.insert(tokens, { type = token_types.RIN, value = char })
     elseif redirect_out_map[char] then
@@ -317,26 +315,14 @@ end
 -- ####### Parsing #######
 -- #######################
 
-function smelly_hacks(line)
-  if line == "\n" or line == "" then
-    return nil
-  end
-  return line
-end
-
--- Parses line of input, returns a `cmd` table
-function parse_cmd(line)
-  line = smelly_hacks(line)
-  if not line then return nil end
-
-  local tokens = {}
-  for token in string.gmatch(line, "[^%s]+") do
-    table.insert(tokens, token)
-  end
-
+---Parses an array of tokens
+---@param tokens table An array of tokens
+---@return table | nil A command table describing a command, nil if error
+---@return string | nil An error message, nil if no error
+function parse(tokens)
   local cmd = {
-    argv = {}, -- Positional arguments
-    redirect_in_file = nil, -- string or nil
+    argv = {},               -- Positional arguments
+    redirect_in_file = nil,  -- string or nil
     redirect_out_file = nil, -- string or nil
     process_pipe_in = nil,
     process_pipe_out = nil,
@@ -344,26 +330,45 @@ function parse_cmd(line)
   }
 
   local i = 1
-  while i <= #tokens do
-    local t = tokens[i]
-    if t == ">" then
-      -- next token should be filename
+  while tokens[i] do
+    -- If it's a string, add to argv
+    if tokens[i].type == token_types.STR then
+      table.insert(cmd.argv, tokens[i].value)
+      -- If it's a redirect in, validate and set it
+    elseif tokens[i].type == token_types.RIN then
       i = i + 1
-      cmd.redirect_out_file = join_paths(file.cwd(), tokens[i])
-    elseif t == "<" then
-      -- next token should be filename
+      local file = tokens[i]
+      if not file then
+        return nil, "No file for input redirection '<'"
+      end
+      if file.type ~= token_types.STR then
+        return nil, string.format("Trying to redirect input into invalid file '%s'", file.value)
+      end
+      if file.value == "" then
+        return nil, 'Cannot redirect input to an empty file ""'
+      end
+      cmd.redirect_in_file = file.value
+      -- If it's a redirect out, validate and set it
+    elseif tokens[i].type == token_types.ROU then
       i = i + 1
-      cmd.redirect_in_file = join_paths(file.cwd(), tokens[i])
-    elseif t == "&" then
-      cmd.background = true
+      local file = tokens[i]
+      if not file then
+        return nil, "No file for output redirection '>'"
+      end
+      if file.type ~= token_types.STR then
+        return nil, string.format("Trying to redirect output into invalid file '%s'", file.value)
+      end
+      if file.value == "" then
+        return nil, 'Cannot redirect output to an empty file ""'
+      end
+      cmd.redirect_out_file = file.value
     else
-      -- treat as an argument
-      table.insert(cmd.argv, t)
+      return nil, string.format("Unfamiliar token %s", tokens[i].value)
     end
     i = i + 1
   end
-  
-  return cmd
+
+  return cmd, nil
 end
 
 -- #################################
@@ -372,29 +377,36 @@ end
 
 -- Runs a command from PATH if it can find it
 function run_command(cmd)
-    local exec_path = find_exec_file(cmd.argv[1])
-    if not exec_path then
-      output("Command not found: "..cmd.argv[1])
+  -- Check if it's a built-in first
+  if (built_in(cmd)) then
+    return
+  end
+  -- Proceed to command execution
+  local exec_path = find_exec_file(cmd.argv[1])
+  if not exec_path then
+    output("Command not found: " .. cmd.argv[1])
+    return
+  end
+  local pid, create_err = process.create(exec_path,
+    { argv = cmd.argv, pipe_in = false, pipe_out = false, redirect_in = cmd.redirect_in_file, redirect_out = cmd
+    .redirect_out_file })
+  if create_err then
+    output("Failed to create process (err:" .. create_err .. ")")
+    return
+  end
+  local start_err = process.start(pid)
+  if start_err then
+    output("Failed to start process (err:" .. start_err .. ")")
+    return
+  end
+  -- If it's a background, don't wait
+  if not cmd.background then
+    local wait_err = process.wait(pid)
+    if wait_err then
+      output("Failed to wait on process (err:" .. wait_err .. ")")
       return
     end
-    local pid, create_err = process.create(exec_path, { argv = cmd.argv, pipe_in = false, pipe_out = false, redirect_in = cmd.redirect_in_file, redirect_out = cmd.redirect_out_file })
-    if create_err then
-      output("Failed to create process (err:"..create_err..")")
-      return
-    end
-    local start_err = process.start(pid)
-    if start_err then
-      output("Failed to start process (err:"..start_err..")")
-      return
-    end
-    -- If it's a background, don't wait
-    if not cmd.background then
-      local wait_err = process.wait(pid)
-      if wait_err then
-        output("Failed to wait on process (err:"..wait_err..")")
-        return
-      end
-    end
+  end
 end
 
 -- #########################
@@ -412,9 +424,17 @@ while true do
     output("\nEOF: exiting")
     break
   end;
-  local cmd = parse_cmd(line)
-  if cmd and not built_in(cmd) then
-    run_command(cmd)
+  local tokens, err = tokenise(line)
+  if err == nil then
+    local cmd, err = parse(tokens)
+    if err == nil then
+      output(inspect(cmd))
+      run_command(cmd)
+    else
+      output("Error: " .. err)
+    end
+  else
+    output("Error: " .. err)
   end
   line = terminal.prompt("$ ")
 end
