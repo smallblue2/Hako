@@ -138,6 +138,181 @@ function split_paths(paths)
   return individual_paths
 end
 
+-- ######################
+-- ####### Lexing #######
+-- ######################
+
+local token_types = {
+  STR={"STRING"}, -- String
+  RIN={"IN"}, -- Redirect in
+  ROU={"OUT"}  -- Redirect out
+}
+
+local escape_map = {
+  ['\\'] = '\\',
+  [' '] = ' ',
+  ['"'] = '"',
+  ["'"] = "'",
+  ['>'] = '>',
+  ['<'] = '<',
+  ['n'] = '\n',
+  ['t'] = '\t',
+  ['r'] = '\r'
+}
+
+local white_space_map = {
+  [' '] = true,
+  ['\n'] = true,
+  ['\t'] = true,
+  ['\r'] = true
+}
+
+local string_map = {
+  ["'"] = true,
+  ['"'] = true
+}
+
+local redirect_in_map = {
+  ['<'] = true
+}
+
+local redirect_out_map = {
+  ['>'] = true
+}
+
+---Handles an escaped character
+---Assumes character at `position` to be the escape character
+---@param input string line of input
+---@param position number index within input which contains the escape character
+---@return string | nil The resolved escaped character, nil on error
+---@return number | nil The position of the end of the escaped character, nil on error
+---@return string | nil Error message, nil if no error
+function handle_escape(input, position)
+  local escape_pos = position + 1
+  local escape_char = input:sub(escape_pos,escape_pos)
+  local resolved = escape_map[escape_char] or nil
+  if not resolved then
+    return nil, nil, string.format("Unrecognised escape character '%s'", input:sub(position, escape_pos))
+  end
+  return resolved, escape_pos, nil
+end
+
+---Tokenises a character chain
+---@param input string line of input
+---@param position number index within input to start tokenising
+---@return string | nil Character chain as a string, nil on error
+---@return number | nil Position of the end of tokenised character chain, nil on error
+---@return string | nil Error message, nil if no error
+function lex_char_chain(input, position)
+
+  local buffer = {}
+
+  -- Keep going until whitespace
+  while position <= #input do
+    local char = input:sub(position,position)
+
+    -- If 
+    if white_space_map[char] then
+      return table.concat(buffer), position, nil
+    elseif char == '\\' then
+      local escaped_char, new_pos, err = handle_escape(input, position)
+      if err ~= nil then
+        return nil, nil, err
+      end
+      table.insert(buffer, escaped_char)
+      position = new_pos
+    elseif redirect_in_map[char] or redirect_out_map[char] then
+      return table.concat(buffer), position - 1, nil
+    elseif string_map[char] then
+      return table.concat(buffer), position - 1, nil
+    else
+      table.insert(buffer, char)
+    end
+    position = position + 1
+  end
+
+  -- At the end of line of input, return what we have as this is not delimited
+  return table.concat(buffer), position, nil
+end
+
+---Tokenises a string
+---Assumes character at position to be the character to break on (', ")
+---@param input string line of input
+---@param position number index within input to start tokenising
+---@return string | nil Tokenised string as a string, nil on error
+---@return number | nil Position of the end of tokenised string, nil on error
+---@return string | nil Error message, nil if no error
+function lex_string(input, position)
+
+  local string_marker = input:sub(position, position)
+  local string_pos = position + 1
+
+  local buffer = {}
+
+  while string_pos <= #input do
+    local char = input:sub(string_pos, string_pos)
+
+    if char == string_marker then
+      return table.concat(buffer), string_pos, nil
+    elseif char == '\\' then
+      -- Handle escapes
+      local escaped_char, new_pos, err = handle_escape(input, string_pos)
+      if err ~= nil then
+        return nil, nil, err
+      end
+      table.insert(buffer, escaped_char)
+      string_pos = new_pos
+    else
+      table.insert(buffer, char)
+    end
+
+    string_pos = string_pos + 1
+  end
+
+  return nil, nil, "String has no end quote"
+end
+
+-- returns tokens, err
+---Returns a list of tokens from a string
+---@param input string String to tokenise
+---@return table | nil A table of tokens, nil on error
+---@return string | nil Error message, nil when no error
+function tokenise(input)
+  local tokens = {}
+
+  local position = 1
+
+  while position <= #input do
+    local char = input:sub(position,position)
+    -- If whitespace, just continue
+    if white_space_map[char] then
+    -- If character is the start of a string
+    elseif string_map[char] then
+      local string, end_of_string_pos, err = lex_string(input, position)
+      if err then
+        return nil, err
+      end
+      table.insert(tokens, { type = token_types.STR, value = string })
+      position = end_of_string_pos
+    -- Otherwise, assume a string without delimiters
+    elseif redirect_in_map[char] then
+      table.insert(tokens, { type = token_types.RIN, value = char })
+    elseif redirect_out_map[char] then
+      table.insert(tokens, { type = token_types.ROU, value = char })
+    else
+      local chain, end_of_chain, err = lex_char_chain(input, position)
+      if err then
+        return nil, err
+      end
+      table.insert(tokens, { type = token_types.STR, value = chain })
+      position = end_of_chain
+    end
+    position = position + 1
+  end
+
+  return tokens, nil
+end
+
 -- #######################
 -- ####### Parsing #######
 -- #######################
