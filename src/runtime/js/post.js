@@ -85,7 +85,7 @@ async function initWorkerForProcess(data) {
       changeState(ProcessStates.RUNNING);
       return exitCode;
     },
-    create: (luaPath, args = [], pipeStdin = false, pipeStdout = false, redirectStdin = null, redirectStdout = null, cwd = "/persistent/") => {
+    create: (luaPath, args = [], pipeStdin = false, pipeStdout = false, redirectStdin = null, redirectStdout = null, cwd = "/persistent") => {
       // Tell the manager we'd like to create a process
       self.postMessage({
         op: ProcessOperations.CREATE_PROCESS,
