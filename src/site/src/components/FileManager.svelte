@@ -8,9 +8,10 @@
   import * as lib from "$lib";
   import * as win from "$lib/windows.svelte.js";
   import { onMount } from "svelte";
-    import { stopPropagation } from "svelte/legacy";
-
-  let { id, layerFromId } = $props();
+  import { FSView } from "$lib/files";
+  import { Resolver } from "$lib/resolver";
+  
+  let { id, layerFromId, selection = new Resolver() } = $props();
 
   let maximized = $state(false);
   /** @type {HTMLDivElement | undefined} */
@@ -20,7 +21,7 @@
   let height = 260;
   let min = 150;
 
-  let currentPath = [];
+  let fsView = new FSView(updateFiles);
   let files = $state([]);
 
   onMount(() => {
@@ -30,7 +31,7 @@
     root.style.width = initWidth.toString() + "px";
     root.style.height = initHeight.toString() + "px";
 
-    changeDir("persistent")
+    fsView.changeDir("persistent")
 
     const inotifyChannel = new BroadcastChannel("inotify");
     inotifyChannel.onmessage = (ev) => {
@@ -38,30 +39,10 @@
     };
   })
 
-  function changeDir(name) {
-    if (name === ".") {
-      return;
-    } else if (name === "..") {
-      currentPath.pop();
-      updateFiles();
-    } else {
-      currentPath.push(name);
-      updateFiles();
-    }
-  }
-
-  function cwd() {
-    return `/${currentPath.join("/")}`;
-  }
-
-  function relative(entry) {
-    return `/${cwd()}/${entry}`;
-  }
-
   function updateFiles() {
-    const entries = window.Filesystem.read_dir(cwd()).entries;
+    const entries = window.Filesystem.read_dir(fsView.cwd()).entries;
     files = entries.map((entry) => {
-      let { error, stat } = window.Filesystem.stat(relative(entry));
+      let { error, stat } = window.Filesystem.stat(fsView.relative(entry));
       if (error !== null) {
         console.log(error);
         return { type: "file", name: entry };
@@ -84,13 +65,16 @@
 
   function clickedFolder(file) {
     return () => {
-      changeDir(file.name);
+      fsView.changeDir(file.name);
     };
   }
 
   function clickedFile(file) {
     return () => {
-      win.openWindow(win.EDITOR, Editor, { props: { filePath: relative(file.name) } });
+      const relFile = fsView.relative(file.name);
+      if (!selection.resolve(relFile)) {
+        win.openWindow(win.EDITOR, Editor, { props: { filePath: relFile } });
+      }
     };
   }
 
@@ -113,7 +97,7 @@
   async function renameFile(fileName, ev) {
     const newName = await openRenameFileModal("Rename File", fileName);
     if (newName.length !== 0) {
-      window.Filesystem.move(relative(fileName), relative(newName));
+      window.Filesystem.move(fsView.relative(fileName), fsView.relative(newName));
     }
   }
 
