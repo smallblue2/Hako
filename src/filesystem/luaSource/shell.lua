@@ -72,8 +72,7 @@ local built_in_table = {
   ["ls"] = ls,
   ["cd"] = cd,
   ["export"] = export,
-  ["env"] = env,
-  ["pwd"] = pwd
+  ["env"] = env
 }
 
 -- Checks for and executes a built-in
