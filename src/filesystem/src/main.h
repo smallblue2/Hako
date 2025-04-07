@@ -57,26 +57,26 @@ typedef int Error;
 //
 // isEnd == 1 if we're at the end, 0 otherwise
 typedef struct __attribute__((packed)) {
-  int name_len; // 4 bytes
-  char *name;   // 4 bytes WARNING: MUST BE FREED IN WASM/JS
-  int isEnd;    // 4 bytes (0 for false, 1 for true)
-  DIR *dirp;    // 4 bytes
-} Entry;        // 16 bytes
+  int name_len;
+  char *name; // WARNING: MUST BE FREED IN WASM/JS
+  int isEnd;
+  DIR *dirp;
+} Entry;
 
 // Output parameter struct, filled with file content when read
 typedef struct __attribute__((packed)) {
-  char *data; // 4 bytes WARNING: MUST BE FREED IN WASM/JS
-  int size;   // 4 bytes
+  char *data; // WARNING: MUST BE FREED IN WASM/JS
+  int size;
 } ReadResult;
 
 // Used in StatResult struct - matches POSIX `struct timespec`
 typedef struct __attribute__((packed)) {
-  int sec;  // 4
-  int nsec; // 4
-} Time;     // 8 bytes
+  int sec;
+  int nsec;
+} Time;
 
 // Output parameter struct, filled with a node's stat content
-typedef struct __attribute__((packed)) { // 52 bytes
+typedef struct __attribute__((packed)) {
   int size;
   int blocks;
   int blocksize;
@@ -86,8 +86,32 @@ typedef struct __attribute__((packed)) { // 52 bytes
   int type; // 0: file, 1: directory
   Time atime;
   Time mtime;
-  Time ctime; // 24 bytes
+  Time ctime;
 } StatResult; 
+
+#ifdef FILE_IMPL
+const int sizeof_Entry = sizeof(Entry);
+const int offsetof_Entry__name_len = offsetof(Entry, name_len);
+const int offsetof_Entry__name = offsetof(Entry, name);
+const int offsetof_Entry__isEnd = offsetof(Entry, isEnd);
+const int offsetof_Entry__dirp = offsetof(Entry, dirp);
+const int sizeof_ReadResult = sizeof(ReadResult);
+const int offsetof_ReadResult__data = offsetof(ReadResult, data);
+const int offsetof_ReadResult__size = offsetof(ReadResult, size);
+const int sizeof_Time = sizeof(Time);
+const int offsetof_Time__sec = offsetof(Time, sec);
+const int offsetof_Time__nsec = offsetof(Time, nsec);
+const int sizeof_StatResult = sizeof(StatResult);
+const int offsetof_StatResult__size = offsetof(StatResult, size);
+const int offsetof_StatResult__blocks = offsetof(StatResult, blocks);
+const int offsetof_StatResult__blocksize = offsetof(StatResult, blocksize);
+const int offsetof_StatResult__ino = offsetof(StatResult, ino);
+const int offsetof_StatResult__perm = offsetof(StatResult, perm);
+const int offsetof_StatResult__type = offsetof(StatResult, type);
+const int offsetof_StatResult__atime = offsetof(StatResult, atime);
+const int offsetof_StatResult__mtime = offsetof(StatResult, mtime);
+const int offsetof_StatResult__ctime = offsetof(StatResult, ctime);
+#endif
 
 // ======================= Filesystem API =======================
 

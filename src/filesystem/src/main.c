@@ -1,3 +1,4 @@
+#define FILE_IMPL
 #include "main.h"
 #include <stdio.h>
 
