@@ -2,6 +2,56 @@ import { O_CREAT, O_RDONLY, O_WRONLY, O_RDWR, errnoToString } from './definition
 
 export const Filesystem = {};
 
+// Below are all helpers to access exported variables from the C filesystem
+// module. This allows us to get size of structs aswell as the offsets of their
+// fields in js.
+function sizeof(M, structName) {
+  const symbolName = `_sizeof_${structName}`;
+  const symbol = M[symbolName];
+  if (symbol === undefined) {
+    throw new Error("symbol not found: " + symbolName);
+  }
+  return M.getValue(symbol, 'i32');
+}
+
+function offsetof(M, structName, field) {
+  const symbolName = `_offsetof_${structName}__${field}`;
+  const symbol = M[symbolName];
+  if (symbol === undefined) {
+    throw new Error("symbol not found: " + symbolName);
+  }
+  return M.getValue(M[symbolName], 'i32');
+}
+
+function derefi32(M, ptr, structName, field) {
+  return M.getValue(ptr + offsetof(M, structName, field), 'i32');
+}
+
+class StructView {
+  M;
+  ptr;
+  structName;
+  constructor(M, structName, ptr) {
+    this.M = M;
+    this.ptr = ptr;
+    this.structName = structName;
+    return new Proxy(this, {
+      get(target, prop, receiver) {
+        if (prop in target) {
+          return Reflect.get(target, prop, receiver);
+        }
+        return derefi32(target.M, target.ptr, target.structName, prop);
+      }
+    });
+  }
+  offsetof(field) {
+    return offsetof(this.M, this.structName, field);
+  }
+  addressof(field) {
+    return this.ptr + this.offsetof(field);
+  }
+}
+
 export function initialiseAPI(Module) {
   console.log("Initialising filesystem API");
 
@@ -25,14 +75,10 @@ export function initialiseAPI(Module) {
   }
 
   function extractStatFields(statResultPtr) {
+    const stats = new StructView(Module, "StatResult", statResultPtr);
 
-    // Extract fields from StatResult struct
-    const size = Module.getValue(statResultPtr, "i32");
-    const blocks = Module.getValue(statResultPtr + 4, "i32");
-    const blocksize = Module.getValue(statResultPtr + 8, "i32");
-    const ino = Module.getValue(statResultPtr + 12, "i32");
-    const permNum = Module.getValue(statResultPtr + 16, "i32");
-    const type = Module.getValue(statResultPtr + 20, "i32");
+    const permNum = stats.perm;
+    const type = stats.type;
     let typeString = type == 1 ? "directory" : "file";
 
     let permString = "";
@@ -40,23 +86,20 @@ export function initialiseAPI(Module) {
     if ((permNum & 0o200) == 0o200) permString += "w";
     if ((permNum & 0o100) == 0o100) permString += "x";
 
-    const atimeSec = Module.getValue(statResultPtr + 24, "i32");
-    const atimeNSec = Module.getValue(statResultPtr + 28, "i32");
-    const mtimeSec = Module.getValue(statResultPtr + 32, "i32");
-    const mtimeNSec = Module.getValue(statResultPtr + 36, "i32");
-    const ctimeSec = Module.getValue(statResultPtr + 40, "i32");
-    const ctimeNSec = Module.getValue(statResultPtr + 44, "i32");
+    const atime = new StructView(Module, "Time", stats.addressof("atime"));
+    const mtime = new StructView(Module, "Time", stats.addressof("mtime"));
+    const ctime = new StructView(Module, "Time", stats.addressof("ctime"));
 
     return {
-      size,
-      blocks,
-      blocksize,
-      ino,
+      size: stats.size,
+      blocks: stats.blocks,
+      blocksize: stats.blocksize,
+      ino: stats.ino,
       type: typeString,
       perm: permString,
-      atime: { sec: atimeSec, nsec: atimeNSec },
-      mtime: { sec: mtimeSec, nsec: mtimeNSec },
-      ctime: { sec: ctimeSec, nsec: ctimeNSec },
+      atime: { sec: atime.sec, nsec: atime.nsec },
+      mtime: { sec: mtime.sec, nsec: mtime.nsec },
+      ctime: { sec: ctime.sec, nsec: ctime.nsec },
     }
   }
 
@@ -430,7 +473,8 @@ export function initialiseAPI(Module) {
     // Allocate space on the heap for the Entry struct
     // Heap is chosen here to allow the Entry to persist
     // accross calls
-    let entryPtr = Module._malloc(16);
+    let entryPtr = Module._malloc(sizeof(Module, "Entry"));
+    const entryView = new StructView(Module, "Entry", entryPtr);
 
     while (true) {
       let { errno } = callWithErrno(
@@ -445,9 +489,9 @@ export function initialiseAPI(Module) {
         break;
       }
 
-      let entryNameLength = Module.getValue(entryPtr, 'i32');
-      let dataPtr = Module.getValue(entryPtr + 4, 'i32');
-      let endIndicator = Module.getValue(entryPtr + 8, 'i32');
+      let entryNameLength = entryView.name_len;
+      let dataPtr = entryView.name;
+      let endIndicator = entryView.isEnd;
       if (endIndicator == 1) break; // STOP if we're at the end
 
       if (entryNameLength > 0) {
@@ -474,7 +518,7 @@ export function initialiseAPI(Module) {
 
     let sp = Module.stackSave();
 
-    let statResultPtr = Module.stackAlloc(44);
+    let statResultPtr = Module.stackAlloc(sizeof(Module, "StatResult"));
 
     let { errno } = callWithErrno(
       "file__stat",
