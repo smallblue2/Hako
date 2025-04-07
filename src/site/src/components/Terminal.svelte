@@ -109,11 +109,6 @@
   height: 260px;
 }
 
-:global(.window-root-maximized) {
-  width: 100% !important;
-  height: 100% !important;
-}
-
 :global(.xterm-viewport) {
   scrollbar-width: none;
 }

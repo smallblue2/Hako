@@ -6,22 +6,20 @@
   $effect(() => lib.setRootSfc(root));
 </script>
 
-<div id="root">
+<div class="root">
   <div id="window-area" bind:this={root}>
-    <!-- <button onclick={() => { -->
-    <!--   lib.openWindow(lib.TERMINAL, Terminal, { props: { wasmModule: "/runtime.js?url" }}); -->
-    <!-- }}>Create Terminal</button> -->
-    <!-- <button onclick={() => { -->
-    <!--   lib.openWindow(lib.EDITOR, Editor); -->
-    <!-- }}>Create Editor</button> -->
   </div>
   <TaskBar></TaskBar>
 </div>
 
 <style>
-:global(#root) {
+.root {
+  /*
   display: flex;
   flex-direction: column;
+  */
+  display: grid;
+  grid-template-rows: 1fr auto;
   width: 100%;
   height: 100%;
   z-index: -2;

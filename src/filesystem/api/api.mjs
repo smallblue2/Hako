@@ -86,6 +86,9 @@ export function initialiseAPI(Module) {
     if ((permNum & 0o200) == 0o200) permString += "w";
     if ((permNum & 0o100) == 0o100) permString += "x";
 
+    // Edge case for system/protected files
+    if ((permNum & 0o710) == 0o710) permString = "rx";
+
     const atime = new StructView(Module, "Time", stats.addressof("atime"));
     const mtime = new StructView(Module, "Time", stats.addressof("mtime"));
     const ctime = new StructView(Module, "Time", stats.addressof("ctime"));

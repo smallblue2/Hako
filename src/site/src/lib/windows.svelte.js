@@ -103,6 +103,7 @@ export function openWindow(type, component, options) {
   // Object.freeze is used here to prevent some odd behaviour
   // with svelte mangling the component, making it unmountable
   _windows.push(Object.freeze({ id: id, type: type, state: { show: true }, component: mount(component, options)}));
+  return id;
 }
 
 export function closeWindow(id) {

@@ -6,7 +6,6 @@
 
 body {
   font-family: "Inconsolata", monospace;
-  image-rendering: pixelated;
 }
 
 html {
@@ -109,4 +108,11 @@ html {
   font: inherit;
   cursor: default;
   outline: inherit;
+}
+
+.window-root-maximized {
+  display: grid;
+  position: relative;
+  /* width: 100% !important; */
+  /* height: 100% !important; */
 }

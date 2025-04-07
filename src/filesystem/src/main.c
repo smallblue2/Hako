@@ -535,7 +535,7 @@ void file__stat(const char *restrict name, StatResult *restrict sr, Error *restr
     sr->type = 0; // file (technically anything that isn't a directory)
   }
 
-  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+  sr->perm = file_stat.st_mode & 0710; // bitmask user perms
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;
