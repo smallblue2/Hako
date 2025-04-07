@@ -638,7 +638,7 @@ void file__truncate(int fd, int length, Error *err) {
   }
 }
 
-char *file__cwd(Error *err) {
+const char *file__cwd(Error *err) {
   static char cwd[PATH_MAX] = {0};
   char *errorPtr = getcwd(cwd, PATH_MAX);
   if (errorPtr == NULL) {

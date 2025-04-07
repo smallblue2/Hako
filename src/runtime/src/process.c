@@ -87,9 +87,18 @@ int lprocess__create(lua_State *L) {
     }
   }
 
+  // Get CWD and pass it to newly created process
+  // (Implicit, user isn't aware of this)
   Error err = 0;
+  const char *cwd = file__cwd(&err);
+  if (err != 0) {
+    lua_pushnil(L);
+    lua_pushnumber(L, err);
+    return 2;
+  }
+
   int len = strlen(path);
-  int pid = proc__create(path, len, opts.args, opts.args_len, opts.pipe_in, opts.pipe_out, opts.redirect_in, opts.redirect_out, &err);
+  int pid = proc__create(path, len, opts.args, opts.args_len, opts.pipe_in, opts.pipe_out, opts.redirect_in, opts.redirect_out, cwd, &err);
   if (opts.redirect_in != NULL) free(opts.redirect_in);
   if (opts.redirect_out != NULL) free(opts.redirect_out);
   free(path);
