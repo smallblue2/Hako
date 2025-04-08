@@ -371,14 +371,16 @@ function tokenise(input)
   return tokens, nil
 end
 
+
 -- #######################
 -- ####### Parsing #######
 -- #######################
 
 -- EBNF of what we're parsing:
 -- 
--- Line := Pipeline ( (';' | '&&' | '||') Pipeline )*
--- Pipeline := Command ( '|' Command )* ('&')?
+-- Lines := Line (';' Line)*
+-- Line := Pipeline ( (';' | '&&' | '||') Pipeline )* ('&')?
+-- Pipeline := Command ( '|' Command )*
 -- Command := word ( word )* Redirects?
 -- Redirects := RedirectIn RedirectOut
 --            | RedirectOut RedirectIn
@@ -393,7 +395,6 @@ end
 -- LineNode { entryPipeline: PipelineNode, subsequent: {(string, PipelineNode), ...}}}
 
 local pipeline_seperators = {
-  [token_types.SEQ] = true, -- ';'
   [token_types.AND] = true, -- '&&'
   [token_types.OR] = true -- '||'
 }
@@ -491,15 +492,13 @@ end
 ---@param position number The starting position to begin parsing from
 ---@return table | nil The pipeline AST node generated, nil if error
 ---@return number | nil The position that parsing ended at, nil if error
----@return string | nil The seperator token ending the pipeline parse, nil if error
 ---@return string | nil An error message, nil unless error
 function parse_pipeline(tokens, position)
   local pipeline_node = {
     commands = {},
-    background = false
   }
 
-  -- Pipeline := Command ( '|' Command )* ('&')?
+  -- Pipeline := Command ( '|' Command )*
   local command_seperators = {
     [token_types.PIP] = true
   }
@@ -521,36 +520,25 @@ function parse_pipeline(tokens, position)
     seperator = tokens[end_pos]
   end
 
-  if seperator and seperator.type == token_types.BG then
-    pipeline_node.background = true
-    end_pos = end_pos + 1
-  end
-
-  -- Check to see if it's not at the end of the pipeline
-  if tokens[end_pos] and not pipeline_seperators[tokens[end_pos].type] then
-    return nil, nil, "Invalid pipeline. '&' isn't at the end of the pipeline."
-  end
-
   return pipeline_node, end_pos, nil
 end
 
 ---Parses a line of tokens to generate an AST of Pipelines
 ---@param tokens table An array of tokens
 ---@return table | nil An AST describing a line of input, nil if error
+---@return number | nil The index parsing of the line finished at, nil if error
 ---@return string | nil An error message, nil if no error
-function parse_line(tokens)
-  local position = 1
-
+function parse_line(tokens, position)
   local line_node = {
+    background = false,
     entry_pipeline = nil,
     subsequent = {}
   }
 
-
   -- get first pipeline
   local pipeline, return_pos, err = parse_pipeline(tokens, position)
   if err then
-    return nil, err
+    return nil, nil, err
   end
   line_node.entry_pipeline = pipeline
 
@@ -560,51 +548,179 @@ function parse_line(tokens)
     return_pos = return_pos + 1
     pipeline, return_pos, err = parse_pipeline(tokens, return_pos)
     if err then
-      return nil, err
+      return nil, nil, err
     end
     table.insert(line_node.subsequent, {seperator.value, pipeline})
     seperator = tokens[return_pos]
   end
 
-  return line_node, nil
+  if seperator and seperator.type == token_types.BG then
+    line_node.background = true
+    return_pos = return_pos + 1
+  end
+
+  -- Check and make sure it's at the end of the line
+  if tokens[return_pos] and not (tokens[return_pos].type == token_types.SEQ) then
+    return nil, nil, "Invalid line. '&' isn't at the end of the line."
+  end
+
+  return line_node, return_pos, nil
 end
 
--- #################################
--- ####### Command Execution #######
--- #################################
+---Parses multiple lines delimited by ';'
+---@param tokens table An array of tokens
+---@return table | nil A lines AST node, this is the root of the shell AST, nil on error
+---@return string | nil An error message, nil if no error
+function parse_lines(tokens)
+  local position = 1
 
--- Runs a command from PATH if it can find it
-function run_command(cmd)
-  -- Check if it's a built-in first
-  if (built_in(cmd)) then
-    return
+  local lines = {}
+  local line, return_pos, err = parse_line(tokens, position)
+  if err then
+    return nil, err
   end
-  -- Proceed to command execution
-  local exec_path = find_exec_file(cmd.argv[1])
-  if not exec_path then
-    output("Command not found: " .. cmd.argv[1])
-    return
-  end
-  local pid, create_err = process.create(exec_path,
-    { argv = cmd.argv, pipe_in = false, pipe_out = false, redirect_in = cmd.redirect_in_file, redirect_out = cmd
-    .redirect_out_file })
-  if create_err then
-    output("Failed to create process (err:" .. create_err .. ")")
-    return
-  end
-  local start_err = process.start(pid)
-  if start_err then
-    output("Failed to start process (err:" .. start_err .. ")")
-    return
-  end
-  -- If it's a background, don't wait
-  if not cmd.background then
-    local wait_err = process.wait(pid)
-    if wait_err then
-      output("Failed to wait on process (err:" .. wait_err .. ")")
-      return
+  table.insert(lines, line)
+
+  while tokens[return_pos] and tokens[return_pos].type == token_types.SEQ do
+    return_pos = return_pos + 1
+    line, return_pos, err = parse_line(tokens, return_pos)
+    if err then
+      return nil, err
     end
+    table.insert(lines, line)
   end
+
+  return lines, nil
+end
+
+-- ###########################
+-- ####### AST Walking #######
+-- ###########################
+
+function exec_pipeline(pipeline_node)
+  local pids = {}
+  local commands = pipeline_node.commands
+  local prev_pid = nil
+
+  -- Create all processes, piping them all together
+  local i = 1
+  while i <= #commands do
+    local cmd = commands[i]
+    if not built_in(cmd) then
+      local exec_path = find_exec_file(cmd.argv[1])
+      if not exec_path then
+        return string.format("Command not found: %s", cmd.argv[1])
+      end
+      local pid, create_err = process.create(exec_path,
+      { argv = cmd.argv, redirect_in = cmd.redirect_in, redirect_out = cmd.redirect_out })
+      if create_err then
+        return create_err
+      end
+      if prev_pid then
+        local pipe_err = process.pipe(prev_pid, pid)
+        if pipe_err then
+          return nil, string.format("Failed to pipe processes (err: %s)", pipe_err)
+        end
+      end
+      table.insert(pids, pid)
+      prev_pid = pid
+    end
+    i = i + 1
+  end
+
+  return pids, nil
+end
+
+function exec_line(line_node)
+
+  -- TODO: Implement background processes
+  if line_node.background then
+    return "Background processes not implemented yet!"
+  end
+
+  -- Collect all piped pids + conditional operations '&&', '||' together in a chain
+  local chain = {}
+
+  -- Insert first pipeline
+  local pids, err = exec_pipeline(line_node.entry_pipeline)
+  if err then
+    return err
+  end
+  -- Insert subsequent ones
+  table.insert(chain, pids)
+  local sub = line_node.subsequent
+  local i = 1
+  while i <= #sub do
+    local op = sub[i][1]
+    local pipeline = sub[i][2]
+    pids, err = exec_pipeline(pipeline)
+    if err then
+      return err
+    end
+    -- Insert operation ('||', '&&') into chain
+    table.insert(chain, op)
+    -- Insert pids
+    table.insert(chain, pids)
+  end
+
+  -- Iterate over chain, starting all processes and waiting on them
+  i = 1
+  while i <= #chain do
+    local next_op_and = false
+    local next_op_or = false
+    if and_map[chain[i + 1]] then
+      next_op_and = true
+    elseif or_map[chain[i + 1]] then
+      next_op_or = true
+    end
+
+    -- Start all processes
+    local j = 1
+    while j <= #chain[i] do
+      process.start(chain[i][j])
+      j = j + 1
+    end
+
+    -- Keep track of the last exit code incase we need it
+    local last_exit_code = nil
+    -- Wait for all processes to finish
+    j = 1
+    while j <= #chain[i] do
+      if j == #chain[i] then
+        last_exit_code = process.wait(chain[i][j])
+      else
+         process.wait(chain[i][j])
+      end
+      j = j + 1
+    end
+
+    -- TODO: Implement short-circuit logic properly
+    if (next_op_and) then
+      if last_exit_code ~= 0 then
+        break
+      end
+    end
+
+    -- if (next_op_or) then
+    -- end
+
+    i = i + 1
+  end
+
+  return nil
+end
+
+function exec_lines(lines_node)
+  local i = 1
+  while i <= #lines_node do
+    local err = exec_line(lines_node[i])
+    if err then
+      return err
+    end
+    i = i + 1
+  end
+
+  return nil
 end
 
 -- #########################
@@ -625,10 +741,13 @@ while true do
   local tokens, err = tokenise(line)
   if not err then
     if #tokens ~= 0 then
-      local cmd, err = parse_line(tokens)
+      local ast, err = parse_lines(tokens)
       if not err then
-        -- run_command(cmd)
-        output(inspect(cmd))
+        output(inspect(ast))
+        local err = exec_lines(ast)
+        if err then
+          output("Error: " .. err)
+        end
       else
         output("Error: " .. err)
       end
