@@ -75,6 +75,10 @@ local built_in_table = {
   ["env"] = env
 }
 
+function is_built_in(cmd)
+  return built_in_table[cmd.argv[1]] ~= nil
+end
+
 -- Checks for and executes a built-in
 -- returns `true` if a built-in was executed, `false` otherwise
 function built_in(cmd)
@@ -378,7 +382,7 @@ end
 -- EBNF of what we're parsing:
 -- 
 -- Lines := Line (';' Line)*
--- Line := Pipeline ( (';' | '&&' | '||') Pipeline )* ('&')?
+-- Line := Pipeline ( ('&&' | '||') Pipeline )* ('&')?
 -- Pipeline := Command ( '|' Command )*
 -- Command := word ( word )* Redirects?
 -- Redirects := RedirectIn RedirectOut
@@ -605,16 +609,27 @@ function exec_pipeline(pipeline_node)
   local i = 1
   while i <= #commands do
     local cmd = commands[i]
-    if not built_in(cmd) then
+    -- if it's a builtin, add the builtin closure to the `pids`
+    if is_built_in(cmd) then
+      table.insert(pids,
+        function()
+          built_in_table[cmd.argv[1]](cmd)
+        end
+      )
+      prev_pid = nil
+    -- otherwise add the pid to be started
+    else
       local exec_path = find_exec_file(cmd.argv[1])
       if not exec_path then
         return string.format("Command not found: %s", cmd.argv[1])
       end
+      -- TODO: Implement redirect_in_type and redirect_out_type on process.create
       local pid, create_err = process.create(exec_path,
       { argv = cmd.argv, redirect_in = cmd.redirect_in, redirect_out = cmd.redirect_out })
       if create_err then
         return create_err
       end
+      -- Pipe them all together
       if prev_pid then
         local pipe_err = process.pipe(prev_pid, pid)
         if pipe_err then
@@ -646,7 +661,7 @@ function exec_line(line_node)
     return err
   end
   -- Insert subsequent ones
-  table.insert(chain, pids)
+  table.insert(chain, {pids = pids, op = nil})
   local sub = line_node.subsequent
   local i = 1
   while i <= #sub do
@@ -656,52 +671,56 @@ function exec_line(line_node)
     if err then
       return err
     end
-    -- Insert operation ('||', '&&') into chain
-    table.insert(chain, op)
-    -- Insert pids
-    table.insert(chain, pids)
+    table.insert(chain, { pids = pids, op = op })
+    i = i + 1
   end
+
+  local last_chain_exit_code = nil
 
   -- Iterate over chain, starting all processes and waiting on them
   i = 1
   while i <= #chain do
-    local next_op_and = false
-    local next_op_or = false
-    if and_map[chain[i + 1]] then
-      next_op_and = true
-    elseif or_map[chain[i + 1]] then
-      next_op_or = true
-    end
+    local prev_and = and_map[chain[i].op]
+    local prev_or = or_map[chain[i].op]
 
-    -- Start all processes
-    local j = 1
-    while j <= #chain[i] do
-      process.start(chain[i][j])
-      j = j + 1
-    end
-
-    -- Keep track of the last exit code incase we need it
-    local last_exit_code = nil
-    -- Wait for all processes to finish
-    j = 1
-    while j <= #chain[i] do
-      if j == #chain[i] then
-        last_exit_code = process.wait(chain[i][j])
+    -- Non-nested short-circuit evaluation supported currently only
+    if last_chain_exit_code == nil or (prev_and and last_chain_exit_code == 0) or (prev_or and last_chain_exit_code ~= 0) then
+      -- In order to support built-ins within pipelines, we need to
+      -- implement `sub-shelling`. Until this is done, built-ins are
+      -- considered an edge-case
+      if type(chain[i].pids[1]) == "function" then
+        if #chain[i].pids > 1 then
+          return "Built-ins can only be ran in isolation, not within pipelines"
+        end
+        chain[i].pids[1]()
+        last_chain_exit_code = 0
       else
-         process.wait(chain[i][j])
-      end
-      j = j + 1
-    end
+        -- Start all processes
+        local j = 1
+        while j <= #(chain[i].pids) do
+          -- If it's a builtin, execute it
+          if type(chain[i].pids[j]) == "function" then
+            chain[i].pids[j]()
+          else
+          -- If it's a pid, start it
+            process.start(chain[i].pids[j])
+          end
+          j = j + 1
+        end
 
-    -- TODO: Implement short-circuit logic properly
-    if (next_op_and) then
-      if last_exit_code ~= 0 then
-        break
+        -- Wait for all processes to finish
+        j = 1
+        while j <= #(chain[i].pids) do
+          if j == #chain[i].pids then
+            last_chain_exit_code = process.wait(chain[i].pids[j])
+          else
+             process.wait(chain[i].pids[j])
+          end
+          j = j + 1
+        end
+
       end
     end
-
-    -- if (next_op_or) then
-    -- end
 
     i = i + 1
   end
@@ -742,7 +761,6 @@ while true do
     if #tokens ~= 0 then
       local ast, err = parse_lines(tokens)
       if not err then
-        output(inspect(ast))
         local err = exec_lines(ast)
         if err then
           output("Error: " .. err)
