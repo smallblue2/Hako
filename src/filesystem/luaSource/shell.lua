@@ -624,8 +624,10 @@ function exec_pipeline(pipeline_node)
         return string.format("Command not found: %s", cmd.argv[1])
       end
       -- TODO: Implement redirect_in_type and redirect_out_type on process.create
+      local pipe_in = i > 1
+      local pipe_out = i < #commands
       local pid, create_err = process.create(exec_path,
-      { argv = cmd.argv, redirect_in = cmd.redirect_in, redirect_out = cmd.redirect_out })
+      { argv = cmd.argv, pipe_in = pipe_in, pipe_out = pipe_out, redirect_in = cmd.redirect_in, redirect_out = cmd.redirect_out })
       if create_err then
         return create_err
       end
