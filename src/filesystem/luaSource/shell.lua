@@ -148,7 +148,10 @@ local token_types = {
   RIN = { "IN" }, -- Redirect in
   ROU = { "OUT" }, -- Redirect out
   PIP = { "PIPE" }, -- Pipe
-  BGP = { "BG" } -- BG Process
+  BG = { "BG" }, -- BG Process
+  AND = { "AND" },
+  OR = { "OR" },
+  SEQ = { "SEQ" } -- Sequence char ';'
 }
 
 local escape_map = {
@@ -160,7 +163,10 @@ local escape_map = {
   ['<'] = '<',
   ['n'] = '\n',
   ['t'] = '\t',
-  ['r'] = '\r'
+  ['r'] = '\r',
+  [';'] = ';',
+  ['|'] = '|',
+  ['&'] = '&'
 }
 
 local white_space_map = {
@@ -176,15 +182,30 @@ local string_map = {
 }
 
 local redirect_in_map = {
-  ['<'] = true
+  ['<'] = true,
+  ['<<'] = true
 }
 
 local redirect_out_map = {
-  ['>'] = true
+  ['>'] = true,
+  ['>>'] = true
 }
 
 local pipe_map = {
   ['|'] = true
+}
+
+
+local and_map = {
+  ['&&'] = true
+}
+
+local or_map = {
+  ['||'] = true
+}
+
+local sequence_map = {
+  [';'] = true
 }
 
 local bg_map = {
@@ -232,7 +253,7 @@ function lex_char_chain(input, position)
       table.insert(buffer, escaped_char)
       position = new_pos
     -- If it's a special character, end
-    elseif redirect_in_map[char] or redirect_out_map[char] or string_map[char] or pipe_map[char] or bg_map[char] then
+    elseif redirect_in_map[char] or redirect_out_map[char] or string_map[char] or pipe_map[char] or bg_map[char] or sequence_map[char] or or_map[char] or and_map[char] then
       return table.concat(buffer), position - 1, nil
     else
       table.insert(buffer, char)
@@ -303,13 +324,39 @@ function tokenise(input)
       table.insert(tokens, { type = token_types.STR, value = string })
       position = end_of_string_pos
     elseif redirect_in_map[char] then
-      table.insert(tokens, { type = token_types.RIN, value = char })
+      local lookahead = input:sub(position, position + 1)
+      if redirect_in_map[lookahead] then
+        table.insert(tokens, { type = token_types.RIN, value = lookahead })
+        position = position + 1
+      else
+        table.insert(tokens, { type = token_types.RIN, value = char })
+      end
     elseif redirect_out_map[char] then
-      table.insert(tokens, { type = token_types.ROU, value = char })
+      local lookahead = input:sub(position, position + 1)
+      if redirect_out_map[lookahead] then
+        table.insert(tokens, { type = token_types.ROU, value = lookahead })
+        position = position + 1
+      else
+        table.insert(tokens, { type = token_types.ROU, value = char })
+      end
     elseif pipe_map[char] then
-      table.insert(tokens, { type = token_types.PIP, value = char })
+      local lookahead = input:sub(position, position + 1)
+      if or_map[lookahead] then
+        table.insert(tokens, { type = token_types.OR, value = lookahead })
+        position = position + 1
+      else
+        table.insert(tokens, { type = token_types.PIP, value = char })
+      end
     elseif bg_map[char] then
-      table.insert(tokens, { type = token_types.BGP, value = char })
+      local lookahead = input:sub(position, position + 1)
+      if and_map[lookahead] then
+        table.insert(tokens, { type = token_types.AND, value = lookahead })
+        position = position + 1
+      else
+        table.insert(tokens, { type = token_types.BG, value = char })
+      end
+    elseif sequence_map[char] then
+      table.insert(tokens, { type = token_types.SEQ, value = char })
     else
       local chain, end_of_chain, err = lex_char_chain(input, position)
       if err then
@@ -328,96 +375,198 @@ end
 -- ####### Parsing #######
 -- #######################
 
----Parses an array of tokens
----@param tokens table An array of tokens
----@return table | nil A command table describing a command, nil if error
----@return string | nil An error message, nil if no error
-function parse(tokens)
-  local cmd = {
-    argv = {},               -- Positional arguments
-    redirect_in_file = nil,  -- string or nil
-    redirect_out_file = nil, -- string or nil
-    process_pipe_in = nil,
-    process_pipe_out = nil,
-    background = false -- bool
-  }
+-- EBNF of what we're parsing:
+-- 
+-- Line := Pipeline ( (';' | '&&' | '||') Pipeline )*
+-- Pipeline := Command ( '|' Command )* ('&')?
+-- Command := word ( word )* Redirects?
+-- Redirects := RedirectIn RedirectOut
+--            | RedirectOut RedirectIn
+--            | RedirectIn
+--            | RedirectOut
+-- RedirectIn := ('<' | '<<') word
+-- RedirectOut := ('>' | '>>') word
 
-  local i = 1
-  while tokens[i] do
-    -- If it's a string, add to argv
-    if tokens[i].type == token_types.STR then
-      table.insert(cmd.argv, tokens[i].value)
-      -- If it's a redirect in, validate and set it
-    elseif tokens[i].type == token_types.RIN then
-      i = i + 1
-      local file = tokens[i]
-      if not file then
-        return nil, "No file for input redirection '<'"
-      end
-      if file.type ~= token_types.STR then
-        return nil, string.format("Trying to redirect input into invalid file '%s'", file.value)
-      end
-      if file.value == "" then
-        return nil, 'Cannot redirect input to an empty file ""'
-      end
-      if cmd.redirect_in_file then
-        return nil, string.format("Multiple input redirections '%s' and '%s'", cmd.redirect_in_file, file.value)
-      end
-      if tokens[1].type ~= token_types.STR then
-        return nil, "First argument has to be an string, not '<'"
-      end
-      cmd.redirect_in_file = file.value
-      -- If it's a redirect out, validate and set it
-    elseif tokens[i].type == token_types.ROU then
-      i = i + 1
-      local file = tokens[i]
-      if not file then
-        return nil, "No file for output redirection '>'"
-      end
-      if file.type ~= token_types.STR then
-        return nil, string.format("Trying to redirect output into invalid file '%s'", file.value)
-      end
-      if file.value == "" then
-        return nil, 'Cannot redirect output to an empty file ""'
-      end
-      if cmd.redirect_out_file then
-        return nil, string.format("Multiple output redirections '%s' and '%s'", cmd.redirect_out_file, file.value)
-      end
-      if tokens[1].type ~= token_types.STR then
-        return nil, "First argument has to be a string, not '>'"
-      end
-      cmd.redirect_out_file = file.value
-    elseif tokens[i].type == token_types.PIP then
-      i = i + 1
-      local proc = tokens[i]
-      if not proc then
-        return nil, "No process for pipe redirection"
-      end
-      if proc.type ~= token_types.STR then
-        return nil, string.format("Trying to pipe into an invalid process '%s'", proc.value)
-      end
-      if tokens[1].type ~= token_types.STR then
-        return nil, "First argument has to be a string, not '|'"
-      end
-      -- TODO: Pipes not yet implemented!
-      return nil, "Pipes not yet implemented!"
-    elseif tokens[i].type == token_types.BGP then
-      if cmd.background then
-        return nil, "Multiple background declarations '&'"
-      end
-      if tokens[1].type ~= token_types.STR then
-        return nil, "First argument has to be a string, not '&'"
-      end
-      cmd.background = true
-      -- TODO: Implement background processes
-      return nil, "Background processes not yet implemented"
-    else
-      return nil, string.format("Unfamiliar token %s", tokens[i].value)
+-- AST definition
+-- CommandNode { argv: {}, redirectIn: string, redirectInType: string, redirectOut: string, redirectOutType: string }
+-- PipelineNode { background: bool, commands: {} }
+-- LineNode { entryPipeline: PipelineNode, subsequent: {(string, PipelineNode), ...}}}
+
+local pipeline_seperators = {
+  [token_types.SEQ] = true, -- ';'
+  [token_types.AND] = true, -- '&&'
+  [token_types.OR] = true -- '||'
+}
+
+---Parses redirection for a provided command_node from a list of lexical tokens starting at position
+---@param tokens table A list of lexical tokens
+---@param position number The index to begin parsing tokens at
+---@param command_node table The AST command_node to fill with redirection information
+---@return number | nil The index of where parsing finished, nil if error
+---@return string | nil An error message, nil if no error
+function parse_redirect(tokens, position, command_node)
+  if tokens[position] and tokens[position].type == token_types.RIN then
+    local redirect_type = tokens[position].value
+    position = position + 1
+    if not tokens[position] then
+      return nil, string.format("Invalid command. No redirection file despite '%s'", redirect_type)
     end
-    i = i + 1
+    if tokens[position].type ~= token_types.STR then
+      return nil, string.format("Invalid command. Redirection file isn't a string '%s'", tokens[position].value)
+    end
+    if command_node.redirect_in then
+      return nil, string.format("Invalid command. Multiple redirections of input")
+    end
+    command_node.redirect_in = tokens[position].value
+    command_node.redirect_in_type = redirect_type
+    position = position + 1
   end
 
-  return cmd, nil
+  if tokens[position] and tokens[position].type == token_types.ROU then
+    local redirect_type = tokens[position].value
+    position = position + 1
+    if not tokens[position] then
+      return nil, string.format("Invalid command. No redirection file despite '%s'", redirect_type)
+    end
+    if tokens[position].type ~= token_types.STR then
+      return nil, string.format("Invalid command. Redirection file isn't a string '%s'", tokens[position].value)
+    end
+    if command_node.redirect_out then
+      return nil, string.format("Invalid command. Multiple redirections of output")
+    end
+    command_node.redirect_out = tokens[position].value
+    command_node.redirect_out_type = redirect_type
+    position = position + 1
+  end
+
+  return position, nil
+end
+
+---Parses a command from tokens starting at position
+---@param tokens table A list of lexical tokens
+---@param position number The index to begin parsing the tokens at
+---@return table | nil A command node, nil if error
+---@return number | nil The end position of parsing of the command, nil if error
+---@return string | nil An error message, nil unless error
+function parse_command(tokens, position)
+  local command_node = {
+    argv = {},
+    redirect_in = nil,
+    redirect_in_type = nil,
+    redirect_out = nil,
+    redirect_out_type = nil
+  }
+
+  local cur_pos = position
+  local argv_atleast_one = false
+
+  -- keep adding words to argv (need at least one to be valid)
+  while tokens[cur_pos] and tokens[cur_pos].type == token_types.STR do
+    table.insert(command_node.argv, tokens[cur_pos].value)
+    cur_pos = cur_pos + 1
+    argv_atleast_one = true
+  end
+
+  if not argv_atleast_one then
+    return nil, nil, string.format("Expected a command, found '%s'", (tokens[cur_pos] and tokens[cur_pos].value) or "nil")
+  end
+
+  local err = nil
+
+  -- Run twice to allow for both Stdin and Stdout redirection
+  cur_pos, err = parse_redirect(tokens, cur_pos, command_node)
+  if err then
+    return nil, nil, err
+  end
+  cur_pos, err = parse_redirect(tokens, cur_pos, command_node)
+  if err then
+    return nil, nil, err
+  end
+
+  return command_node, cur_pos, nil
+end
+
+---Parses tokens from a provided position, generating a pipeline AST node
+---@param tokens table An array of tokens
+---@param position number The starting position to begin parsing from
+---@return table | nil The pipeline AST node generated, nil if error
+---@return number | nil The position that parsing ended at, nil if error
+---@return string | nil The seperator token ending the pipeline parse, nil if error
+---@return string | nil An error message, nil unless error
+function parse_pipeline(tokens, position)
+  local pipeline_node = {
+    commands = {},
+    background = false
+  }
+
+  -- Pipeline := Command ( '|' Command )* ('&')?
+  local command_seperators = {
+    [token_types.PIP] = true
+  }
+
+  local command, end_pos, err = parse_command(tokens, position)
+  if err then
+    return nil, nil, err
+  end
+  table.insert(pipeline_node.commands, command)
+  -- whilst the next token is a PIPE
+  local seperator = tokens[end_pos]
+  while seperator and command_seperators[seperator.type] do
+    end_pos = end_pos + 1
+    command, end_pos, err = parse_command(tokens, end_pos)
+    if err then
+      return nil, nil, err
+    end
+    table.insert(pipeline_node.commands, command)
+    seperator = tokens[end_pos]
+  end
+
+  if seperator and seperator.type == token_types.BG then
+    pipeline_node.background = true
+    end_pos = end_pos + 1
+  end
+
+  -- Check to see if it's not at the end of the pipeline
+  if tokens[end_pos] and not pipeline_seperators[tokens[end_pos].type] then
+    return nil, nil, "Invalid pipeline. '&' isn't at the end of the pipeline."
+  end
+
+  return pipeline_node, end_pos, nil
+end
+
+---Parses a line of tokens to generate an AST of Pipelines
+---@param tokens table An array of tokens
+---@return table | nil An AST describing a line of input, nil if error
+---@return string | nil An error message, nil if no error
+function parse_line(tokens)
+  local position = 1
+
+  local line_node = {
+    entry_pipeline = nil,
+    subsequent = {}
+  }
+
+
+  -- get first pipeline
+  local pipeline, return_pos, err = parse_pipeline(tokens, position)
+  if err then
+    return nil, err
+  end
+  line_node.entry_pipeline = pipeline
+
+  -- Parse forward for more pipelines
+  local seperator = tokens[return_pos]
+  while seperator and pipeline_seperators[seperator.type] do
+    return_pos = return_pos + 1
+    pipeline, return_pos, err = parse_pipeline(tokens, return_pos)
+    if err then
+      return nil, err
+    end
+    table.insert(line_node.subsequent, {seperator.value, pipeline})
+    seperator = tokens[return_pos]
+  end
+
+  return line_node, nil
 end
 
 -- #################################
@@ -476,9 +625,10 @@ while true do
   local tokens, err = tokenise(line)
   if not err then
     if #tokens ~= 0 then
-      local cmd, err = parse(tokens)
+      local cmd, err = parse_line(tokens)
       if not err then
-        run_command(cmd)
+        -- run_command(cmd)
+        output(inspect(cmd))
       else
         output("Error: " .. err)
       end
