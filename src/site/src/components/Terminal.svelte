@@ -12,7 +12,7 @@
 
   let { id, layerFromId } = $props();
 
-  let min = 150;
+  let min = 200;
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();

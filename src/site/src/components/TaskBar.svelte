@@ -116,15 +116,6 @@
   }
 
   .menu {
-    /*
-    display: flex;
-    background-color: white;
-    flex-direction: column;
-    list-style: none;
-    padding: 0.2rem;
-    background-color: var(--md-sys-color-surface);
-    outline: var(--md-sys-color-outline) solid 1px;
-    */
     transform: translate(calc((2.7rem * 0.5) - 50%), calc(-100% - 1rem));
     white-space: nowrap;
 
@@ -143,24 +134,6 @@
   .menu-hidden:focus {
     visibility: visible;
   }
-
-  /*
-  .menu-item > button {
-    text-align: left;
-    width: 100%;
-    padding: 0.3rem 0.5rem 0.3rem 0.5rem;
-    border-radius: 0.15rem;
-  }
-
-  .menu-item > button:hover {
-    background-color: var(--md-sys-color-surface-dim);
-  }
-
-  .menu-divider {
-    border-color: var(--md-sys-color-outline-variant);
-    width: 90%;
-  }
-  */
 
   .tasks {
     display: flex;

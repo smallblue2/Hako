@@ -13,7 +13,7 @@
       form.addEventListener("submit", (ev) => {
         res(ev.submitter.dataset.uid == 0);
       }, { once: true })
-      dialog.addEventListener("cancel", (ev) => {
+      dialog.addEventListener("close", (ev) => {
         res(false);
       }, { once: true });
     });
@@ -27,7 +27,7 @@
   <p>{message}</p>
   <form bind:this={form} method="dialog">
     <div class="actions">
-      <Button id="0" color="secondary">Close</Button>
+      <Button formmethod="dialog" id="0" color="secondary">Close</Button>
     </div>
   </form>
 </Popup>

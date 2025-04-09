@@ -6,6 +6,7 @@
   import FileManager from "./FileManager.svelte";
   import _, * as overlay from "../components/Overlay.svelte";
   import Confirmation from "./Confirmation.svelte";
+  import Alert from "./Alert.svelte";
 
   import { EditorState } from "@codemirror/state";
   import { StreamLanguage } from "@codemirror/language";
@@ -54,7 +55,7 @@
   let fd = undefined;
   let data = $state("");
 
-  let min = 150;
+  let min = 200;
 
   let width = 320;
   let height = 260;
@@ -63,6 +64,8 @@
   let view = undefined;
   let readOnly = $state(false);
   let saved = $state(true);
+
+  let openAlertModal = $state();
 
   onMount(async () => {
     let { initWidth, initHeight } = lib.getInitWindowSize();
@@ -109,7 +112,9 @@
 
     ({ error, fd } = window.Filesystem.open(filePath, perm));
     if (error !== null) {
-      alert("SHIT BED");
+      openAlertModal("Operation failed", error);
+      win.closeWindow(id);
+      return;
     }
     data = window.Filesystem.readAll(fd).data ?? "";
     window.Filesystem.goto(fd, 0);
@@ -210,6 +215,7 @@
   dataRef={root}
 >
   {#snippet data()}
+    <Alert bind:open={openAlertModal}></Alert>
     <Confirmation bind:open={openConfirmationDialog} title="No file opened" subtext="You must choose a file to open the editor on." confirmLabel="Select file" denyLabel="Cancel"></Confirmation>
     <div class={`area ${maximized ? "editor-maximized" : ""}`} bind:this={root}>
       <div
@@ -241,6 +247,10 @@
     flex: 1;
     overflow: scroll;
   }
+  :global(.editor::-webkit-scrollbar) {
+    width: 0;  /* Remove scrollbar space */
+    background: transparent;  /* Optional: just make scrollbar invisible */
+  }
   :global(.editor-maximized) {
     width: 100% !important;
     height: 100% !important;
@@ -253,7 +263,6 @@
   }
   :global(.cm-scroller) {
     overflow: auto;
-    font-size: 1.5em;
   }
   :global(.cm-editor.cm-focused) {
     outline: none;
