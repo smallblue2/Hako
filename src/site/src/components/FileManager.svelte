@@ -6,12 +6,13 @@
   import ContextMenu from "./ContextMenu.svelte";
   import InputText from "./InputText.svelte";
   import BreadCrumbs from "./BreadCrumbs.svelte";
+  import Alert from "./Alert.svelte";
   import * as lib from "$lib";
   import * as win from "$lib/windows.svelte.js";
   import { onMount } from "svelte";
   import { FSView } from "$lib/files";
   import { Resolver } from "$lib/resolver";
-  
+
   let { id, layerFromId, initOffset = {x: 0, y: 0}, selection = new Resolver() } = $props();
 
   /** @type {HTMLDivElement | undefined} */
@@ -27,7 +28,8 @@
   let files = $state([]);
   let crumbs = $derived.by(() => {
     files; // re generate when files updates
-    let crumbs = [];
+    const rootCrumb = {text: "/", onclick: () => fsView.changeDirAbs(["persistent"])};
+    let crumbs = [rootCrumb];
     const pathParts = fsView.entries();
     for (let i = 1; i < pathParts.length; i++) {
       crumbs.push({
@@ -94,7 +96,6 @@
   }
 
   // State for the context menu of file manager
-  let rightClick = $state();
   let globalOperations = [
     {name: "New File", onclick: newFile, shortcut: "f"},
     {name: "Create Directory", onclick: createDir, shortcut: "d"},
@@ -120,7 +121,7 @@
       const fileName = await openTextModal("Enter new file name:", "");
       let { error, fd } = window.Filesystem.open(fsView.relative(fileName), "crw");
       if (error !== null) {
-        alert("TODO handle failed to create file");
+        openAlertModal("Operation Failed", error);
         return;
       }
       window.Filesystem.close(fd);
@@ -135,7 +136,7 @@
       const dirName = await openTextModal("Enter new directory name:", "");
       let { error } = window.Filesystem.make_dir(fsView.relative(dirName));
       if (error !== null) {
-        alert("TODO handle failed to create directory");
+        openAlertModal("Operation Failed", error);
         return;
       }
       updateFiles();
@@ -146,22 +147,26 @@
 
   async function renameFileOrDir(fileOrDirName, ev) {
     if (fsView.hasSingleEntry("persistent") && fileOrDirName === "sys") {
-      alert("TODO sys/ directory cannot be renamed");
+      openAlertModal("Operation Failed", "'sys' directory cannot be removed");
       return;
     }
     let { error, stat } = window.Filesystem.stat(fsView.relative(fileOrDirName));
     if (error !== null) {
-      alert("TODO handle stat failed");
+      openAlertModal("Operation Failed", error);
       return;
     }
     if (stat.type === "file" && !stat.perm.includes("w")) {
-      alert(`TODO insufficient permissions to rename ${stat.type}`);
+      openAlertModal("Operation Failed", `insufficient permissions to rename ${stat.type}`);
       return;
     }
     try {
       const newName = await openTextModal(`Rename ${stat.type}:`, fileOrDirName);
       if (newName.length !== 0) {
-        window.Filesystem.move(fsView.relative(fileOrDirName), fsView.relative(newName));
+        const { error } = window.Filesystem.move(fsView.relative(fileOrDirName), fsView.relative(newName));
+        if (error !== null) {
+          openAlertModal("Operation Failed", error);
+          return;
+        }
       }
       updateFiles();
     } finally {
@@ -171,21 +176,25 @@
 
   async function deleteDir(dirName, ev) {
     if (fsView.hasSingleEntry("persistent") && dirName === "sys") {
-      alert("TODO sys/ directory cannot be removed");
+      openAlertModal("Operation Failed", "'sys' directory cannot be removed");
       return;
     }
-    window.Filesystem.remove_dir(fsView.relative(dirName));
+    const { error } = window.Filesystem.remove_dir(fsView.relative(dirName));
+    if (error !== null) {
+      openAlertModal("Operation Failed", error);
+      return;
+    }
     updateFiles();
   }
 
   async function deleteFile(fileName, ev) {
     let { error, stat } = window.Filesystem.stat(fsView.relative(fileName));
     if (error !== null) {
-      alert("TODO handle stat failed");
+      openAlertModal("Operation Failed", error);
       return;
     }
     if (!stat.perm.includes("w")) {
-      alert("TODO insufficient permissions to delete file")
+      openAlertModal("Operation Failed", error);
       return;
     }
     window.Filesystem.remove(fsView.relative(fileName));
@@ -193,6 +202,7 @@
   }
 
   let openTextModal = $state();
+  let openAlertModal = $state();
 
   let showContextMenu = $state(false);
   let contextmenuX = $state(0);
@@ -228,6 +238,29 @@
     }
   }
 
+  /** @param path {string} */
+  function baseName(path) {
+    return path.slice(path.lastIndexOf("/") + 1);
+  }
+
+  // --- Drag and drop ---
+  function move(srcPath, destPath) {
+    if (srcPath === "/persistent/sys") {
+      openAlertModal("Operation Failed", "Cannot move 'sys' directory");
+      return;
+    }
+    if (srcPath === destPath) {
+      return;
+    }
+    const fileOrDirName = baseName(srcPath);
+    const destWithName = destPath + (fileOrDirName.length !== 0 ? "/" : "") + fileOrDirName;
+    const { error } = window.Filesystem.move(srcPath, destWithName);
+    if (error !== null) {
+      openAlertModal("Operation Failed", error);
+      return;
+    }
+  }
+
   function setDropZoneStyles(abs) {
     const el = document.getElementById(`fm-file-${id}-${abs}`);
     if (!el.classList.contains("fm-dropzone")) {
@@ -254,15 +287,27 @@
 
   let timer;
 
+  function onDropGlobal(ev) {
+    ev.preventDefault();
+    const data = JSON.parse(ev.dataTransfer.getData("application/json"));
+    const src = data.absPath;
+    const dest = fsView.cwd();
+    console.log("DROP GLOBAL: from", src, "to", dest);
+    move(src, dest);
+  }
+
   function onDrop(file) {
     const abs = fsView.relativeDelim(file.name, "-");
     return (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
       if (file.type === "directory") {
-        const data = ev.dataTransfer.getData("application/json");
-        console.log("DROP:", JSON.parse(data));
         removeDropZoneStyles(abs);
+        const data = JSON.parse(ev.dataTransfer.getData("application/json"));
+        const src = data.absPath;
+        const dest = abs.replaceAll("-", "/");
+        console.log("DROP: from", src, "to", dest);
+        move(src, dest);
         if (timer !== undefined) clearTimeout(timer);
         timer = undefined;
       }
@@ -294,8 +339,8 @@
     const abs = fsView.relativeDelim(file.name, "-");
     const pathParts = [...fsView.entries(), file.name];
     return (_ev) => {
-      counter++;
       if (file.type === "directory") {
+        counter++;
         setDropZoneStyles(abs);
         if (timer !== undefined) clearTimeout(timer);
         timer = setTimeout(() => {
@@ -311,8 +356,8 @@
   function onDragLeave(file) {
     const abs = fsView.relativeDelim(file.name, "-");
     return (_ev) => {
-      counter--;
       if (file.type === "directory") {
+        counter--;
         if (counter === 0) {
           removeDropZoneStyles(abs);
           if (timer !== undefined) clearTimeout(timer);
@@ -325,6 +370,7 @@
 
 <Window title="File Manager" bind:maximized {layerFromId} {id} {onResize} dataRef={root} {onClose} {initOffset}>
   {#snippet data()}
+    <Alert bind:open={openAlertModal}></Alert>
     <InputText bind:open={openTextModal}></InputText>
     <div bind:this={contextmenu} tabindex="-1" onkeydown={onContextMenuKey} class={`contextmenu ${!showContextMenu ? "hide-contextmenu" : ""}`}>
       <ContextMenu bind:keydown={forwardKeydown} items={operations}></ContextMenu>
@@ -334,15 +380,8 @@
       operations = globalOperations;
       updateContextMenu(ev.clientX, ev.clientY);
     }} bind:this={root} class={`file-manager ${maximized ? "file-manager-maximized" : ""}`}
-      >
-      <!--
-      ondrop={(ev) => {
-        ev.preventDefault();
-        const data = ev.dataTransfer.getData("application/json");
-        console.log("DROP GLOBAL:", JSON.parse(data));
-      }}
+      ondrop={onDropGlobal}
       ondragover={(ev) => ev.preventDefault()}>
-      -->
       {#each files as file}
         <div oncontextmenu={(ev) => {
           ev.preventDefault();
@@ -399,6 +438,15 @@
     user-select: none;
     padding: 0.3rem;
     border-radius: 0.4rem;
+    transition: all 300ms ease;
+    outline: 1px solid var(--md-sys-color-background);
+  }
+  .fm-object:hover {
+    outline: 1px solid var(--md-sys-color-tertiary);
+    background-color: color-mix(in srgb, var(--md-sys-color-background), black 5%);
+  }
+  .fm-object * {
+    outline: none;
   }
   :global(.fm-icon > svg) {
     width: 4.5rem;

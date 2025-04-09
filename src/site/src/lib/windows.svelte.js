@@ -112,7 +112,7 @@ export function closeWindow(id) {
   for (let i = 0; i < _windows.length; i++) {
     if (_windows[i].id == id) {
       applications[_windows[i].type].instances -= 1;
-      unmount(_windows[i].component, { outro: false });
+      unmount(_windows[i].component, { outro: true });
       _windows.splice(i, 1);
       return;
     }

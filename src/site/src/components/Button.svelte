@@ -42,14 +42,14 @@
     background-color: color-mix(in srgb, var(--md-sys-color-tertiary-container), black 10%);
   }
   .btn-error {
-    color: var(--md-sys-color-error-on-container);
-    background-color: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error);
+    background-color: var(--md-sys-color-error);
     transition: color 150ms ease;
     transition: background-color 150ms ease;
   }
   .btn-error:hover {
-    color: color-mix(in srgb, var(--md-sys-color-error-on-container), black 10%);
-    background-color: color-mix(in srgb, var(--md-sys-color-error-container), black 10%);
+    color: color-mix(in srgb, var(--md-sys-color-on-error), black 10%);
+    background-color: color-mix(in srgb, var(--md-sys-color-error), black 10%);
   }
   .btn-surface {
     color: var(--md-sys-color-surface-on-container);

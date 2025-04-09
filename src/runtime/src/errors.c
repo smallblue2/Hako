@@ -36,6 +36,7 @@ const char *str_of_errno(int errno_) {
     case 8: return "I/O error";
     case 9: return "Invalid argument";
     case 10: return "Resource temporarily unavailable (EAGAIN)";
+    case 11: return "Directory is not empty";
     default:
       snprintf(unknown_error, 32, "Unknown error: %d", errno_);
       return unknown_error;

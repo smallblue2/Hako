@@ -24,6 +24,8 @@ int translate_errors(int err) {
     return E_INVALID;
   case EAGAIN:
     return E_AGAIN;
+  case ENOTEMPTY:
+    return E_NOTEMPTY;
   default:
     printf("[C] Unknown error: %d: %s\n", err, strerror(err));
     return err;

@@ -26,4 +26,8 @@
   height: 100%;
   overflow: scroll;
 }
+:global(#window-area::-webkit-scrollbar) {
+    width: 0;  /* Remove scrollbar space */
+    background: transparent;  /* Optional: just make scrollbar invisible */
+}
 </style>

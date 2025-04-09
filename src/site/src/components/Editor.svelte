@@ -4,7 +4,7 @@
   import { Resolver } from "$lib/resolver";
   import Window from "./Window.svelte";
   import FileManager from "./FileManager.svelte";
-  import Overlay, * as overlay from "../components/Overlay.svelte";
+  import _, * as overlay from "../components/Overlay.svelte";
   import Confirmation from "./Confirmation.svelte";
 
   import { EditorState } from "@codemirror/state";
@@ -48,6 +48,9 @@
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
 
+  /** @type {HTMLDivElement | undefined} */
+  let editArea = $state();
+
   let fd = undefined;
   let data = $state("");
 
@@ -56,6 +59,10 @@
   let width = 320;
   let height = 260;
   let perm = undefined;
+
+  let view = undefined;
+  let readOnly = $state(false);
+  let saved = $state(true);
 
   onMount(async () => {
     let { initWidth, initHeight } = lib.getInitWindowSize();
@@ -113,8 +120,9 @@
       timer = setTimeout(fn, timeout);
     }
 
-    const updateListener = EditorView.updateListener.of((_update) => {
-      debounce(onSave, 3000);
+    const updateListener = EditorView.updateListener.of((update) => {
+      saved = !update.docChanged;
+      debounce(onSave, 2000);
     });
 
     let startState = EditorState.create({
@@ -128,6 +136,7 @@
           ...searchKeymap,
           indentWithTab,
         ]),
+        EditorState.readOnly.of(!perm.includes("w")),
         lineNumbers(),
         drawSelection(),
         history(),
@@ -149,15 +158,16 @@
 
     view = new EditorView({
       state: startState,
-      parent: root,
+      parent: editArea,
     });
+
+    readOnly = view.state.readOnly;
   });
 
   let maximized = $state(false);
-  let view = undefined;
 
   function onSave() {
-    if (perm !== undefined && perm.includes("w")) {
+    if (!view.state.readOnly) {
       window.Filesystem.goto(fd, 0);
       const text = view.state.doc.text.join("\n");
       window.Filesystem.write(fd, text);
@@ -165,6 +175,7 @@
       window.Filesystem.close(fd);
       fd = window.Filesystem.open(filePath, perm).fd;
     }
+    saved = true;
   }
 
   /**
@@ -196,31 +207,45 @@
 >
   {#snippet data()}
     <Confirmation bind:open={openConfirmationDialog} title="No file opened" subtext="You must choose a file to open the editor on." confirmLabel="Select file" denyLabel="Cancel"></Confirmation>
-    <div
-      bind:this={root}
-      onkeydown={(ev) => {
-        if (ev.key == "s" && ev.ctrlKey) {
-          ev.preventDefault();
-          onSave();
-        }
-      }}
-      class={`editor ${maximized ? "editor-maximized" : ""}`}
-    ></div>
+    <div class={`area ${maximized ? "editor-maximized" : ""}`} bind:this={root}>
+      <div
+        bind:this={editArea}
+        onkeydown={(ev) => {
+          if (ev.key == "s" && ev.ctrlKey) {
+            ev.preventDefault();
+            onSave();
+          }
+        }}
+        class="editor"
+      ></div>
+      <div class="editor-status">
+        <div>{readOnly ? "[RO]" : "[RW]"}</div>
+        <div class={`dot ${readOnly ? "readonly" : saved ? "saved" : "unsaved"}`}></div>
+      </div>
+    </div>
   {/snippet}
 </Window>
 
 <style>
+  .area {
+    display: flex;
+    flex-direction: column;
+  }
   :global(.editor) {
-    background-color: #fdffed;
+    font-family: var(--font-mono);
+    background-color: var(--md-sys-color-background);
+    flex: 1;
+    overflow: scroll;
   }
   :global(.editor-maximized) {
     width: 100% !important;
     height: 100% !important;
+    overflow: auto;
   }
   :global(.cm-editor) {
     width: 100%;
     height: 100%;
-    background-color: #fdffed;
+    background-color: var(--md-sys-color-background);
   }
   :global(.cm-scroller) {
     overflow: auto;
@@ -231,5 +256,30 @@
   }
   :global(.cm-gutterElement) {
     user-select: none;
+  }
+  .editor-status {
+    display: flex;
+    flex-direction: row-reverse;
+    border-top: 1px solid var(--md-sys-color-outline);
+    user-select: none;
+    background-color: var(--md-sys-color-surface-variant);
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    align-items: center;
+    gap: 0.2em;
+  }
+  .dot {
+    aspect-ratio: 1 / 1;
+    height: 1em;
+    border-radius: 100%;
+  }
+  .saved {
+    background-color: var(--md-sys-color-primary);
+  }
+  .unsaved {
+    background-color: var(--md-sys-color-error);
+  }
+  .readonly {
+    background-color: color-mix(in srgb, var(--md-sys-color-surface-dim), black 15%);
   }
 </style>
