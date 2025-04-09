@@ -5,11 +5,13 @@ import TerminalIcon from "/src/terminal.svg?raw";
 import TextEditorIcon from "/src/text-editor.svg?raw";
 import Terminal from "../components/Terminal.svelte";
 import Editor from "../components/Editor.svelte";
+import FileManager from "../components/FileManager.svelte";
 
 // Window types
 export const TERMINAL = 0;
 export const EDITOR = 1;
-export const OTHER = 2;
+export const FILE_MANAGER = 2;
+export const OTHER = 3;
 
 export const applications = $state([
   {
@@ -29,6 +31,15 @@ export const applications = $state([
     create: () => {
       openWindow(EDITOR, Editor);
     },
+  },
+  {
+    icon: PlaceHolderIcon,
+    name: "FileManager",
+    instances: 0,
+    alwaysShow: true,
+    create: () => {
+      openWindow(FILE_MANAGER, FileManager);
+    }
   },
   {
     icon: PlaceHolderIcon,
@@ -71,6 +82,9 @@ export function openWindow(type, component, options) {
       break;
     case EDITOR:
       applications[EDITOR].instances += 1;
+      break;
+    case FILE_MANAGER:
+      applications[FILE_MANAGER].instances += 1;
       break;
     default:
       applications[OTHER].instances += 1;

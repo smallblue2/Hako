@@ -177,7 +177,7 @@
 
   function closeWindow() {
     windows.closeWindow(id);
-    onClose();
+    if (onClose !== undefined) onClose();
   }
 
   $effect(() => {

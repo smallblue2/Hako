@@ -1,16 +1,55 @@
 <script>
   import * as lib from "$lib";
-  import Window from "../components/Window.svelte";
+  import Window from "./Window.svelte";
 
-  import { EditorView, keymap, lineNumbers, drawSelection } from "@codemirror/view";
   import { EditorState } from "@codemirror/state";
-  import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+  import { StreamLanguage } from "@codemirror/language";
+  import { lua } from "@codemirror/legacy-modes/mode/lua";
+
+  import {
+    keymap,
+    highlightSpecialChars,
+    drawSelection,
+    dropCursor,
+    rectangularSelection,
+    crosshairCursor,
+    lineNumbers,
+    EditorView,
+  } from "@codemirror/view";
+
+
+  import {
+    defaultKeymap,
+    history,
+    historyKeymap,
+    indentWithTab,
+  } from "@codemirror/commands";
+
   import { onMount } from "svelte";
 
-  let { id, layerFromId } = $props();
+  // basic setup break down from codemirror
+  import {
+    defaultHighlightStyle,
+    syntaxHighlighting,
+    indentOnInput,
+    bracketMatching,
+    foldGutter,
+    foldKeymap,
+  } from "@codemirror/language";
+  import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+  import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
+
+  let { id, layerFromId, filePath } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
+
+  if (filePath === undefined) {
+    console.error("SHIT THE BED, should open empty file and allow user to write it");
+  }
+
+  let fd = undefined;
+  let data = undefined;
 
   let min = 150;
 
@@ -23,9 +62,21 @@
     height = initHeight;
     root.style.width = initWidth.toString() + "px";
     root.style.height = initHeight.toString() + "px";
+
+    fd = window.Filesystem.open(filePath, "rw").fd;
+    data = window.Filesystem.readAll(fd).data ?? "";
+    window.Filesystem.goto(fd, 0);
   })
 
   let maximized = $state(false);
+  let view = undefined;
+
+  function onSave() {
+    window.Filesystem.goto(fd, 0);
+    window.Filesystem.write(fd, view.state.doc.text.join("\n"));
+    window.Filesystem.close(fd);
+    fd = window.Filesystem.open(filePath, "rw").fd;
+  }
 
   $effect(() => {
     if (maximized) {
@@ -35,21 +86,48 @@
     }
   });
 
+  let timer;
+	function debounce(fn, timeout) {
+		clearTimeout(timer);
+		timer = setTimeout(fn, timeout);
+	}
 
   $effect(() => {
+    const updateListener = EditorView.updateListener.of((_update) => {
+      debounce(onSave, 3000);
+    })
+
     let startState = EditorState.create({
-      doc: "Hello, world!",
+      doc: data,
       extensions: [
-        keymap.of(defaultKeymap),
-        keymap.of(historyKeymap),
-        keymap.of([indentWithTab]),
+        keymap.of([
+          ...closeBracketsKeymap,
+          ...defaultKeymap,
+          ...historyKeymap,
+          ...foldKeymap,
+          ...searchKeymap,
+          indentWithTab,
+        ]),
         lineNumbers(),
         drawSelection(),
-        history()
+        history(),
+        dropCursor(),
+        rectangularSelection(),
+        highlightSpecialChars(),
+        crosshairCursor(),
+        syntaxHighlighting(defaultHighlightStyle),
+        indentOnInput(),
+        bracketMatching(),
+        foldGutter(),
+        closeBrackets(),
+        highlightSelectionMatches(),
+        dropCursor(),
+        StreamLanguage.define(lua), // TODO only enable highlighting when in lua
+        updateListener
       ],
     });
 
-    let view = new EditorView({
+    view = new EditorView({
       state: startState,
       parent: root,
     });
@@ -71,8 +149,12 @@
 
 <Window title="Editor" bind:maximized {layerFromId} {id} {onResize} dataRef={root}>
   {#snippet data()}
-    <div bind:this={root} class="editor">
-    </div>
+    <div bind:this={root} onkeydown={(ev) => {
+      if (ev.key == "s" && ev.ctrlKey) {
+        ev.preventDefault();
+        onSave();
+      }
+    }} class="editor"></div> 
   {/snippet}
 </Window>
 
@@ -81,6 +163,9 @@
   width: inherit;
   height: inherit;
   background-color: #fdffed;
+}
+:global(.cm-scroller) {
+  font-size: 1.5em;
 }
 :global(.cm-editor.cm-focused) {
   outline: none;
