@@ -4,6 +4,8 @@
   import { Resolver } from "$lib/resolver";
   import Window from "./Window.svelte";
   import FileManager from "./FileManager.svelte";
+  import Overlay, * as overlay from "../components/Overlay.svelte";
+  import Confirmation from "./Confirmation.svelte";
 
   import { EditorState } from "@codemirror/state";
   import { StreamLanguage } from "@codemirror/language";
@@ -62,17 +64,35 @@
     root.style.width = initWidth.toString() + "px";
     root.style.height = initHeight.toString() + "px";
 
-    if (filePath === undefined) {
-      let id;
-      const selectedFile = await new Promise((res, rej) => {
-        let resolver = new Resolver(res, rej);
-        id = win.openWindow(win.FILE_MANAGER, FileManager, {
-          props: { filePath: undefined, selection: resolver },
-        });
-      });
-      filePath = selectedFile;
+    let keepGoing = true;
+    function abort() {
       win.closeWindow(id);
+      keepGoing = false;
     }
+
+    if (filePath === undefined) {
+      if (await confirmSelectFile()) {
+        let popupId;
+        const selectedFile = await new Promise((res, rej) => {
+          let resolver = new Resolver(res, rej);
+          popupId = win.openWindow(win.FILE_MANAGER, FileManager, {
+            props: {
+              filePath: undefined,
+              selection: resolver,
+              initOffset: {x: 35, y: 35}
+            },
+            forceZ: overlay.zAbove()
+          });
+          overlay.toggleLoaded();
+        }).catch((_reason) => abort());
+        filePath = selectedFile;
+        win.closeWindow(popupId);
+        overlay.toggleLoaded();
+      } else {
+        abort();
+      }
+    }
+    if (!keepGoing) return;
 
     let stat;
     let error;
@@ -136,14 +156,6 @@
   let maximized = $state(false);
   let view = undefined;
 
-  $effect(() => {
-    if (maximized) {
-      root.classList.add("window-root-maximized");
-    } else {
-      root.classList.remove("window-root-maximized");
-    }
-  });
-
   function onSave() {
     if (perm !== undefined && perm.includes("w")) {
       window.Filesystem.goto(fd, 0);
@@ -167,10 +179,15 @@
 
     return true; // you can return false to say you can't resize
   }
+
+  let openConfirmationDialog = $state();
+  async function confirmSelectFile() {
+    return await openConfirmationDialog();
+  }
 </script>
 
 <Window
-  title="Editor"
+  title={filePath === undefined ? "Editor" : `Editing ${filePath.replace("/persistent", "")}`}
   bind:maximized
   {layerFromId}
   {id}
@@ -178,6 +195,7 @@
   dataRef={root}
 >
   {#snippet data()}
+    <Confirmation bind:open={openConfirmationDialog} title="No file opened" subtext="You must choose a file to open the editor on." confirmLabel="Select file" denyLabel="Cancel"></Confirmation>
     <div
       bind:this={root}
       onkeydown={(ev) => {
@@ -186,19 +204,32 @@
           onSave();
         }
       }}
-      class="editor"
+      class={`editor ${maximized ? "editor-maximized" : ""}`}
     ></div>
   {/snippet}
 </Window>
 
 <style>
+  :global(.editor) {
+    background-color: #fdffed;
+  }
+  :global(.editor-maximized) {
+    width: 100% !important;
+    height: 100% !important;
+  }
   :global(.cm-editor) {
+    width: 100%;
+    height: 100%;
     background-color: #fdffed;
   }
   :global(.cm-scroller) {
+    overflow: auto;
     font-size: 1.5em;
   }
   :global(.cm-editor.cm-focused) {
     outline: none;
+  }
+  :global(.cm-gutterElement) {
+    user-select: none;
   }
 </style>

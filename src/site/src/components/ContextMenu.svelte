@@ -1,40 +1,72 @@
 <script>
-  let { oncontextmenu = $bindable(), items } = $props();
-
-  /** @type {HTMLDivElement | undefined} */
-  let root = $state();
-  let hidden = $state(true);
-
-  oncontextmenu = (data, ev) => {
-    ev.preventDefault();
-    hidden = false;
-    root.style.left = ev.clientX + "px";
-    root.style.top = ev.clientY + "px";
-  }
-
-  function onPageClick() {
-    hidden = true;
+  let { keydown = $bindable(), items } = $props();
+  let keymap = $state({});
+  $effect(() => {
+    for (const item of items) {
+      if (item.shortcut !== undefined) {
+        keymap[item.shortcut] = item.onclick;
+      }
+    }
+  })
+  keydown = (ev) => {
+    return ev.key in keymap && keymap[ev.key]()
   }
 </script>
 
-<menu bind:this={root} class={`contextmenu ${hidden ? "hide-contextmenu" : ""}`}>
+<menu class="contextmenu" >
   {#each items as item}
-    <li class="menu-item"><button class="remove-button-styles" onclick={item.onclick}>{item.name}</button></li>
+    <li class="menu-item-wrapper">
+      <div class={`menu-item  ${item.destructive ? "destructive" : ""}`} onclick={item.onclick}>
+        <div>{item.name}</div>
+        {#if item.shortcut !== undefined}
+          <div class="shortcut">⌘ {item.shortcut.toUpperCase()}</div>
+        {/if}
+      </div>
+    </li>
   {/each}
 </menu>
 
-<svelte:window onclick={onPageClick}/>
-
 <style>
-  .menu-item {
-    background-color: red;
-  }
   .contextmenu {
-    position: fixed;
-    top: 0px;
-    left: 0px;
+    margin: 0;
+    padding: 0.4rem;
+    border-radius: 0.4rem;
+    list-style: none;
+    color: var(--md-sys-color-on-surface);
+    background-color: var(--md-sys-color-surface-container-high);
+    outline: 1px solid var(--md-sys-color-outline-variant);
   }
-  :global(.hide-contextmenu) {
-    visibility: hidden;
+
+  .menu-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 1rem;
+    text-align: left;
+    border-radius: 0.2rem;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    user-select: none;
+    transition: color 150ms ease;
+    transition: background-color 150ms ease;
+  }
+
+  .menu-item:hover {
+    background-color: var(--md-sys-color-surface-container-low);
+  }
+
+  .destructive:hover {
+    background-color: var(--md-sys-color-error-container) !important;
+    color: var(--md-sys-color-on-error-container) !important;
+  }
+   
+  .destrucive:hover > .shortcut {
+    color: var(--md-sys-color-on-error) !important;
+  }
+
+  .shortcut {
+    color: var(--md-sys-color-outline);
   }
 </style>
