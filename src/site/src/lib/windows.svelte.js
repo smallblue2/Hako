@@ -66,11 +66,8 @@ function _newWID() {
   return _IDCounter++;
 }
 
-export function setRootSfc(el) {
-  rootSfc = el;
-}
-
 export function openWindow(type, component, options) {
+  const rootSfc = document.getElementById("window-area");
   console.assert(rootSfc !== null);
   if (options === undefined || options === null) {
     options = { props: {} };

@@ -1,13 +1,9 @@
 <script>
   import TaskBar from "./TaskBar.svelte";
-  import * as lib from "$lib/windows.svelte.js";
-
-  let root = $state();
-  $effect(() => lib.setRootSfc(root));
 </script>
 
 <div class="root">
-  <div id="window-area" bind:this={root}>
+  <div id="window-area">
   </div>
   <TaskBar></TaskBar>
 </div>
