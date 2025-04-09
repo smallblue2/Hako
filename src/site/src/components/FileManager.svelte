@@ -153,8 +153,7 @@
       openAlertModal("Operation Failed", `insufficient permissions to rename ${stat.type}`);
       return;
     }
-    try {
-      const newName = await openTextModal(`Rename ${stat.type}:`, fileOrDirName);
+    await openTextModal(`Rename ${stat.type}:`, fileOrDirName).then((newName) => {
       if (newName.length !== 0) {
         const { error } = window.Filesystem.move(fsView.relative(fileOrDirName), fsView.relative(newName));
         if (error !== null) {
@@ -163,9 +162,7 @@
         }
       }
       updateFiles();
-    } finally {
-      // Rename was rejected
-    }
+    }).catch((_reason) => {}); // ignore rejection
   }
 
   async function deleteDir(dirName, ev) {
@@ -309,17 +306,9 @@
   }
 
   function onDragOver(file) {
-    // const abs = fsView.relativeDelim(file.name, "-");
     return (ev) => {
       ev.dataTransfer.dropEffect = "move";
       ev.preventDefault();
-      // if (file.type === "directory") {
-      //   const data = JSON.parse(ev.dataTransfer.getData("application/json"));
-      //   const isSelf = id === data.appid && data.absPath.replace("/", "-") === abs;
-      //   if (!isSelf) {
-      //     setDropZoneStyles(abs);
-      //   }
-      // }
     }
   }
 
@@ -433,10 +422,6 @@
     align-items: flex-start;
     gap: 0.5rem;
     flex-wrap: wrap;
-    /*
-    width: inherit;
-    height: inherit;
-    */
   }
   .fm-object > p {
     padding: 0;
