@@ -29,7 +29,7 @@
     files; // re generate when files updates
     let crumbs = [];
     const pathParts = fsView.entries();
-    for (let i = 0; i < pathParts.length; i++) {
+    for (let i = 1; i < pathParts.length; i++) {
       crumbs.push({
         text: pathParts[i],
         onclick: () => fsView.changeDirAbs(pathParts.slice(0, i + 1))
