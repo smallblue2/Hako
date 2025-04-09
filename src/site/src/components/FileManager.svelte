@@ -117,8 +117,7 @@
   }
 
   async function newFile(ev) {
-    try {
-      const fileName = await openTextModal("Enter new file name:", "");
+    await openTextModal("Enter new file name:", "").then((fileName) => {
       let { error, fd } = window.Filesystem.open(fsView.relative(fileName), "crw");
       if (error !== null) {
         openAlertModal("Operation Failed", error);
@@ -126,23 +125,18 @@
       }
       window.Filesystem.close(fd);
       updateFiles();
-    } finally {
-      // File name was rejected
-    }
+    }).catch((_reason) => {}); // ignore rejection
   }
 
   async function createDir(ev) {
-    try {
-      const dirName = await openTextModal("Enter new directory name:", "");
+    await openTextModal("Enter new directory name:", "").then((dirName) => {;
       let { error } = window.Filesystem.make_dir(fsView.relative(dirName));
       if (error !== null) {
         openAlertModal("Operation Failed", error);
         return;
       }
       updateFiles();
-    } finally {
-      // File name was rejected
-    }
+    }).catch((_reason) => {}); // ignore rejection
   }
 
   async function renameFileOrDir(fileOrDirName, ev) {
