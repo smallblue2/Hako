@@ -77,7 +77,11 @@
       }
     })
 
-    terminal = new Terminal({ fontFamily: "monospace", fontSize: 20 });
+    const styles = getComputedStyle(document.documentElement);
+    const fg = styles.getPropertyValue("--md-sys-color-surface").trim();
+    const bg = styles.getPropertyValue("--md-sys-color-on-surface").trim();
+
+    terminal = new Terminal({ fontFamily: "monospace", fontSize: 20, theme: { foreground: fg, background: bg } });
     terminal.open(root);
 
     const pty = openpty();
@@ -104,7 +108,8 @@
 
 <style>
 .contents {
-  background-color: black;
+  color: var(--md-sys-color-surface) !important;
+  background-color: var(--md-sys-color-on-surface) !important;
   width: 320px;
   height: 260px;
 }

@@ -1,8 +1,9 @@
 import { mount, unmount } from "svelte";
 
 import PlaceHolderIcon from "/src/placeholder.svg?raw";
-import TerminalIcon from "/src/terminal.svg?raw";
-import TextEditorIcon from "/src/text-editor.svg?raw";
+import FileManagerIcon from "/src/adwaita/file-manager.svg?raw";
+import TerminalIcon from "/src/adwaita/terminal.svg?raw";
+import TextEditorIcon from "/src/adwaita/text-editor.svg?raw";
 import Terminal from "../components/Terminal.svelte";
 import Editor from "../components/Editor.svelte";
 import FileManager from "../components/FileManager.svelte";
@@ -24,6 +25,15 @@ export const applications = $state([
     },
   },
   {
+    icon: FileManagerIcon,
+    name: "FileManager",
+    instances: 0,
+    alwaysShow: true,
+    create: () => {
+      openWindow(FILE_MANAGER, FileManager);
+    }
+  },
+  {
     icon: TextEditorIcon,
     name: "Text Editor",
     instances: 0,
@@ -31,15 +41,6 @@ export const applications = $state([
     create: () => {
       openWindow(EDITOR, Editor);
     },
-  },
-  {
-    icon: PlaceHolderIcon,
-    name: "FileManager",
-    instances: 0,
-    alwaysShow: true,
-    create: () => {
-      openWindow(FILE_MANAGER, FileManager);
-    }
   },
   {
     icon: PlaceHolderIcon,

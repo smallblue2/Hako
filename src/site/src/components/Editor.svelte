@@ -220,7 +220,7 @@
       ></div>
       <div class="editor-status">
         <div>{readOnly ? "[RO]" : "[RW]"}</div>
-        <div class={`dot ${readOnly ? "readonly" : saved ? "saved" : "unsaved"}`}></div>
+        <div title={readOnly ? "Cannot make changes" : saved ? "No changes" : "Unsaved changes"} class={`dot ${readOnly ? "readonly" : saved ? "saved" : "unsaved"}`}></div>
       </div>
     </div>
   {/snippet}
