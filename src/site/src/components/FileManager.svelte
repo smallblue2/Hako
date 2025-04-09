@@ -1,6 +1,6 @@
 <script>
-  import FolderIcon from "/src/folder.svg?raw";
-  import PlaceHolderIcon from "/src/placeholder.svg?raw";
+  import FolderIcon from "/src/adwaita/folder.svg?raw";
+  import TextFileIcon from "/src/adwaita/text-x-generic.svg?raw";
   import Window from "./Window.svelte";
   import Editor from "./Editor.svelte";
   import ContextMenu from "./ContextMenu.svelte";
@@ -396,7 +396,7 @@
           ondragleave={onDragLeave(file)}>
           <button class="remove-button-styles fm-icon" onclick={file.type === "file" ? clickedFile(file) : clickedFolder(file)}>
             {#if file.type === "file"}
-              {@html PlaceHolderIcon}
+              {@html TextFileIcon}
             {:else}
               {@html FolderIcon}
             {/if}
@@ -418,7 +418,7 @@
   }
   .file-manager {
     display: flex;
-    background-color: var(--md-sys-color-background);
+    background-color: var(--md-sys-color-surface-variant);
     padding: 0.5rem;
     flex-direction: row;
     align-items: flex-start;
@@ -439,11 +439,11 @@
     padding: 0.3rem;
     border-radius: 0.4rem;
     transition: all 300ms ease;
-    outline: 1px solid var(--md-sys-color-background);
+    outline: 1px solid var(--md-sys-color-surface-variant);
   }
   .fm-object:hover {
     outline: 1px solid var(--md-sys-color-tertiary);
-    background-color: color-mix(in srgb, var(--md-sys-color-background), black 5%);
+    background-color: color-mix(in srgb, var(--md-sys-color-surface-variant), black 5%);
   }
   .fm-object * {
     outline: none;
@@ -460,6 +460,6 @@
     z-index: 1001;
   }
   :global(.fm-dropzone) {
-    background-color: var(--md-sys-color-surface-variant);
+    background-color: color-mix(in srgb, var(--md-sys-color-surface-variant), black 5%);
   }
 </style>

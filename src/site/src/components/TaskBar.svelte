@@ -167,7 +167,7 @@
     flex-direction: row;
     justify-content: center;
     height: 100%;
-    padding: 0.5rem;
+    padding: 0.3rem;
     gap: 0.5rem;
     outline: var(--md-sys-color-outline) solid 1px;
     z-index: 999;
