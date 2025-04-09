@@ -146,16 +146,6 @@
     border: 1px solid rgba(255, 255, 255, 0.3);
   }
 
-  .remove-button-styles {
-    background: none;
-    color: inherit;
-    border: none;
-    padding: 0;
-    font: inherit;
-    cursor: default;
-    outline: inherit;
-  }
-
   .application {
     outline: none;
     width: 2.7rem;

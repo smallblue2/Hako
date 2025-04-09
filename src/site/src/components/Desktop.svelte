@@ -1,6 +1,4 @@
 <script>
-  import Terminal from "./Terminal.svelte";
-  import Editor from "./Editor.svelte";
   import TaskBar from "./TaskBar.svelte";
   import * as lib from "$lib/windows.svelte.js";
 
