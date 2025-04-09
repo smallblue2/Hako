@@ -146,6 +146,7 @@ end
 -- ####### Lexing #######
 -- ######################
 
+
 local token_types = {
   STR = { "STRING" }, -- String
   RIN = { "IN" }, -- Redirect in
@@ -154,7 +155,8 @@ local token_types = {
   BG = { "BG" }, -- BG Process
   AND = { "AND" },
   OR = { "OR" },
-  SEQ = { "SEQ" } -- Sequence char ';'
+  SEQ = { "SEQ" }, -- Sequence char ';'
+  BRK = { "BRACKET "} -- Grouping char '{', '}'
 }
 
 local escape_map = {
@@ -169,7 +171,9 @@ local escape_map = {
   ['r'] = '\r',
   [';'] = ';',
   ['|'] = '|',
-  ['&'] = '&'
+  ['&'] = '&',
+  ['{'] = '{',
+  ['}'] = '}'
 }
 
 local white_space_map = {
@@ -198,7 +202,6 @@ local pipe_map = {
   ['|'] = true
 }
 
-
 local and_map = {
   ['&&'] = true
 }
@@ -214,6 +217,12 @@ local sequence_map = {
 local bg_map = {
   ['&'] = true
 }
+
+local group_map = {
+  ['{'] = true,
+  ['}'] = true
+}
+
 
 ---Handles an escaped character
 ---Assumes character at `position` to be the escape character
@@ -256,7 +265,7 @@ function lex_char_chain(input, position)
       table.insert(buffer, escaped_char)
       position = new_pos
     -- If it's a special character, end
-    elseif redirect_in_map[char] or redirect_out_map[char] or string_map[char] or pipe_map[char] or bg_map[char] or sequence_map[char] or or_map[char] or and_map[char] then
+    elseif redirect_in_map[char] or redirect_out_map[char] or string_map[char] or pipe_map[char] or bg_map[char] or sequence_map[char] or or_map[char] or and_map[char] or group_map[char] then
       return table.concat(buffer), position - 1, nil
     else
       table.insert(buffer, char)
@@ -360,6 +369,8 @@ function tokenise(input)
       end
     elseif sequence_map[char] then
       table.insert(tokens, { type = token_types.SEQ, value = char })
+    elseif group_map[char] then
+      table.insert(tokens, { type = token_types.BRK, value = char })
     else
       local chain, end_of_chain, err = lex_char_chain(input, position)
       if err then
@@ -374,28 +385,33 @@ function tokenise(input)
   return tokens, nil
 end
 
-
 -- #######################
 -- ####### Parsing #######
 -- #######################
 
+
 -- EBNF of what we're parsing:
 -- 
 -- Lines := Line (';' Line)*
+-- 
 -- Line := Pipeline ( ('&&' | '||') Pipeline )* ('&')?
+-- 
 -- Pipeline := Command ( '|' Command )*
--- Command := word ( word )* Redirects?
+-- 
+-- Command := SimpleCommand
+--          | GroupedCommand
+-- 
+-- GroupedCommand := '{' Lines '}'
+-- 
+-- SimpleCommand := word ( word )* Redirects?
+-- 
 -- Redirects := RedirectIn RedirectOut
 --            | RedirectOut RedirectIn
 --            | RedirectIn
 --            | RedirectOut
+-- 
 -- RedirectIn := ('<' | '<<') word
 -- RedirectOut := ('>' | '>>') word
-
--- AST definition
--- CommandNode { argv: {}, redirectIn: string, redirectInType: string, redirectOut: string, redirectOutType: string }
--- PipelineNode { background: bool, commands: {} }
--- LineNode { entryPipeline: PipelineNode, subsequent: {(string, PipelineNode), ...}}}
 
 local pipeline_seperators = {
   [token_types.AND] = true, -- '&&'
@@ -446,14 +462,17 @@ function parse_redirect(tokens, position, command_node)
   return position, nil
 end
 
----Parses a command from tokens starting at position
+---Parses a simple command from tokens starting at position
 ---@param tokens table A list of lexical tokens
 ---@param position number The index to begin parsing the tokens at
----@return table | nil A command node, nil if error
+---@return table | nil A simple command node, nil if error
 ---@return number | nil The end position of parsing of the command, nil if error
 ---@return string | nil An error message, nil unless error
-function parse_command(tokens, position)
-  local command_node = {
+function parse_simple_command(tokens, position)
+  -- SimpleCommand := word ( word )* Redirects?
+
+  -- Store command info
+  local command = {
     argv = {},
     redirect_in = nil,
     redirect_in_type = nil,
@@ -466,11 +485,12 @@ function parse_command(tokens, position)
 
   -- keep adding words to argv (need at least one to be valid)
   while tokens[cur_pos] and tokens[cur_pos].type == token_types.STR do
-    table.insert(command_node.argv, tokens[cur_pos].value)
+    table.insert(command.argv, tokens[cur_pos].value)
     cur_pos = cur_pos + 1
     argv_atleast_one = true
   end
 
+  -- If there is not a single word in the command, error
   if not argv_atleast_one then
     return nil, nil, string.format("Expected a command, found '%s'", (tokens[cur_pos] and tokens[cur_pos].value) or "nil")
   end
@@ -478,16 +498,84 @@ function parse_command(tokens, position)
   local err = nil
 
   -- Run twice to allow for both Stdin and Stdout redirection
-  cur_pos, err = parse_redirect(tokens, cur_pos, command_node)
+  cur_pos, err = parse_redirect(tokens, cur_pos, command)
   if err then
     return nil, nil, err
   end
-  cur_pos, err = parse_redirect(tokens, cur_pos, command_node)
+  cur_pos, err = parse_redirect(tokens, cur_pos, command)
   if err then
     return nil, nil, err
   end
 
-  return command_node, cur_pos, nil
+  local simple_command_node = {
+    kind = "SIMPLE",
+    block = command
+  }
+
+  return simple_command_node, cur_pos, nil
+end
+
+---Parses a grouped command from tokens starting at position
+---@param tokens table A list of lexical tokens
+---@param position number The index to begin parsing the tokens at
+---@return table | nil A line node, nil if error
+---@return number | nil The end position of parsing of the command, nil if error
+---@return string | nil An error message, nil unless error
+function parse_grouped_command(tokens, position)
+  -- GroupedCommand := '{' Lines '}'
+
+  -- Consume the opening bracket
+  position = position + 1
+
+  -- Parse lines until closing bracket
+  local lines, return_pos, err = parse_lines(tokens, position, true)
+  if err then
+    return nil, nil, err
+  end
+  -- Ensure it's not empty
+  if #lines == 0 then
+    return nil, nil, "Invalid command group. Empty brackets."
+  end
+
+  -- Confirm the closing bracket
+  local token = tokens[return_pos]
+  if not token or token.type ~= token_types.BRK or token.value ~= '}' then
+    return nil, nil, "Invalid command group. Expected '}'."
+  end
+  -- Consume the closing bracket '}'
+  return_pos = return_pos + 1
+
+  local grouped_node = {
+    kind = "GROUP",
+    block = lines
+  }
+
+  return grouped_node, return_pos, nil
+end
+
+---Parses a command from tokens starting at position
+---@param tokens table A list of lexical tokens
+---@param position number The index to begin parsing the tokens at
+---@return table | nil A command node, nil if error
+---@return number | nil The end position of parsing of the command, nil if error
+---@return string | nil An error message, nil unless error
+function parse_command(tokens, position)
+  -- Command := SimpleCommand
+  --          | GroupedCommand
+
+  local tok = tokens[position]
+  if not tok then
+    return nil, nil, "Expected a command, but found end of input."
+  end
+
+  if tok.type == token_types.STR then
+    return parse_simple_command(tokens, position)
+  elseif tok.type == token_types.BRK and tok.value == '{' then
+    return parse_grouped_command(tokens, position)
+  else
+    return nil, nil, string.format("Expected a command, found '%s'.", tok.value)
+  end
+  
 end
 
 ---Parses tokens from a provided position, generating a pipeline AST node
@@ -497,33 +585,38 @@ end
 ---@return number | nil The position that parsing ended at, nil if error
 ---@return string | nil An error message, nil unless error
 function parse_pipeline(tokens, position)
-  local pipeline_node = {
-    commands = {},
-  }
-
   -- Pipeline := Command ( '|' Command )*
-  local command_seperators = {
-    [token_types.PIP] = true
-  }
 
-  local command, end_pos, err = parse_command(tokens, position)
+  -- Parse the first command
+  local cmd, pos, err = parse_command(tokens, position)
   if err then
     return nil, nil, err
   end
-  table.insert(pipeline_node.commands, command)
-  -- whilst the next token is a PIPE
-  local seperator = tokens[end_pos]
-  while seperator and command_seperators[seperator.type] do
-    end_pos = end_pos + 1
-    command, end_pos, err = parse_command(tokens, end_pos)
-    if err then
-      return nil, nil, err
+
+  local pipeline_node = {
+    commands = { cmd }
+  }
+
+  -- whilst the next token is a PIPE, parse another command
+  while true do
+    local next_tok = tokens[pos]
+    if not next_tok then break end
+    if next_tok.type ~= token_types.PIP then break end
+
+    -- Consume the '|'
+    pos = pos + 1
+
+    -- Parse the command
+    local next_cmd, new_pos, err2 = parse_command(tokens, pos)
+    if err2 then
+      return nil, nil, err2
     end
-    table.insert(pipeline_node.commands, command)
-    seperator = tokens[end_pos]
+    pos = new_pos
+
+    table.insert(pipeline_node.commands, next_cmd)
   end
 
-  return pipeline_node, end_pos, nil
+  return pipeline_node, pos, nil
 end
 
 ---Parses a line of tokens to generate an AST of Pipelines
@@ -532,68 +625,109 @@ end
 ---@return number | nil The index parsing of the line finished at, nil if error
 ---@return string | nil An error message, nil if no error
 function parse_line(tokens, position)
-  local line_node = {
-    background = false,
-    entry_pipeline = nil,
-    subsequent = {}
-  }
+  -- Line := Pipeline ( ('&&' | '||') Pipeline )* ('&')?
 
   -- get first pipeline
-  local pipeline, return_pos, err = parse_pipeline(tokens, position)
+  local pipeline, pos, err = parse_pipeline(tokens, position)
   if err then
     return nil, nil, err
   end
-  line_node.entry_pipeline = pipeline
 
-  -- Parse forward for more pipelines
-  local seperator = tokens[return_pos]
-  while seperator and pipeline_seperators[seperator.type] do
-    return_pos = return_pos + 1
-    pipeline, return_pos, err = parse_pipeline(tokens, return_pos)
-    if err then
-      return nil, nil, err
+  -- Keep parsing pipelines as long as they're seperated with the correct token
+  -- until there are no more
+  local subsequent = {}
+  while true do
+    local next_tok = tokens[pos]
+    if not next_tok then break end
+    if not (next_tok.type == token_types.AND or next_tok.type == token_types.OR) then
+      break
     end
-    table.insert(line_node.subsequent, {seperator.value, pipeline})
-    seperator = tokens[return_pos]
+
+    -- consume the '&&' or '||' operator
+    local op = next_tok.value
+    pos = pos + 1
+
+    -- parse the next pipeline
+    local next_pipe, new_pos, err2 = parse_pipeline(tokens, pos)
+    if err2 then
+      return nil, nil, err2
+    end
+    pos = new_pos
+
+    table.insert(subsequent, { op = op, pipeline = next_pipe})
   end
 
-  if seperator and seperator.type == token_types.BG then
-    line_node.background = true
-    return_pos = return_pos + 1
+  -- Check to see if it ends with a BG token '&'
+  local background = false
+  if tokens[pos] and tokens[pos].type == token_types.BG then
+    background = true
+    -- consume
+    pos = pos + 1
   end
 
-  -- Check and make sure it's at the end of the line
-  if tokens[return_pos] and not (tokens[return_pos].type == token_types.SEQ) then
-    return nil, nil, "Invalid line. '&' isn't at the end of the line."
-  end
+  -- Store parsed line information
+  local line_node = {
+    background = background,
+    entry_pipeline = pipeline,
+    subsequent = subsequent
+  }
 
-  return line_node, return_pos, nil
+  return line_node, pos, nil
 end
 
 ---Parses multiple lines delimited by ';'
 ---@param tokens table An array of tokens
+---@param position number The index to begin parsing on
+---@param stop_on_brace boolean Whether it should stop on a closing brace or not
 ---@return table | nil A lines AST node, this is the root of the shell AST, nil on error
+---@return number | nil The index of which parsing finished
 ---@return string | nil An error message, nil if no error
-function parse_lines(tokens)
-  local position = 1
+function parse_lines(tokens, position, stop_on_brace)
+  -- Lines := Line (';' Line)*
 
+  -- Save parsed lines
   local lines = {}
-  local line, return_pos, err = parse_line(tokens, position)
-  if err then
-    return nil, err
-  end
-  table.insert(lines, line)
+  local pos = position
 
-  while tokens[return_pos] and tokens[return_pos].type == token_types.SEQ do
-    return_pos = return_pos + 1
-    line, return_pos, err = parse_line(tokens, return_pos)
-    if err then
-      return nil, err
+  while true do
+    local next_tok = tokens[pos]
+    -- If we're told to stop on '}', and the next token is '}', break
+    if stop_on_brace and next_tok and next_tok.type == token_types.BRK and next_tok.value == '}' then
+      break
     end
-    table.insert(lines, line)
+
+    -- If no tokens left, error, expecting a line
+    if not next_tok then
+      return nil, nil, "Invalid parse. Expected a line, got nothing."
+    end
+
+    -- Parse a line
+    local line_node, new_pos, err = parse_line(tokens, pos)
+    if err then
+      return nil, nil, err
+    end
+    table.insert(lines, line_node)
+    pos = new_pos
+
+    -- If there is another token
+    if tokens[pos] then
+      -- If it's ';', consume and break
+      if tokens[pos].type == token_types.SEQ then
+        pos = pos + 1
+      -- If it's '}', and we're told to stop on it, break without consuming
+      elseif stop_on_brace and tokens[pos].type == token_types.BRK and tokens[pos].value == '}' then
+        break;
+      -- Else, unrecognised token, error
+      else
+        return nil, nil, string.format("Invalid parse. Expected ';' or nothing, got '%s'.", tokens[pos].value)
+      end
+    else
+      -- end of input, break
+      break
+    end
   end
 
-  return lines, nil
+  return lines, pos, nil
 end
 
 -- ###########################
@@ -761,12 +895,13 @@ while true do
   local tokens, err = tokenise(line)
   if not err then
     if #tokens ~= 0 then
-      local ast, err = parse_lines(tokens)
+      local ast, position, err = parse_lines(tokens, 1, false)
       if not err then
-        local err = exec_lines(ast)
-        if err then
-          output("Error: " .. err)
-        end
+        -- local err = exec_lines(ast)
+        -- if err then
+        --   output("Error: " .. err)
+        -- end
+        output(inspect(ast))
       else
         output("Error: " .. err)
       end
