@@ -22,7 +22,7 @@
 
   let width = 320;
   let height = 260;
-  let min = 150;
+  let min = 200;
 
   let fsView = new FSView(updateFiles);
   let files = $state([]);
@@ -369,37 +369,41 @@
     <div bind:this={contextmenu} tabindex="-1" onkeydown={onContextMenuKey} class={`contextmenu ${!showContextMenu ? "hide-contextmenu" : ""}`}>
       <ContextMenu bind:keydown={forwardKeydown} items={operations}></ContextMenu>
     </div>
-    <div oncontextmenu={(ev) => {
-      ev.preventDefault();
-      operations = globalOperations;
-      updateContextMenu(ev.clientX, ev.clientY);
-    }} bind:this={root} class={`file-manager ${maximized ? "file-manager-maximized" : ""}`}
-      ondrop={onDropGlobal}
-      ondragover={(ev) => ev.preventDefault()}>
-      {#each files as file}
-        <div oncontextmenu={(ev) => {
+    <div class={`content-wrapper ${maximized ? "file-manager-maximized" : ""}`} bind:this={root}>
+      <div oncontextmenu={(ev) => {
           ev.preventDefault();
-          ev.stopPropagation();
-          operations = file.type === "file" ? fileOperations(file.name) : dirOperations(file.name);
+          operations = globalOperations;
           updateContextMenu(ev.clientX, ev.clientY);
-        }} class="fm-object" id={`fm-file-${id}-${fsView.relativeDelim(file.name, "-")}`} draggable="true"
-          ondragstart={onDragStart(file)}
-          ondrop={onDrop(file)}
-          ondragover={onDragOver(file)}
-          ondragenter={onDragEnter(file)}
-          ondragleave={onDragLeave(file)}>
-          <button class="remove-button-styles fm-icon" onclick={file.type === "file" ? clickedFile(file) : clickedFolder(file)}>
-            {#if file.type === "file"}
-              {@html TextFileIcon}
-            {:else}
-              {@html FolderIcon}
-            {/if}
-          </button>
-          <p>{file.name}</p>
+        }}
+          ondrop={onDropGlobal}
+          ondragover={(ev) => ev.preventDefault()} class="fm-fill">
+        <div class="file-manager">
+          {#each files as file}
+            <div oncontextmenu={(ev) => {
+              ev.preventDefault();
+              ev.stopPropagation();
+              operations = file.type === "file" ? fileOperations(file.name) : dirOperations(file.name);
+              updateContextMenu(ev.clientX, ev.clientY);
+            }} class="fm-object" id={`fm-file-${id}-${fsView.relativeDelim(file.name, "-")}`} draggable="true"
+              ondragstart={onDragStart(file)}
+              ondrop={onDrop(file)}
+              ondragover={onDragOver(file)}
+              ondragenter={onDragEnter(file)}
+              ondragleave={onDragLeave(file)}>
+              <button class="remove-button-styles fm-icon" onclick={file.type === "file" ? clickedFile(file) : clickedFolder(file)}>
+                {#if file.type === "file"}
+                  {@html TextFileIcon}
+                {:else}
+                  {@html FolderIcon}
+                {/if}
+              </button>
+              <p>{file.name}</p>
+            </div>
+          {/each}
         </div>
-      {/each}
-    </div>
+      </div>
     <BreadCrumbs {crumbs}></BreadCrumbs>
+    </div>
   {/snippet}
 </Window>
 
@@ -410,6 +414,17 @@
     width: 100% !important;
     height: 100% !important;
   }
+
+  .content-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .fm-fill {
+    flex: 1;
+    background-color: var(--md-sys-color-surface-variant);
+  }
+
   .file-manager {
     display: flex;
     background-color: var(--md-sys-color-surface-variant);
@@ -418,8 +433,10 @@
     align-items: flex-start;
     gap: 0.5rem;
     flex-wrap: wrap;
+    /*
     width: inherit;
     height: inherit;
+    */
   }
   .fm-object > p {
     padding: 0;
