@@ -121,8 +121,10 @@
     }
 
     const updateListener = EditorView.updateListener.of((update) => {
-      saved = !update.docChanged;
-      debounce(onSave, 2000);
+      if (update.docChanged) {
+        saved = false;
+        debounce(onSave(update.state), 2000);
+      }
     });
 
     let startState = EditorState.create({
@@ -166,16 +168,18 @@
 
   let maximized = $state(false);
 
-  function onSave() {
-    if (!view.state.readOnly) {
-      window.Filesystem.goto(fd, 0);
-      const text = view.state.doc.text.join("\n");
-      window.Filesystem.write(fd, text);
-      window.Filesystem.truncate(fd, text.length);
-      window.Filesystem.close(fd);
-      fd = window.Filesystem.open(filePath, perm).fd;
+  function onSave(state) {
+    return () => {
+      if (!state.readOnly) {
+        window.Filesystem.goto(fd, 0);
+        const text = state.doc.toString();
+        window.Filesystem.write(fd, text);
+        window.Filesystem.truncate(fd, text.length);
+        window.Filesystem.close(fd);
+        fd = window.Filesystem.open(filePath, perm).fd;
+      }
+      saved = true;
     }
-    saved = true;
   }
 
   /**
@@ -213,7 +217,7 @@
         onkeydown={(ev) => {
           if (ev.key == "s" && ev.ctrlKey) {
             ev.preventDefault();
-            onSave();
+            onSave(view.state)();
           }
         }}
         class="editor"
