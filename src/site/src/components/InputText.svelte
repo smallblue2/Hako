@@ -1,6 +1,8 @@
 <script>
+  import Popup from "./Popup.svelte";
+
   /** @type {HTMLDialogElement | undefined} */
-  let root = $state();
+  let dialog = $state();
   /** @type {HTMLFormElement | undefined} */
   let form = $state();
 
@@ -12,18 +14,33 @@
   open = (title_, text_) => {
     text = text_;
     title = title_;
-    root.showModal();
-    return new Promise((res, _rej) => {
+    openPopup();
+    return new Promise((res, rej) => {
       form.addEventListener("submit", (ev) => {
         res(ev.target[0].value);
       }, { once: true })
+      form.addEventListener("cancel", (ev) => {
+        rej(text);
+      }, { once: true });
     });
   };
+
+  let openPopup = $state();
 </script>
 
-<dialog bind:this={root}>
-  <h3>{title}</h3>
+<Popup bind:open={openPopup}>
+  <h3 class="title">{title}</h3>
   <form bind:this={form} method="dialog">
-    <input type="text" value={text}>
+    <input class="input" type="text" bind:value={text}>
   </form>
-</dialog>
+</Popup>
+
+<style>
+  .title {
+    margin-top: 0;
+    color: var(--md-sys-color-on-surface);
+  }
+  .input:focus {
+    outline: none;
+  }
+</style>

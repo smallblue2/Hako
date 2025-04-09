@@ -33,9 +33,9 @@ export function clamp(n, min) {
 }
 
 export function getInitWindowSize() {
-  const width = window.innerWidth * 0.3;
-  const height = window.innerHeight * 0.4;
-  return  { initWidth: width, initHeight: height };
+  const width = window.innerWidth * 0.4;
+  const height = window.innerHeight * 0.5;
+  return { initWidth: width, initHeight: height };
 }
 
 export function getResizeFromSect(sect, relX, relY) {

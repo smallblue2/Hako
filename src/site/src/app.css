@@ -6,6 +6,7 @@
 
 body {
   font-family: "Inconsolata", monospace;
+  color: var(--md-sys-color-on-surface);
 }
 
 html {
@@ -113,6 +114,6 @@ html {
 .window-root-maximized {
   display: grid;
   position: relative;
-  /* width: 100% !important; */
-  /* height: 100% !important; */
+  width: 100% !important;
+  height: 100% !important;
 }

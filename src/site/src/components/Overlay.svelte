@@ -18,13 +18,18 @@
   export function setCursor(type) {
     overlay.style.cursor = type;
   }
+
+  export function zAbove() {
+    return 1001;
+  }
 </script>
 
 <div bind:this={overlay} class="overlay overlay-grab overlay-dim"></div>
 
 <style>
 :global(.overlay-dim) {
-  opacity: 0.5;
+  display: block !important;
+  opacity: 0.3;
   background-color: black;
 }
 

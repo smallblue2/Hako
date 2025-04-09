@@ -96,9 +96,14 @@ export function openWindow(type, component, options) {
   const id = _newWID();
   options.props.id = id;
 
-  _topLayer++;
-  _layerFromId[id] = _topLayer;
-  options.props.layerFromId = _layerFromId;
+  if (options.forceZ !== undefined) {
+    options.props.layerFromId = {};
+    options.props.layerFromId[id] = options.forceZ;
+  } else {
+    _topLayer++;
+    _layerFromId[id] = _topLayer;
+    options.props.layerFromId = _layerFromId;
+  }
 
   // Object.freeze is used here to prevent some odd behaviour
   // with svelte mangling the component, making it unmountable
