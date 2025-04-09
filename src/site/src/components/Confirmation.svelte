@@ -9,7 +9,7 @@
       form.addEventListener("submit", (ev) => {
         res(ev.submitter.dataset.uid == 1);
       }, { once: true })
-      dialog.addEventListener("cancel", (ev) => {
+      dialog.addEventListener("close", (ev) => {
         res(false);
       }, { once: true });
     });
@@ -23,8 +23,8 @@
   <p class="subtext">{subtext}</p>
   <form bind:this={form} method="dialog">
     <div class="actions">
-      <Button id="0" color="surface">{denyLabel}</Button>
-      <Button id="1" color="primary">{confirmLabel}</Button>
+      <Button id="0" color="surface" formmethod="dialog">{denyLabel}</Button>
+      <Button id="1" color="primary" formmethod="dialog">{confirmLabel}</Button>
     </div>
   </form>
 </Popup>

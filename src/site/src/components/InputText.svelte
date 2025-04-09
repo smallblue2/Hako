@@ -19,7 +19,7 @@
       form.addEventListener("submit", (ev) => {
         res(ev.target[0].value);
       }, { once: true })
-      form.addEventListener("cancel", (ev) => {
+      dialog.addEventListener("close", (ev) => {
         rej(text);
       }, { once: true });
     });
@@ -28,10 +28,10 @@
   let openPopup = $state();
 </script>
 
-<Popup bind:open={openPopup}>
+<Popup bind:dialog bind:open={openPopup}>
   <h3 class="title">{title}</h3>
   <form bind:this={form} method="dialog">
-    <input class="input" type="text" bind:value={text}>
+    <input class="input" type="text" bind:value={text} formmethod="dialog">
   </form>
 </Popup>
 

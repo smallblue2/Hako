@@ -1,8 +1,8 @@
 <script>
-  let { id = "0", color = "surface", children } = $props();
+  let { id = "0", color = "surface", formmethod = "get", children } = $props();
 </script>
 
-<button data-uid={id} class={`btn-${color} btn remove-button-styles`}>
+<button data-uid={id} class={`btn-${color} btn remove-button-styles`} {formmethod}>
   {@render children?.()}
 </button>
 

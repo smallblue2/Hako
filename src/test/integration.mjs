@@ -46,9 +46,12 @@ async function main() {
   // Copy test lua file into our filesystem
   const luaCode = fs.readFileSync("./test/integration.lua").toString();
 
-  const { fd } = Filesystem.open("/integration.lua", "wc");
-  Filesystem.write(fd, luaCode);
-  Filesystem.close(fd);
+  let { error, fd } = Filesystem.open("/integration.lua", "wc");
+  assert(error === null, "error in test setup");
+  ({ error } = Filesystem.write(fd, luaCode));
+  assert(error === null, "error in test setup");
+  ({ error } = Filesystem.close(fd));
+  assert(error === null, "error in test setup");
 
   let { default: ProcessManager } = await import("../../build/processes/processManager.mjs");
   let procmgr = new ProcessManager(onExit);

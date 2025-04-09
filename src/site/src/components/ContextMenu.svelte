@@ -1,19 +1,20 @@
 <script>
   let { keydown = $bindable(), items } = $props();
-  let keymap = $state({});
-  $effect(() => {
+  let keymap = $derived.by(() => {
+    let km = [];
     for (const item of items) {
       if (item.shortcut !== undefined) {
-        keymap[item.shortcut] = item.onclick;
+        km[item.shortcut] = item.onclick;
       }
     }
-  })
-  keydown = (ev) => {
-    return ev.key in keymap && keymap[ev.key]()
+    return km;
+  });
+  keydown = async (ev) => {
+    return ev.key in keymap && await keymap[ev.key]()
   }
 </script>
 
-<menu class="contextmenu" >
+<menu class="contextmenu">
   {#each items as item}
     <li class="menu-item-wrapper">
       <div class={`menu-item  ${item.destructive ? "destructive" : ""}`} onclick={item.onclick}>
