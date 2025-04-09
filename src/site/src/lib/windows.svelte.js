@@ -10,8 +10,8 @@ import FileManager from "../components/FileManager.svelte";
 
 // Window types
 export const TERMINAL = 0;
-export const EDITOR = 1;
-export const FILE_MANAGER = 2;
+export const FILE_MANAGER = 1;
+export const EDITOR = 2;
 export const OTHER = 3;
 
 export const applications = $state([
