@@ -44,6 +44,7 @@
 #define E_IOERROR 8
 #define E_INVALID 9
 #define E_AGAIN 10
+#define E_NOTEMPTY 11
 
 // ======================= Filesystem Structs =======================
 

@@ -2,6 +2,7 @@
   import * as lib from "$lib";
   import * as windows from "$lib/windows.svelte.js";
   import _, * as overlay from "./Overlay.svelte";
+  import { scale } from "svelte/transition";
   import { onMount, tick } from "svelte";
 
   /**
@@ -177,8 +178,8 @@
   }
 
   function closeWindow() {
-    windows.closeWindow(id);
     if (onClose !== undefined) onClose();
+    windows.closeWindow(id);
   }
 
   $effect(() => {
@@ -198,7 +199,7 @@
 
 <!-- svelte-ignore a11y_mouse_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={() => windows.focusWindow(id)}
+<div transition:scale={{ duration: 200, start: 0.5 }} id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={() => windows.focusWindow(id)}
 
   onmousemove={onMoveResizeArea}
   onmouseout={onExitResizeArea}

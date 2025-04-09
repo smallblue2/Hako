@@ -1,12 +1,24 @@
 @layer base {
   @font-face {
-    font-family: "Inconsolata", monospace;
+    font-family: "Inconsolata";
+  }
+  @font-face {
+    font-family: "Noto Sans";
   }
 }
 
+:root {
+  --font-mono: "Inconsolata", monospace;
+  --font-sans: "Noto Sans", sans-serif;
+}
+
 body {
-  font-family: "Inconsolata", monospace;
+  font-family: var(--font-sans);
   color: var(--md-sys-color-on-surface);
+}
+
+code, pre, tt {
+  font-family: var(--font-mono);
 }
 
 html {

@@ -61,6 +61,8 @@ export function errnoToString(errno) {
       return "Invalid argument";
     case 10:
       return "Resource temporarily unavailable (EAGAIN)";
+    case 11:
+      return "Directory is not empty";
     default:
       return `Unkown error: ${errno}`;
   }
