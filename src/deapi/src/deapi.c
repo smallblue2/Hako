@@ -48,14 +48,36 @@ EM_JS(void, _window__list, (void *data), {
   view.length = windows.length;
 })
 
+EM_JS(void, _window__open, (void *data), {
+  let view = new window.deapi.creflect.StructView(Module, "NewWindowSignature", data);
+  view.result = window.deapi.windowOpen(view.param);
+})
+
 EM_JS(void, _window__hide, (void *data), {
   const id = getValue(data, 'i32');
   window.deapi.windowHide(id);
 })
 
+EM_JS(void, _window__show, (void *data), {
+  const id = getValue(data, 'i32');
+  window.deapi.windowShow(id);
+})
+
+EM_JS(void, _window__close, (void *data), {
+  const id = getValue(data, 'i32');
+  window.deapi.windowClose(id);
+})
+
 Rect window__area() { PROXY_NO_ARGS(Rect, rect, _window__area); }
 WindowList window__list() { PROXY_NO_ARGS(WindowList, list, _window__list); }
+int window__open(WindowType type) {
+  NewWindowSignature signature = { .param = type };
+  PROXY_CALL(_window__open, &signature);
+  return signature.result;
+}
 void window__hide(int id) { PROXY_CALL(_window__hide, &id); }
+void window__show(int id) { PROXY_CALL(_window__show, &id); }
+void window__close(int id) { PROXY_CALL(_window__close, &id); }
 
 void deapi_deinit() {
   em_proxying_queue_destroy(proxy_queue);

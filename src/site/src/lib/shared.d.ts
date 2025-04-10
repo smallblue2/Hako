@@ -1,6 +1,9 @@
 interface DeApi {
   creflect: any,
-  windowHide: (id) => void,
+  windowOpen: (type: WindowType) => number,
+  windowHide: (id: number) => void,
+  windowShow: (id: number) => void,
+  windowClose: (id: number) => void,
   windowList: () => OpenWindowRestricted[],
 }
 

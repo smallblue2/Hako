@@ -137,17 +137,6 @@ int setup_env(void) {
 int main(void) {
 #ifdef __EMSCRIPTEN__
   deapi_init();
-
-  window__hide(0);
-
-  Rect rect = window__area();
-  printf("Window { width: %d, height: %d }\n", rect.width, rect.height);
-
-  WindowList windows = window__list();
-  for (int i = 0; i < windows.length; i++) {
-    printf("window { id: %d, type: %d, show: %d }\n", windows.list[i].id, windows.list[i].type, windows.list[i].show);
-  }
-  free(windows.list);
 #endif
 
   lua_State *L = luaL_newstate();

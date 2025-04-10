@@ -20,27 +20,21 @@ export const applications = $state([
     name: "Terminal",
     instances: 0,
     alwaysShow: true,
-    create: () => {
-      openWindow(TERMINAL, Terminal);
-    },
+    create: () => openWindow(TERMINAL, Terminal),
   },
   {
     icon: FileManagerIcon,
     name: "FileManager",
     instances: 0,
     alwaysShow: true,
-    create: () => {
-      openWindow(FILE_MANAGER, FileManager);
-    }
+    create: () => openWindow(FILE_MANAGER, FileManager),
   },
   {
     icon: TextEditorIcon,
     name: "Text Editor",
     instances: 0,
     alwaysShow: true,
-    create: () => {
-      openWindow(EDITOR, Editor);
-    },
+    create: () => openWindow(EDITOR, Editor),
   },
   {
     icon: PlaceHolderIcon,
