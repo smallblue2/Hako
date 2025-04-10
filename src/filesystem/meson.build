@@ -14,6 +14,8 @@ configure_file(input: 'api/api.mjs', output: 'api.mjs', copy: true)
 configure_file(input: 'api/definitions.mjs', output: 'definitions.mjs', copy: true)
 configure_file(input: 'post.js', output: 'post.js', copy: true)
 
+configure_file(input: '../glue/creflect.mjs', output: 'creflect.mjs', copy: true)
+
 sources = files('src/main.c')
 
 # Copy static directory - this is used for static asset files in emscripten

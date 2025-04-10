@@ -1,8 +1,15 @@
+interface DeApi {
+  creflect: any,
+  windowHide: (id) => void,
+  windowList: () => OpenWindowRestricted[],
+}
+
 interface Window {
   Filesystem?: any,
   ProcessManager?: any,
   isFilesystemInitialised?: boolean,
   _FSM?: any,
+  deapi?: DeApi,
 }
 
 declare enum WindowType {
@@ -10,6 +17,12 @@ declare enum WindowType {
   FILE_MANAGER,
   EDITOR,
   OTHER,
+}
+
+interface OpenWindowRestricted {
+  readonly id: number,
+  readonly type: WindowType,
+  readonly show: boolean,
 }
 
 interface OpenWindow {

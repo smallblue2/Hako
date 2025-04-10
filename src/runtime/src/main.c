@@ -12,6 +12,7 @@
 #include "lib.h"
 #include "stdlib.h"
 #ifdef __EMSCRIPTEN__
+#include "../deapi/src/deapi.h"
 #include "../vendor/libedit/src/editline/readline.h"
 #endif
 #include <unistd.h>
@@ -117,7 +118,7 @@ void setup_fs(void) {
 
 int setup_env(void) {
   // CWD
-  #ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
   char *cwd = EM_ASM_PTR({
     return stringToNewUTF8(self.proc.cwd);
   });
@@ -129,11 +130,26 @@ int setup_env(void) {
     proc__exit(-1, &err);
     return -1;
   }
-  #endif
+#endif
   return 0;
 }
 
 int main(void) {
+#ifdef __EMSCRIPTEN__
+  deapi_init();
+
+  window__hide(0);
+
+  Rect rect = window__area();
+  printf("Window { width: %d, height: %d }\n", rect.width, rect.height);
+
+  WindowList windows = window__list();
+  for (int i = 0; i < windows.length; i++) {
+    printf("window { id: %d, type: %d, show: %d }\n", windows.list[i].id, windows.list[i].type, windows.list[i].show);
+  }
+  free(windows.list);
+#endif
+
   lua_State *L = luaL_newstate();
 
   // We want to have control over what builtin
@@ -200,6 +216,10 @@ int main(void) {
 
   lua_close(L);
   proc__exit(0, &err);
+
+#ifdef __EMSCRIPTEN__
+  deapi_deinit();
+#endif
 
   return 0;
 }
