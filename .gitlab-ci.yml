@@ -54,6 +54,13 @@ lint_processes_tests:
     - npm install
     - npm run lint-tests
 
+lint_site:
+  stage: lint
+  script:
+    - cd src/site
+    - npm install
+    - npm run check
+
 # ----------------- BUILDING ----------------- 
 
 cached_dependencies:
