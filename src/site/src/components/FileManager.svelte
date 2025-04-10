@@ -1,31 +1,44 @@
-<script>
+<script lang="ts" module>
+  export interface Props {
+    id: number,
+    layerFromId: number[],
+    initOffset?: { x: number, y: number },
+    selection: Resolver,
+  }
+</script>
+
+<script lang="ts">
   import FolderIcon from "/src/adwaita/folder.svg?raw";
   import TextFileIcon from "/src/adwaita/text-x-generic.svg?raw";
   import Window from "./Window.svelte";
   import Editor from "./Editor.svelte";
-  import ContextMenu from "./ContextMenu.svelte";
-  import InputText from "./InputText.svelte";
+  import ContextMenu, { type Item } from "./ContextMenu.svelte";
+  import InputText, { type OpenFn } from "./InputText.svelte";
   import BreadCrumbs from "./BreadCrumbs.svelte";
-  import Alert from "./Alert.svelte";
+  import Alert, { type OpenAlertFn } from "./Alert.svelte";
   import * as lib from "$lib";
   import * as win from "$lib/windows.svelte.js";
   import { onMount } from "svelte";
   import { FSView } from "$lib/files";
   import { Resolver } from "$lib/resolver";
+  import type { DragEventHandler, KeyboardEventHandler } from "svelte/elements";
 
-  let { id, layerFromId, initOffset = {x: 0, y: 0}, selection = new Resolver() } = $props();
+  let { id, layerFromId, initOffset = {x: 0, y: 0}, selection = new Resolver() }: Props = $props();
 
-  /** @type {HTMLDivElement | undefined} */
-  let root = $state();
-
+  let root: HTMLDivElement = $state();
   let maximized = $state(false);
 
   let width = 320;
   let height = 260;
   let min = 200;
 
+  interface FileMeta {
+    type: string,
+    name: string,
+  }
+
   let fsView = new FSView(updateFiles);
-  let files = $state([]);
+  let files: FileMeta[] = $state([]);
   let crumbs = $derived.by(() => {
     files; // re generate when files updates
     const rootCrumb = {text: "/", onclick: () => fsView.changeDirAbs(["persistent"])};
@@ -54,10 +67,10 @@
   });
 
   function updateFiles() {
-    const entries = window.Filesystem.read_dir(fsView.cwd()).entries;
+    const entries = window.Filesystem.read_dir(fsView.cwd()).entries as string[];
     const inPersist = fsView.hasSingleEntry("persistent");
     files = entries.map((entry) => {
-      let { error, stat } = window.Filesystem.stat(fsView.relative(entry));
+      let { error, stat } = window.Filesystem.stat(fsView.relative(entry)) as StatResult;
       if (error !== null) {
         console.log(error);
         return { type: "file", name: entry };
@@ -68,11 +81,7 @@
     });
   }
 
-  /**
-   * @param {number} dw
-   * @param {number} dh
-   */
-  function onResize(dw, dh) {
+  function onResize(dw: number, dh: number) {
     width = lib.clamp(width + dw, min);
     height = lib.clamp(height + dh, min);
     root.style.width = width.toString() + "px";
@@ -80,13 +89,13 @@
     return true; // you can return false to say you can't resize
   }
 
-  function clickedFolder(file) {
+  function clickedFolder(file: FileMeta) {
     return () => {
       fsView.changeDir(file.name);
     };
   }
 
-  function clickedFile(file) {
+  function clickedFile(file: FileMeta) {
     return () => {
       const relFile = fsView.relative(file.name);
       if (!selection.resolve(relFile)) {
@@ -96,27 +105,27 @@
   }
 
   // State for the context menu of file manager
-  let globalOperations = [
+  let globalOperations: Item[] = [
     {name: "New File", onclick: newFile, shortcut: "f"},
     {name: "Create Directory", onclick: createDir, shortcut: "d"},
   ];
   let operations = $state(globalOperations);
 
-  function fileOperations(fileName) {
+  function fileOperations(fileName: string): Item[] {
     return [
-      {name: "Rename File", onclick: (ev) => renameFileOrDir(fileName, ev), shortcut: "r"},
-      {name: "Delete File", onclick: (ev) => deleteFile(fileName, ev), shortcut: "d", destructive: true}
+      {name: "Rename File", onclick: (_ev) => renameFileOrDir(fileName), shortcut: "r"},
+      {name: "Delete File", onclick: (_ev) => deleteFile(fileName), shortcut: "d", destructive: true}
     ];
   }
 
-  function dirOperations(dirName) {
+  function dirOperations(dirName: string): Item[] {
     return [
-      {name: "Rename Directory", onclick: (ev) => renameFileOrDir(dirName, ev), shortcut: "r"},
-      {name: "Delete Directory", onclick: (ev) => deleteDir(dirName, ev), shortcut: "d", destructive: true}
+      {name: "Rename Directory", onclick: (_ev) => renameFileOrDir(dirName), shortcut: "r"},
+      {name: "Delete Directory", onclick: (_ev) => deleteDir(dirName), shortcut: "d", destructive: true}
     ];
   }
 
-  async function newFile(ev) {
+  async function newFile(_ev: PointerEvent) {
     await openTextModal("Enter new file name:", "").then((fileName) => {
       let { error, fd } = window.Filesystem.open(fsView.relative(fileName), "crw");
       if (error !== null) {
@@ -128,7 +137,7 @@
     }).catch((_reason) => {}); // ignore rejection
   }
 
-  async function createDir(ev) {
+  async function createDir(_ev: PointerEvent) {
     await openTextModal("Enter new directory name:", "").then((dirName) => {;
       let { error } = window.Filesystem.make_dir(fsView.relative(dirName));
       if (error !== null) {
@@ -139,7 +148,7 @@
     }).catch((_reason) => {}); // ignore rejection
   }
 
-  async function renameFileOrDir(fileOrDirName, ev) {
+  async function renameFileOrDir(fileOrDirName: string) {
     if (fsView.hasSingleEntry("persistent") && fileOrDirName === "sys") {
       openAlertModal("Operation Failed", "'sys' directory cannot be removed");
       return;
@@ -165,7 +174,7 @@
     }).catch((_reason) => {}); // ignore rejection
   }
 
-  async function deleteDir(dirName, ev) {
+  async function deleteDir(dirName: string) {
     if (fsView.hasSingleEntry("persistent") && dirName === "sys") {
       openAlertModal("Operation Failed", "'sys' directory cannot be removed");
       return;
@@ -178,7 +187,7 @@
     updateFiles();
   }
 
-  async function deleteFile(fileName, ev) {
+  async function deleteFile(fileName: string) {
     let { error, stat } = window.Filesystem.stat(fsView.relative(fileName));
     if (error !== null) {
       openAlertModal("Operation Failed", error);
@@ -192,19 +201,18 @@
     updateFiles();
   }
 
-  let openTextModal = $state();
-  let openAlertModal = $state();
+  let openTextModal: OpenFn = $state();
+  let openAlertModal: OpenAlertFn = $state();
 
   let showContextMenu = $state(false);
   let contextmenuX = $state(0);
   let contextmenuY = $state(0);
-  /** @type {HTMLDivElement} */
-  let contextmenu = $state();
+  let contextmenu: HTMLDivElement = $state();
   $effect(() => {
     contextmenu.style.left = contextmenuX + "px";
     contextmenu.style.top = contextmenuY + "px";
   })
-  function updateContextMenu(x, y) {
+  function updateContextMenu(x: number, y: number) {
     showContextMenu = true;
     contextmenuX = x;
     contextmenuY = y;
@@ -216,8 +224,8 @@
     requestAnimationFrame(() => contextmenu.focus());
   }
 
-  let forwardKeydown = $state();
-  function onContextMenuKey(ev) {
+  let forwardKeydown: KeyboardEventHandler<any> = $state();
+  function onContextMenuKey(ev: KeyboardEvent) {
     ev.preventDefault(); // do not queue keystroke to future input.
     forwardKeydown(ev);
     showContextMenu = false;
@@ -229,13 +237,12 @@
     }
   }
 
-  /** @param path {string} */
-  function baseName(path) {
+  function baseName(path: string) {
     return path.slice(path.lastIndexOf("/") + 1);
   }
 
   // --- Drag and drop ---
-  function move(srcPath, destPath) {
+  function move(srcPath: string, destPath: string) {
     if (srcPath === "/persistent/sys") {
       openAlertModal("Operation Failed", "Cannot move 'sys' directory");
       return;
@@ -252,19 +259,19 @@
     }
   }
 
-  function setDropZoneStyles(abs) {
+  function setDropZoneStyles(abs: string) {
     const el = document.getElementById(`fm-file-${id}-${abs}`);
     if (!el.classList.contains("fm-dropzone")) {
       el.classList.add("fm-dropzone");
     }
   }
 
-  function removeDropZoneStyles(abs) {
+  function removeDropZoneStyles(abs: string) {
     const el = document.getElementById(`fm-file-${id}-${abs}`);
     el.classList.remove("fm-dropzone");
   }
 
-  function onDragStart(file, i) {
+  function onDragStart<T extends EventTarget>(file: FileMeta): DragEventHandler<T> {
     return (ev) => {
       const data = {
         appid: id, // unique id for this file drag area
@@ -276,9 +283,9 @@
     }
   }
 
-  let timer;
+  let timer: NodeJS.Timeout;
 
-  function onDropGlobal(ev) {
+  function onDropGlobal(ev: DragEvent) {
     ev.preventDefault();
     const data = JSON.parse(ev.dataTransfer.getData("application/json"));
     const src = data.absPath;
@@ -287,7 +294,7 @@
     move(src, dest);
   }
 
-  function onDrop(file) {
+  function onDrop<T extends EventTarget>(file: FileMeta): DragEventHandler<T> {
     const abs = fsView.relativeDelim(file.name, "-");
     return (ev) => {
       ev.preventDefault();
@@ -305,11 +312,9 @@
     }
   }
 
-  function onDragOver(file) {
-    return (ev) => {
-      ev.dataTransfer.dropEffect = "move";
-      ev.preventDefault();
-    }
+  function onDragOver(ev: DragEvent) {
+    ev.dataTransfer.dropEffect = "move";
+    ev.preventDefault();
   }
 
   // This is needed due to how broken the DND html 5 api works.
@@ -318,7 +323,7 @@
   // did leave the parent element.
   let counter = 0;
 
-  function onDragEnter(file) {
+  function onDragEnter<T extends EventTarget>(file: FileMeta): DragEventHandler<T> {
     const abs = fsView.relativeDelim(file.name, "-");
     const pathParts = [...fsView.entries(), file.name];
     return (_ev) => {
@@ -336,7 +341,7 @@
     }
   }
 
-  function onDragLeave(file) {
+  function onDragLeave<T extends EventTarget>(file: FileMeta): DragEventHandler<T> {
     const abs = fsView.relativeDelim(file.name, "-");
     return (_ev) => {
       if (file.type === "directory") {
@@ -355,11 +360,11 @@
   {#snippet data()}
     <Alert bind:open={openAlertModal}></Alert>
     <InputText bind:open={openTextModal}></InputText>
-    <div bind:this={contextmenu} tabindex="-1" onkeydown={onContextMenuKey} class={`contextmenu ${!showContextMenu ? "hide-contextmenu" : ""}`}>
+    <div role="menu" bind:this={contextmenu} tabindex="-1" onkeydown={onContextMenuKey} class={`contextmenu ${!showContextMenu ? "hide-contextmenu" : ""}`}>
       <ContextMenu bind:keydown={forwardKeydown} items={operations}></ContextMenu>
     </div>
     <div class={`content-wrapper ${maximized ? "file-manager-maximized" : ""}`} bind:this={root}>
-      <div oncontextmenu={(ev) => {
+      <div role="main" oncontextmenu={(ev) => {
           ev.preventDefault();
           operations = globalOperations;
           updateContextMenu(ev.clientX, ev.clientY);
@@ -368,7 +373,7 @@
           ondragover={(ev) => ev.preventDefault()} class="fm-fill">
         <div class="file-manager">
           {#each files as file}
-            <div oncontextmenu={(ev) => {
+            <div role="main" oncontextmenu={(ev) => {
               ev.preventDefault();
               ev.stopPropagation();
               operations = file.type === "file" ? fileOperations(file.name) : dirOperations(file.name);
@@ -376,7 +381,7 @@
             }} class="fm-object" id={`fm-file-${id}-${fsView.relativeDelim(file.name, "-")}`} draggable="true"
               ondragstart={onDragStart(file)}
               ondrop={onDrop(file)}
-              ondragover={onDragOver(file)}
+              ondragover={onDragOver}
               ondragenter={onDragEnter(file)}
               ondragleave={onDragLeave(file)}>
               <button class="remove-button-styles fm-icon" onclick={file.type === "file" ? clickedFile(file) : clickedFolder(file)}>
