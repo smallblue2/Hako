@@ -1,5 +1,22 @@
-<script>
-  let { keydown = $bindable(), items } = $props();
+<script lang="ts" module>
+  import type { KeyboardEventHandler, PointerEventHandler } from "svelte/elements";
+
+  export interface Item {
+    name: string,
+    onclick: PointerEventHandler<HTMLDivElement>,
+    shortcut?: string,
+    destructive?: boolean,
+  }
+
+  export interface Props {
+    keydown: KeyboardEventHandler<HTMLElement>,
+    items: Item[],
+  }
+</script>
+
+<script lang="ts">
+  let { keydown = $bindable(), items }: Props = $props();
+
   let keymap = $derived.by(() => {
     let km = [];
     for (const item of items) {
@@ -9,7 +26,8 @@
     }
     return km;
   });
-  keydown = async (ev) => {
+
+  keydown = async (ev: KeyboardEvent) => {
     return ev.key in keymap && await keymap[ev.key]()
   }
 </script>
@@ -17,7 +35,7 @@
 <menu class="contextmenu">
   {#each items as item}
     <li class="menu-item-wrapper">
-      <div class={`menu-item  ${item.destructive ? "destructive" : ""}`} onclick={item.onclick}>
+      <div role="button" tabindex="-1" onkeydown={() => {}} class={`menu-item  ${item.destructive ? "destructive" : ""}`} onclick={item.onclick}>
         <div>{item.name}</div>
         {#if item.shortcut !== undefined}
           <div class="shortcut">⌘ {item.shortcut.toUpperCase()}</div>

@@ -1,12 +1,20 @@
-<script>
+<script lang="ts" module>
+  export interface Props {
+    id: number,
+    layerFromId: number[],
+    filePath?: string,
+  }
+</script>
+
+<script lang="ts">
   import * as lib from "$lib";
   import * as win from "$lib/windows.svelte.js";
   import { Resolver } from "$lib/resolver";
   import Window from "./Window.svelte";
   import FileManager from "./FileManager.svelte";
   import _, * as overlay from "../components/Overlay.svelte";
-  import Confirmation from "./Confirmation.svelte";
-  import Alert from "./Alert.svelte";
+  import Confirmation, { type OpenConfirmationFn } from "./Confirmation.svelte";
+  import Alert, { type OpenAlertFn } from "./Alert.svelte";
 
   import { EditorState } from "@codemirror/state";
   import { StreamLanguage } from "@codemirror/language";
@@ -44,15 +52,12 @@
   import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
   import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 
-  let { id, layerFromId, filePath } = $props();
+  let { id, layerFromId, filePath }: Props = $props();
 
-  /** @type {HTMLDivElement | undefined} */
-  let root = $state();
+  let root: HTMLDivElement = $state();
+  let editArea: HTMLDivElement = $state();
 
-  /** @type {HTMLDivElement | undefined} */
-  let editArea = $state();
-
-  let fd = undefined;
+  let fd: number | null = null;
   let data = $state("");
 
   let min = 200;
@@ -65,7 +70,7 @@
   let readOnly = $state(false);
   let saved = $state(true);
 
-  let openAlertModal = $state();
+  let openAlertModal: OpenAlertFn = $state();
 
   onMount(async () => {
     let { initWidth, initHeight } = lib.getInitWindowSize();
@@ -82,7 +87,7 @@
 
     if (filePath === undefined) {
       if (await confirmSelectFile()) {
-        let popupId;
+        let popupId: number;
         const selectedFile = await new Promise((res, rej) => {
           let resolver = new Resolver(res, rej);
           popupId = win.openWindow(win.FILE_MANAGER, FileManager, {
@@ -94,7 +99,7 @@
             forceZ: overlay.zAbove()
           });
           overlay.toggleLoaded();
-        }).catch((_reason) => abort());
+        }).catch((_reason) => abort()) as string;
         filePath = selectedFile;
         win.closeWindow(popupId);
         overlay.toggleLoaded();
@@ -104,8 +109,8 @@
     }
     if (!keepGoing) return;
 
-    let stat;
-    let error;
+    let stat: Stat;
+    let error: FilesystemError;
 
     ({ error, stat } = window.Filesystem.stat(filePath));
     perm = stat.perm.replace("x", "");
@@ -119,8 +124,8 @@
     data = window.Filesystem.readAll(fd).data ?? "";
     window.Filesystem.goto(fd, 0);
 
-    let timer;
-    function debounce(fn, timeout) {
+    let timer: number;
+    function debounce(fn: Function, timeout: number) {
       clearTimeout(timer);
       timer = setTimeout(fn, timeout);
     }
@@ -173,7 +178,7 @@
 
   let maximized = $state(false);
 
-  function onSave(state) {
+  function onSave(state: EditorState) {
     return () => {
       if (!state.readOnly) {
         window.Filesystem.goto(fd, 0);
@@ -187,20 +192,15 @@
     }
   }
 
-  /**
-   * @param {number} dw
-   * @param {number} dh
-   */
-  function onResize(dw, dh) {
+  function onResize(dw: number, dh: number) {
     width = lib.clamp(width + dw, min);
     height = lib.clamp(height + dh, min);
     root.style.width = width.toString() + "px";
     root.style.height = height.toString() + "px";
-
     return true; // you can return false to say you can't resize
   }
 
-  let openConfirmationDialog = $state();
+  let openConfirmationDialog: OpenConfirmationFn = $state();
   async function confirmSelectFile() {
     return await openConfirmationDialog();
   }
@@ -218,7 +218,7 @@
     <Alert bind:open={openAlertModal}></Alert>
     <Confirmation bind:open={openConfirmationDialog} title="No file opened" subtext="You must choose a file to open the editor on." confirmLabel="Select file" denyLabel="Cancel"></Confirmation>
     <div class={`area ${maximized ? "editor-maximized" : ""}`} bind:this={root}>
-      <div
+      <div tabindex="-1" role="textbox"
         bind:this={editArea}
         onkeydown={(ev) => {
           if (ev.key == "s" && ev.ctrlKey) {

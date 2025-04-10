@@ -1,62 +1,55 @@
-<script>
+<script lang="ts">
   import * as lib from "$lib/windows.svelte.js";
-  import { applications, _windows } from "$lib/windows.svelte.js";
+  import { applications as _applications, _windows } from "$lib/windows.svelte.js";
   import ContextMenu from "./ContextMenu.svelte";
 
-  /**
-   * @param {number} type
-   */
-  function hideMenu(type) {
+  const windows: OpenWindow[] = _windows;
+  const applications: Application[] = _applications;
+
+  function hideMenu(type: WindowType) {
     const el = document.getElementById(`context-menu-for-${type}`);
     if (el !== null) {
       el.blur();
     }
   }
 
-  /**
-   * @param {number} type
-   */
-  function showAll(type) {
-    _windows
+  function showAll(type: WindowType) {
+    windows
       .filter((win) => win.type == type)
       .filter(({ state: { show }}) => !show)
       .forEach(({ id }) => lib.showWindow(id))
     hideMenu(type);
   }
 
-  /**
-   * @param {number} type
-   */
-  function hideAll(type) {
-    _windows
+  function hideAll(type: WindowType) {
+    windows
       .filter((win) => win.type == type)
       .forEach(({ id }) => lib.hideWindow(id))
     hideMenu(type);
   }
 
-  /**
-   * @param {number} type
-   */
-  function closeAll(type) {
-    _windows
+  function closeAll(type: WindowType) {
+    windows
       .filter((win) => win.type == type)
       .forEach(({ id }) => lib.closeWindow(id))
     hideMenu(type);
   }
 
-  /**
-   * @param {number} type
-   * @param {any} app
-   */
-  function newInstance(type, app) {
+  function newInstance(type: WindowType, app: Application) {
     app.create()
     hideMenu(type);
   }
 
   let forwardKeydown = $state({});
-  function onContextMenuKey(type, ev) {
+  function onContextMenuKey(type: WindowType, ev: Event) {
     ev.preventDefault(); // do not queue keystroke to future input.
     forwardKeydown[type](ev);
+  }
+
+  function focusLost(el: HTMLElement) {
+    if (!el.classList.contains("menu-hidden")) {
+      el.classList.add("menu-hidden");
+    }
   }
 </script>
 
@@ -65,10 +58,20 @@
     {#each applications as app, type}
       {#if app.alwaysShow || app.instances !== 0}
         <div>
-          <div tabindex="-1" id={`context-menu-for-${type}`} onkeydown={(ev) => onContextMenuKey(type, ev)} class="menu menu-hidden"
+          <!--
+            This is really annoying! We are using _tabindex_ so we can handle focusout of the element.
+            The issue is that the click handler on the child of the focused element will raise the focusout
+            event on parent on mouse down, which if you would then hide the element, the mouse up event will
+            be discarded - hence discarding the click event on the child. The work around is to only hide
+            if the focusout target is not a child, and also additionally hide when the click event bubbles up
+            to the parent.
+          -->
+          <div role="button" tabindex="-1" id={`context-menu-for-${type}`} onkeydown={(ev) => onContextMenuKey(type, ev)} class="menu menu-hidden"
+            onclick={(ev) => focusLost(ev.currentTarget as HTMLElement)}
             onfocusout={(ev) => {
-              if (!ev.target.classList.contains("menu-hidden")) {
-                ev.target.classList.add("menu-hidden");
+              const self = ev.currentTarget as HTMLElement;
+              if (ev.relatedTarget === null || !self.contains(ev.relatedTarget as Node)) {
+                focusLost(self);
               }
             }}>
             {#if app.create !== null}

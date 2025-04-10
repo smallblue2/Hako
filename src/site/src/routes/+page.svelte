@@ -1,22 +1,21 @@
-<script>
+<script lang="ts">
   import Desktop from "../components/Desktop.svelte";
   import Overlay, * as overlay from "../components/Overlay.svelte";
   import { onMount } from "svelte";
 
-  /** @type {HTMLDialogElement | undefined} */
-  let loadingPopup = $state();
+  let loadingPopup: HTMLDialogElement = $state();
 
   onMount(async () => {
-    loadingPopup?.showModal();
+    loadingPopup.showModal();
 
-    let { initialiseAPI, Filesystem } = await import("/api.mjs?url");
+    let { initialiseAPI, Filesystem } = await import("/api.mjs?url") as unknown as { initialiseAPI: Function, Filesystem: any };
     window.isFilesystemInitialised = false;
 
     // Define a promise for loading the Emscripten module
     const LoadFilesystem = (async () => {
       try {
         // Dynamically load the emscripten module
-        const { default: initEmscripten } = await import("/filesystem.mjs?url");
+        const { default: initEmscripten } = await import("/filesystem.mjs?url") as unknown as { default: Function };
 
         // Initialise the emscripten module
         const Module = await initEmscripten({
@@ -43,7 +42,7 @@
 
       window.Filesystem.initialiseFS();
     
-      let { default: ProcessManager } = await import("/processManager.mjs?url");
+      let { default: ProcessManager } = await import("/processManager.mjs?url") as { default: any };
       window.ProcessManager = new ProcessManager();
       console.log("Created process manager");
 

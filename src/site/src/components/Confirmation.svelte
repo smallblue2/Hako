@@ -1,21 +1,32 @@
-<script>
-  import Popup from "./Popup.svelte";
+<script lang="ts" module>
+  export type OpenConfirmationFn = () => Promise<boolean>;
+  export interface Props {
+    open: OpenConfirmationFn,
+    title: string,
+    subtext: string,
+    confirmLabel?: string,
+    denyLabel?: string,
+  }
+</script>
+
+<script lang="ts">
+  import Popup, { type OpenPopupFn } from "./Popup.svelte";
   import Button from "./Button.svelte";
-  let { open = $bindable(), title, subtext, confirmLabel = "accept", denyLabel = "reject" } = $props();
-  let openPopup = $state();
+  let { open = $bindable(), title, subtext, confirmLabel = "accept", denyLabel = "reject" }: Props = $props();
+  let openPopup: OpenPopupFn = $state();
   open = () => {
     openPopup();
-    return new Promise((res, rej) => {
+    return new Promise((res, _rej) => {
       form.addEventListener("submit", (ev) => {
-        res(ev.submitter.dataset.uid == 1);
+        res(ev.submitter.dataset.uid === "1");
       }, { once: true })
-      dialog.addEventListener("close", (ev) => {
+      dialog.addEventListener("close", (_ev) => {
         res(false);
       }, { once: true });
     });
   };
-  let form = $state();
-  let dialog = $state();
+  let form: HTMLFormElement = $state();
+  let dialog: HTMLDialogElement = $state();
 </script>
 
 <Popup bind:dialog bind:open={openPopup}>
