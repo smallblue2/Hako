@@ -108,7 +108,7 @@ test("Pipes", function ()
 end)
 
 test("File does not exist", function()
-  local _, err = file.open("/thisdoesnotexist", "")
+  local fd, err = file.open("/thisdoesnotexist", "")
   check(err ~= nil, "expected file.open to error")
   local strerr = errors.as_string(err)
   local experr = "No such file or directory"

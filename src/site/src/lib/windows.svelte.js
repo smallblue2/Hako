@@ -1,15 +1,18 @@
 import { mount, unmount } from "svelte";
 
 import PlaceHolderIcon from "/src/placeholder.svg?raw";
-import TerminalIcon from "/src/terminal.svg?raw";
-import TextEditorIcon from "/src/text-editor.svg?raw";
+import FileManagerIcon from "/src/adwaita/file-manager.svg?raw";
+import TerminalIcon from "/src/adwaita/terminal.svg?raw";
+import TextEditorIcon from "/src/adwaita/text-editor.svg?raw";
 import Terminal from "../components/Terminal.svelte";
 import Editor from "../components/Editor.svelte";
+import FileManager from "../components/FileManager.svelte";
 
 // Window types
 export const TERMINAL = 0;
-export const EDITOR = 1;
-export const OTHER = 2;
+export const FILE_MANAGER = 1;
+export const EDITOR = 2;
+export const OTHER = 3;
 
 export const applications = $state([
   {
@@ -18,8 +21,17 @@ export const applications = $state([
     instances: 0,
     alwaysShow: true,
     create: () => {
-      openWindow(TERMINAL, Terminal, { props: { wasmModule: "/runtime.mjs?url" }});
+      openWindow(TERMINAL, Terminal);
     },
+  },
+  {
+    icon: FileManagerIcon,
+    name: "FileManager",
+    instances: 0,
+    alwaysShow: true,
+    create: () => {
+      openWindow(FILE_MANAGER, FileManager);
+    }
   },
   {
     icon: TextEditorIcon,
@@ -55,11 +67,8 @@ function _newWID() {
   return _IDCounter++;
 }
 
-export function setRootSfc(el) {
-  rootSfc = el;
-}
-
 export function openWindow(type, component, options) {
+  const rootSfc = document.getElementById("window-area");
   console.assert(rootSfc !== null);
   if (options === undefined || options === null) {
     options = { props: {} };
@@ -72,6 +81,9 @@ export function openWindow(type, component, options) {
     case EDITOR:
       applications[EDITOR].instances += 1;
       break;
+    case FILE_MANAGER:
+      applications[FILE_MANAGER].instances += 1;
+      break;
     default:
       applications[OTHER].instances += 1;
       break;
@@ -82,20 +94,26 @@ export function openWindow(type, component, options) {
   const id = _newWID();
   options.props.id = id;
 
-  _topLayer++;
-  _layerFromId[id] = _topLayer;
-  options.props.layerFromId = _layerFromId;
+  if (options.forceZ !== undefined) {
+    options.props.layerFromId = {};
+    options.props.layerFromId[id] = options.forceZ;
+  } else {
+    _topLayer++;
+    _layerFromId[id] = _topLayer;
+    options.props.layerFromId = _layerFromId;
+  }
 
   // Object.freeze is used here to prevent some odd behaviour
   // with svelte mangling the component, making it unmountable
   _windows.push(Object.freeze({ id: id, type: type, state: { show: true }, component: mount(component, options)}));
+  return id;
 }
 
 export function closeWindow(id) {
   for (let i = 0; i < _windows.length; i++) {
     if (_windows[i].id == id) {
       applications[_windows[i].type].instances -= 1;
-      unmount(_windows[i].component, { outro: false });
+      unmount(_windows[i].component, { outro: true });
       _windows.splice(i, 1);
       return;
     }

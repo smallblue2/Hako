@@ -10,9 +10,9 @@
   import { openpty } from "xterm-pty";
   import { onMount } from "svelte";
 
-  let { id, wasmModule, layerFromId } = $props();
+  let { id, layerFromId } = $props();
 
-  let min = 150;
+  let min = 200;
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -59,8 +59,29 @@
     }
   });
 
-  $effect(async () => {
-    terminal = new Terminal({ fontFamily: "JetBrainsMono-Regular" });
+  function onClose() {
+    console.log(`Terminal with PID ${pid} is closing.`);
+    window.ProcessManager.killProcess(pid);
+  }
+
+  onMount(async () => {
+    let { initWidth, initHeight } = lib.getInitWindowSize();
+    width = initWidth;
+    height = initHeight;
+    root.style.width = initWidth.toString() + "px";
+    root.style.height = initHeight.toString() + "px";
+
+    window.addEventListener("resize", () => {
+      if (maximized) {
+        fitAddon.fit();
+      }
+    })
+
+    const styles = getComputedStyle(document.documentElement);
+    const fg = styles.getPropertyValue("--md-sys-color-surface").trim();
+    const bg = styles.getPropertyValue("--md-sys-color-on-surface").trim();
+
+    terminal = new Terminal({ fontFamily: "monospace", fontSize: 20, theme: { foreground: fg, background: bg } });
     terminal.open(root);
 
     const pty = openpty();
@@ -77,25 +98,6 @@
     // INFO: This will be the shell when it's created
     pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false, start: true});
   })
-
-  function onClose() {
-    console.log(`Terminal with PID ${pid} is closing.`);
-    window.ProcessManager.killProcess(pid);
-  }
-
-  onMount(() => {
-    let { initWidth, initHeight } = lib.getInitWindowSize();
-    width = initWidth;
-    height = initHeight;
-    root.style.width = initWidth.toString() + "px";
-    root.style.height = initHeight.toString() + "px";
-
-    window.addEventListener("resize", () => {
-      if (maximized) {
-        fitAddon.fit();
-      }
-    })
-  })
 </script>
 
 <Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root} {onClose}>
@@ -106,14 +108,10 @@
 
 <style>
 .contents {
-  background-color: black;
+  color: var(--md-sys-color-surface) !important;
+  background-color: var(--md-sys-color-on-surface) !important;
   width: 320px;
   height: 260px;
-}
-
-:global(.window-root-maximized) {
-  width: 100% !important;
-  height: 100% !important;
 }
 
 :global(.xterm-viewport) {

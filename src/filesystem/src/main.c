@@ -24,6 +24,8 @@ int translate_errors(int err) {
     return E_INVALID;
   case EAGAIN:
     return E_AGAIN;
+  case ENOTEMPTY:
+    return E_NOTEMPTY;
   default:
     printf("[C] Unknown error: %d: %s\n", err, strerror(err));
     return err;
@@ -47,7 +49,7 @@ bool can_exec(struct stat *node_stat) {
 
 // Helper function for guarding system nodes based on stat
 bool is_system_file(struct stat *node_stat) {
-  return ((node_stat->st_mode & PROTECTED_BIT) == PROTECTED_BIT);
+  return !S_ISDIR(node_stat->st_mode) && ((node_stat->st_mode & PROTECTED_BIT) == PROTECTED_BIT);
 }
 
 // Explicitly forces a filesystem synchronisation.
@@ -535,7 +537,7 @@ void file__stat(const char *restrict name, StatResult *restrict sr, Error *restr
     sr->type = 0; // file (technically anything that isn't a directory)
   }
 
-  sr->perm = file_stat.st_mode & 0700; // bitmask user perms
+  sr->perm = file_stat.st_mode & 0710; // bitmask user perms
   sr->atime.sec = (int)file_stat.st_atim.tv_sec;
   sr->atime.nsec = (int)file_stat.st_atim.tv_nsec;
   sr->mtime.sec = (int)file_stat.st_mtim.tv_sec;

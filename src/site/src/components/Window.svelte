@@ -2,7 +2,8 @@
   import * as lib from "$lib";
   import * as windows from "$lib/windows.svelte.js";
   import _, * as overlay from "./Overlay.svelte";
-  import { onMount } from "svelte";
+  import { scale } from "svelte/transition";
+  import { onMount, tick } from "svelte";
 
   /**
    * @typedef Props
@@ -15,10 +16,11 @@
    * @property {Object.<number, number>} layerFromId
    * @property {string} title
    * @property {function} onClose a function 
+   * @property {object} initOffset
    */
 
   /** @type {Props} */
-  let { id, maximized = $bindable(), onResize, data, dataRef, onClose, layerFromId, title } = $props();
+  let { id, maximized = $bindable(), onResize, data, dataRef, onClose, layerFromId, title, initOffset = {x: 0, y: 0} } = $props();
 
   /** @type {HTMLDivElement | undefined} */
   let root = $state();
@@ -176,28 +178,28 @@
   }
 
   function closeWindow() {
+    if (onClose !== undefined) onClose();
     windows.closeWindow(id);
-    onClose();
   }
 
   $effect(() => {
     root.style.zIndex = layerFromId[id];
   })
 
-  onMount(() => {
-    let { initWidth, initHeight } = lib.getInitWindowSize();
-    let x = Math.floor((window.innerWidth - initWidth) / 2);
-    let y = Math.floor((window.innerHeight - initHeight) / 2);
+  onMount(async () => {
+    await tick(); // wait until size of component settles
+    const rect = root?.getBoundingClientRect();
+    let x = Math.floor((window.innerWidth - rect.width) / 2) + initOffset.x;
+    let y = Math.floor((window.innerHeight - rect.height) / 2) + initOffset.y;
     root.style.top = y + "px";
     root.style.left = x + "px";
-
     visibleAreaOff = parseInt(window.getComputedStyle(evWrap).margin, 10);
   })
 </script>
 
 <!-- svelte-ignore a11y_mouse_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={() => windows.focusWindow(id)}
+<div transition:scale={{ duration: 200, start: 0.5 }} id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={() => windows.focusWindow(id)}
 
   onmousemove={onMoveResizeArea}
   onmouseout={onExitResizeArea}

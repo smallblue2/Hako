@@ -171,6 +171,7 @@ int main(void) {
 
   Error err = 0;
   char *luaCodeBuffer = proc__get_lua_code(&err);
+
   if (err < 0) {
     fprintf(stderr, "Failed to load code from FS. Err: %d\n", err);
     proc__exit(1, &err);

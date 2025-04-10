@@ -1,29 +1,21 @@
 <script>
-  import Terminal from "./Terminal.svelte";
-  import Editor from "./Editor.svelte";
   import TaskBar from "./TaskBar.svelte";
-  import * as lib from "$lib/windows.svelte.js";
-
-  let root = $state();
-  $effect(() => lib.setRootSfc(root));
 </script>
 
-<div id="root">
-  <div id="window-area" bind:this={root}>
-    <!-- <button onclick={() => { -->
-    <!--   lib.openWindow(lib.TERMINAL, Terminal, { props: { wasmModule: "/runtime.js?url" }}); -->
-    <!-- }}>Create Terminal</button> -->
-    <!-- <button onclick={() => { -->
-    <!--   lib.openWindow(lib.EDITOR, Editor); -->
-    <!-- }}>Create Editor</button> -->
+<div class="root">
+  <div id="window-area">
   </div>
   <TaskBar></TaskBar>
 </div>
 
 <style>
-:global(#root) {
+.root {
+  /*
   display: flex;
   flex-direction: column;
+  */
+  display: grid;
+  grid-template-rows: 1fr auto;
   width: 100%;
   height: 100%;
   z-index: -2;
@@ -32,5 +24,10 @@
 :global(#window-area) {
   width: 100%;
   height: 100%;
+  overflow: scroll;
+}
+:global(#window-area::-webkit-scrollbar) {
+    width: 0;  /* Remove scrollbar space */
+    background: transparent;  /* Optional: just make scrollbar invisible */
 }
 </style>
