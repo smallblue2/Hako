@@ -307,8 +307,8 @@ char *proc__input_all(Error *err) {
     if (fd == -1)
       return NULL;
     ReadResult rr;
-    file__read_all(fd, &rr, &err);
-    file__close(fd, &err);
+    file__read_all(fd, &rr, err);
+    file__close(fd, err);
     return rr.data;
   }
 
@@ -369,8 +369,8 @@ char *proc__input_line(Error *err) {
     if (fd == -1)
       return NULL;
     ReadResult rr;
-    file__read_line(fd, &rr, &err);
-    file__close(fd, &err);
+    file__read_line(fd, &rr, err);
+    file__close(fd, err);
     return rr.data;
   }
 

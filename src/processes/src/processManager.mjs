@@ -162,6 +162,11 @@ export default class ProcessManager {
     if (toKill.worker === undefined) {
       throw CustomError(CustomError.symbols.PROC_NO_WORKER);
     }
+    // Close pipes
+    toKill.stdin.close()
+    toKill.stdout.close()
+    toKill.stderr.close()
+
     toKill.worker.terminate();
     this.#processesTable.freeProcess(pid);
   }
@@ -174,6 +179,7 @@ export default class ProcessManager {
         try {
           let toAwakeProcess = this.getProcess(waitingPID);
           // return exit code before awaking
+          console.log(`[PROC_MAN] Writing exit code '${exitCode}' to '${waitingPID}' [${toAwakeProcess}]`)
           toAwakeProcess.signal.write(exitCode);
           toAwakeProcess.signal.wake();
         } catch (e) {

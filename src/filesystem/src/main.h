@@ -187,7 +187,7 @@ void file__permit(const char *restrict path, int flags, Error *restrict err);
 void file__truncate(int fd, int length, Error *restrict err);
 
 // Returns the current working directory
-const char *file__cwd(Error *restrict err);
+char *file__cwd(Error *restrict err);
 
 
 #endif
