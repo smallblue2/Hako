@@ -418,7 +418,7 @@ end
 -- #######################
 
 
--- EBNF of what we're parsing:
+-- Grammar of what we're parsing:
 -- 
 -- Lines := Line (';' Line)*
 -- 
