@@ -1,4 +1,14 @@
-<script>
+<script lang="ts" module>
+  import type { Snippet } from "svelte";
+  export type OpenPopupFn = () => void;
+  export interface Props {
+    open: OpenPopupFn,
+    dialog: HTMLDialogElement,
+    children: Snippet,
+  }
+</script>
+
+<script lang="ts">
   let { open = $bindable(), dialog = $bindable(), children } = $props();
   open = () => {
     dialog.showModal();

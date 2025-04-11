@@ -1,46 +1,35 @@
-<script>
+<script lang="ts">
   import * as lib from "$lib";
   import * as windows from "$lib/windows.svelte.js";
   import _, * as overlay from "./Overlay.svelte";
   import { scale } from "svelte/transition";
   import { onMount, tick } from "svelte";
 
-  /**
-   * @typedef Props
-   * 
-   * @property {number} id A unique identifying number for the window
-   * @property {boolean} maximized 
-   * @property {function} onResize
-   * @property {any} data
-   * @property {HTMLElement} dataRef
-   * @property {Object.<number, number>} layerFromId
-   * @property {string} title
-   * @property {function} onClose a function 
-   * @property {object} initOffset
-   */
+  interface Props {
+    id: number,
+    maximized: boolean,
+    onResize: Function,
+    data: any,
+    dataRef: HTMLElement,
+    onClose?: Function,
+    layerFromId: number[],
+    title: string,
+    initOffset?: { x: number, y: number },
+  };
 
-  /** @type {Props} */
-  let { id, maximized = $bindable(), onResize, data, dataRef, onClose, layerFromId, title, initOffset = {x: 0, y: 0} } = $props();
+  let { id, maximized = $bindable(), onResize, data, dataRef, onClose, layerFromId, title, initOffset = {x: 0, y: 0} }: Props = $props();
 
-  /** @type {HTMLDivElement | undefined} */
-  let root = $state();
-
-  /** @type {HTMLDivElement | undefined} */
-  let evWrap = $state();
-
-  /** @type {number} */
-  let visibleAreaOff = 0; // The size of the resize areas margin
+  let root: HTMLDivElement = $state();
+  let evWrap: HTMLDivElement = $state();
+  let visibleAreaOff: number = 0; // The size of the resize areas margin
 
   let min = 150;
   let resizing = false;
 
-  let maxY = undefined;
-  let maxX = undefined;
+  let maxY: number = undefined;
+  let maxX: number = undefined;
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  function onDragWindow(ev) {
+  function onDragWindow(ev: MouseEvent) {
     const rect = root.getBoundingClientRect();
     root.style.top = Math.max(-visibleAreaOff, rect.top + ev.movementY).toString() + "px";
     root.style.left = Math.max(-visibleAreaOff, rect.left + ev.movementX).toString() + "px";
@@ -60,15 +49,7 @@
     overlay.toggleGrab();
   }
 
-  /**
-   * @param {number} ox
-   * @param {number} oy
-   * @param {number} cx
-   * @param {number} cy
-   * @param {number} m
-   * @returns {number}
-   */
-  function getSection(ox, oy, cx, cy, m) {
+  function getSection(ox: number, oy: number, cx: number, cy: number, m: number) {
     if (ox <= m && oy <= m) { return lib.TOP_LEFT_CORNER; }
     if (ox >= (cx - m) && oy <= m) { return lib.TOP_RIGHT_CORNER; }
     if (ox <= m && oy >= (cy - m)) { return lib.BOTTOM_LEFT_CORNER; }
@@ -80,10 +61,7 @@
     return -1;
   }
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  function onMoveResizeArea(ev) {
+  function onMoveResizeArea(ev: MouseEvent) {
     if (ev.target === root && !resizing) { // make sure hovering child element does not trigger this
       let { offsetX, offsetY } = ev;
       const sect = getSection(offsetX, offsetY, root.clientWidth, root.clientHeight, 10);
@@ -91,13 +69,9 @@
     }
   }
 
-  /** @type {number} */
-  let globalSect;
+  let globalSect: number;
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  function onDragResize(ev) {
+  function onDragResize(ev: MouseEvent) {
     const [ dw, dh ] = lib.getResizeFromSect(globalSect, ev.movementX, ev.movementY);
     onResize(dw, dh);
 
@@ -126,10 +100,7 @@
     root.style.left = posX.toString() + "px";
   }
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  async function onHoldResizeArea(ev) {
+  async function onHoldResizeArea(ev: MouseEvent) {
     if (ev.target === root && !maximized) { // make sure hovering child element does not trigger this
       let { offsetX, offsetY } = ev;
       globalSect = getSection(offsetX, offsetY, root.clientWidth, root.clientHeight, 10);
@@ -170,10 +141,7 @@
     }
   }
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  function noProp(ev) {
+  function noProp(ev: MouseEvent) {
     ev.stopPropagation();
   }
 
@@ -183,7 +151,7 @@
   }
 
   $effect(() => {
-    root.style.zIndex = layerFromId[id];
+    root.style.zIndex = layerFromId[id].toString();
   })
 
   onMount(async () => {
@@ -210,16 +178,16 @@
       <!-- <div></div> -->
       <p class="title">{title}</p>
       <div class="btns">
-        <button title="Hide" class="btn" onmousedown={noProp} onclick={() => windows.hideWindow(id)}>
+        <button aria-label="Hide" title="Hide" class="btn" onmousedown={noProp} onclick={() => windows.hideWindow(id)}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M217-86v-126h526v126H217Z"/></svg>
         </button>
-        <button title="Maximize" class="btn" onmousedown={noProp} onclick={() => {
+        <button aria-label="Maximize" title="Maximize" class="btn" onmousedown={noProp} onclick={() => {
           root.classList.toggle("window-maximized");
-          maximized ^= true;
+          maximized = !maximized;
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
         </button>
-        <button title="Close" class="btn" onmousedown={noProp} onclick={() => closeWindow()}>
+        <button aria-label="Close" title="Close" class="btn" onmousedown={noProp} onclick={() => closeWindow()}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
         </button>
       </div>

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import Window from "../components/Window.svelte";
   import * as lib from "$lib";
 
@@ -14,25 +14,19 @@
 
   let min = 200;
 
-  /** @type {HTMLDivElement | undefined} */
-  let root = $state();
+  let root: HTMLDivElement = $state();
 
   let width = 320;
   let height = 260;
 
-  let terminal;
+  let terminal: xterm.Terminal;
 
   // PID attached to terminal
   let pid = -1;
 
-  /** @type {FitAddon} */
-  let fitAddon;
+  let fitAddon: FitAddon;
 
-  /**
-   * @param {number} dw
-   * @param {number} dh
-   */
-  function onResize(dw, dh) {
+  function onResize(dw: number, dh: number) {
     width = lib.clamp(width + dw, min);
     height = lib.clamp(height + dh, min);
     root.style.width = width.toString() + "px";
@@ -43,8 +37,8 @@
     return true; // you can return false to say you can't resize
   }
 
-  let master;
-  let slave;
+  let master: any;
+  let slave: any;
 
   let maximized = $state(false);
 

@@ -1,12 +1,18 @@
-<script>
+<script lang="ts" module>
+  import type { OpenPopupFn } from "./Popup.svelte";
+  export type OpenFn = (title: string, text: string) => Promise<string>;
+  export interface Props {
+    open: OpenFn,
+  }
+</script>
+
+<script lang="ts">
   import Popup from "./Popup.svelte";
 
-  /** @type {HTMLDialogElement | undefined} */
-  let dialog = $state();
-  /** @type {HTMLFormElement | undefined} */
-  let form = $state();
+  let form: HTMLFormElement = $state();
+  let dialog: HTMLDialogElement = $state();
 
-  let { open = $bindable() } = $props();
+  let { open = $bindable() }: Props = $props();
 
   let text = $state("");
   let title = $state("");
@@ -25,7 +31,7 @@
     });
   };
 
-  let openPopup = $state();
+  let openPopup: OpenPopupFn = $state();
 </script>
 
 <Popup bind:dialog bind:open={openPopup}>
