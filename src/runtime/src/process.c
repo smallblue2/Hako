@@ -62,6 +62,7 @@ int lprocess__create(lua_State *L) {
     if (lua_isnil(L, -1)) lua_pop(L, 1);
     else {
       opts.redirect_out = absolute_alloc(luaL_checkstring(L, -1));
+      printf("REDI_OUT: %s\n", opts.redirect_out);
     }
 
     lua_getfield(L, 2, "argv");
@@ -99,8 +100,8 @@ int lprocess__create(lua_State *L) {
 
   int len = strlen(opath);
   int pid = proc__create(opath, len, opts.args, opts.args_len, opts.pipe_in, opts.pipe_out, opts.redirect_in, opts.redirect_out, cwd, &err);
-  if (opts.redirect_in != NULL) free(opts.redirect_in);
-  if (opts.redirect_out != NULL) free(opts.redirect_out);
+  // if (opts.redirect_in != NULL) free(opts.redirect_in);
+  // if (opts.redirect_out != NULL) free(opts.redirect_out);
   free(opath);
   if (opts.args != NULL) free(opts.args);
   if (err != 0) {

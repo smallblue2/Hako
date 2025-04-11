@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <fcntl.h>
 #include <lua.h>
 #include <lualib.h>
 #include <stddef.h>

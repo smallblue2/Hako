@@ -9,6 +9,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <assert.h>
 
 bool can_read_s(const char *flags) { return strchr(flags, 'r') != NULL; }
 
@@ -311,31 +312,25 @@ int lfile__read_dir(lua_State *L) {
     return 2;
   }
 
-  Entry entry = {0};
   Error err = 0;
   lua_newtable(L);
 
-  int idx = 1;
-  file__read_dir(path, &entry, &err);
-
-  do {
-    lua_pushstring(L, entry.name);
-    free(entry.name);
-    entry.name = NULL;
-
-    lua_pushinteger(L, idx);
-    lua_insert(L, -2);
-    lua_settable(L, -3);
-
-    file__read_dir(path, &entry, &err);
-    idx++;
-  } while (!entry.isEnd && err == 0);
-
+  char **entries = file__read_dir(path, &err);
   if (err != 0) {
-    lua_pop(L, 1);
     lua_pushnil(L);
     lua_pushnumber(L, errno);
     return 2;
+  }
+
+  int idx = 0;
+  while (*(entries + idx) != NULL) {
+    char *entry = *(entries + idx);
+    lua_pushstring(L, entry);
+    free(entry);
+    lua_pushinteger(L, idx + 1);
+    lua_insert(L, -2);
+    lua_settable(L, -3);
+    idx++;
   }
 
   lua_pushnil(L);

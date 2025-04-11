@@ -67,7 +67,12 @@
   });
 
   function updateFiles() {
-    const entries = window.Filesystem.read_dir(fsView.cwd()).entries as string[];
+    console.log(fsView.cwd());
+    const {entries, error} = window.Filesystem.read_dir(fsView.cwd());
+    if (error !== null) {
+      openAlertModal("Operation Failed", error);
+      return;
+    }
     const inPersist = fsView.hasSingleEntry("persistent");
     files = entries.map((entry) => {
       let { error, stat } = window.Filesystem.stat(fsView.relative(entry)) as StatResult;

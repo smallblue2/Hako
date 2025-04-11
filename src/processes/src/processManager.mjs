@@ -64,7 +64,7 @@ export default class ProcessManager {
     // Check the filesystem for the luaPath
     let luaCode = ''
     let { error, fd } = this.#Filesystem.open(luaPath, "r");
-    if (fd < 0) {
+    if (error !== null) {
       throw new CustomError(CustomError.symbols.LUA_FILE_NO_EXIST);
     } else {
       let readResp = this.#Filesystem.readAll(fd);
