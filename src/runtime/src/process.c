@@ -15,8 +15,8 @@
 typedef struct {
   bool pipe_in;
   bool pipe_out;
-  const char *redirect_in;
-  const char *redirect_out;
+  char *redirect_in;
+  char *redirect_out;
   const char **args;
   int args_len;
 } process__create_opts;
@@ -24,8 +24,8 @@ typedef struct {
 int lprocess__create(lua_State *L) {
   const char *path = luaL_checkstring(L, 1);
 
-  path = absolute_alloc(path);
-  if (path == NULL) {
+  char *opath = absolute_alloc(path);
+  if (opath == NULL) {
     lua_pushnumber(L, E_DOESNTEXIST);
     return 1;
   }
@@ -90,18 +90,18 @@ int lprocess__create(lua_State *L) {
   // Get CWD and pass it to newly created process
   // (Implicit, user isn't aware of this)
   Error err = 0;
-  const char *cwd = file__cwd(&err);
+  char *cwd = file__cwd(&err);
   if (err != 0) {
     lua_pushnil(L);
     lua_pushnumber(L, err);
     return 2;
   }
 
-  int len = strlen(path);
-  int pid = proc__create(path, len, opts.args, opts.args_len, opts.pipe_in, opts.pipe_out, opts.redirect_in, opts.redirect_out, cwd, &err);
+  int len = strlen(opath);
+  int pid = proc__create(opath, len, opts.args, opts.args_len, opts.pipe_in, opts.pipe_out, opts.redirect_in, opts.redirect_out, cwd, &err);
   if (opts.redirect_in != NULL) free(opts.redirect_in);
   if (opts.redirect_out != NULL) free(opts.redirect_out);
-  free(path);
+  free(opath);
   if (opts.args != NULL) free(opts.args);
   if (err != 0) {
     lua_pushnil(L);
@@ -135,15 +135,16 @@ int lprocess__wait(lua_State *L) {
   int pid = luaL_checknumber(L, 1);
 
   Error err = 0;
-  proc__wait(pid, &err);
-
+  int exit_code = proc__wait(pid, &err);
   if (err != 0) {
+    lua_pushnil(L);
     lua_pushnumber(L, err);
-    return 1;
+    return 2;
   }
 
+  lua_pushnumber(L, exit_code);
   lua_pushnil(L);
-  return 1;
+  return 2;
 }
 
 typedef struct {

@@ -1,6 +1,6 @@
 project('runtime', 'c',
   version : '0.1',
-  default_options : ['warning_level=3', 'default_library=static'])
+  default_options : ['warning_level=3', 'default_library=static', 'werror=true'])
 
 if host_machine.system() == 'emscripten'
   configure_file(input: 'js/emscripten-pty.js', output: 'emscripten-pty.js', copy: true)
