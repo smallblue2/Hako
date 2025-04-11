@@ -441,11 +441,6 @@ end
 -- RedirectIn := ('<' | '<<') word
 -- RedirectOut := ('>' | '>>') word
 
-local pipeline_seperators = {
-  [token_types.AND] = true, -- '&&'
-  [token_types.OR] = true -- '||'
-}
-
 ---Parses redirection for a provided command_node from a list of lexical tokens starting at position
 ---@param tokens table A list of lexical tokens
 ---@param position number The index to begin parsing tokens at
@@ -603,7 +598,7 @@ function parse_command(tokens, position)
   else
     return nil, nil, string.format("Expected a command, found '%s'.", tok.value)
   end
-  
+
 end
 
 ---Parses tokens from a provided position, generating a pipeline AST node
@@ -649,6 +644,7 @@ end
 
 ---Parses a line of tokens to generate an AST of Pipelines
 ---@param tokens table An array of tokens
+---@param position number The index to begin parsing the line from
 ---@return table | nil An AST describing a line of input, nil if error
 ---@return number | nil The index parsing of the line finished at, nil if error
 ---@return string | nil An error message, nil if no error
@@ -762,14 +758,53 @@ end
 -- ####### AST Walking #######
 -- ###########################
 
+---Executes and waits on processes gathered within the context of traversing the AST.
+---@param ctx table A context table with information from traversing the AST.
+---@return string | nil An error message, nil by default
+function exec_pids(ctx)
+  if #ctx.pids == 0 then
+    return nil
+  end
+
+  local last_exit = nil
+  local err = nil
+
+  for _, pid in ipairs(ctx.pids) do
+
+    err = process.start(pid)
+    if err then
+      return string.format("Internal Error. Failed to start process (err: %s)", err)
+    end
+
+    last_exit = process.wait(pid)
+
+    if debug then
+      output(string.format("Last exitcode: %s", last_exit))
+    end
+  end
+
+  -- Reset pids
+  ctx.pids = {}
+  -- Keep the last_exit info
+  ctx.last_exit = last_exit
+
+  return nil
+end
+
+---Gathers `pids` within a pipeline. Creates processes, traverses grouped commands, and handles pipe setup between processes.
+---@param pipeline_ast table A pipeline_ast object from parsing input
+---@param ctx table Contextual information from travelling the overall AST
+---@return string | nil An error message, nil by default
 function exec_pipeline(pipeline_ast, ctx)
 
   if not pipeline_ast then
     return "Internal error. Pipeline_ast is nil"
   end
 
+  -- Keep track of the previous pid for piping
   local prev_pid = nil
 
+  -- Iterate over commands
   local i = 1
   while i <= #pipeline_ast.commands do
     local cmd = pipeline_ast.commands[i]
@@ -777,6 +812,8 @@ function exec_pipeline(pipeline_ast, ctx)
     -- Grouped command
     if cmd.kind == 'GROUP' then
 
+      -- EDGECASE: We shouldn't create a group_out_pipe closure if this
+      --           group command is the last command at the top-level
       local last_command = i == #pipeline_ast.commands
       local at_top_level = ctx.group_depth == 0
       if at_top_level and last_command then ctx.dont_pipe_out = true end
@@ -794,11 +831,16 @@ function exec_pipeline(pipeline_ast, ctx)
           end
       end
 
+      -- Traverse the group
       local err = nil
       err = exec_lines(cmd.block, ctx)
       if err then return err end
 
+      -- Reset dont_pipe_out as we're finished with the group
       ctx.dont_pipe_out = false
+
+      -- prev_pid shouldn't be used as `ctx.group_out_pipe` closure
+      -- should be used instead as we've just left a group
       prev_pid = nil
 
       ctx.group_depth = ctx.group_depth - 1
@@ -807,7 +849,9 @@ function exec_pipeline(pipeline_ast, ctx)
 
       local simple_cmd = cmd.block
 
-      -- Built-ins are not allowed to be in groups or a part of pipelines
+      -- EDGECASE: Built-ins are not allowed to be in groups or a part of pipelines
+      -- (They don't have stdin or stdout due to lack of proper subshelling)
+      -- (They also don't have exit codes due to lack of subshelling)
       if is_built_in(simple_cmd) then
         local err = false
         if i ~= 1 then
@@ -820,7 +864,7 @@ function exec_pipeline(pipeline_ast, ctx)
           err = true
         end
         if err then
-          return nil, "Built-ins are not allowed to be within pipelines or groups"
+          return "Built-ins are not allowed to be within pipelines or groups"
         end
 
         built_in(simple_cmd)
@@ -836,6 +880,7 @@ function exec_pipeline(pipeline_ast, ctx)
 
       -- Decide if we're piping in/out
 
+      -- Do we have pipe closures to use from groups?
       local has_group_pipe_in = ctx.group_in_pipe ~= nil
       local has_group_pipe_out = ctx.group_out_pipe ~= nil
 
@@ -875,6 +920,7 @@ function exec_pipeline(pipeline_ast, ctx)
         output(string.format("CMD: %s | i: %s | pipe_in: %s | pipe_out: %s | pid %s | prev_pid %s", simple_cmd.argv[1], i, pipe_in, pipe_out, pid, prev_pid))
       end
 
+      -- Handle piping processes in
       if pipe_in then
         local pipe_err = nil
 
@@ -913,7 +959,7 @@ function exec_pipeline(pipeline_ast, ctx)
       -- Create a group_out_pipe closure
       -- IFF we're at the end of a group
       -- AND
-      -- IFF we're not told not to pipe out
+      -- IFF we're not told to not pipe out
       if end_of_group and not ctx.dont_pipe_out then
         -- Assumption - confirm it
         if not pipe_out then
@@ -929,9 +975,10 @@ function exec_pipeline(pipeline_ast, ctx)
         end
       end
 
-      -- Add pids to the ctx
+      -- Gather pids in the ctx
       table.insert(ctx.pids, pid)
 
+      -- Keep track of our pid as the previous for potential future piping
       prev_pid = pid
     end
     i = i + 1
@@ -940,71 +987,51 @@ function exec_pipeline(pipeline_ast, ctx)
   return nil
 end
 
-function exec_pids(ctx)
-  if #ctx.pids == 0 then
-    return nil
-  end
-
-  local last_exit = nil
-  local err = nil
-
-  for _, pid in ipairs(ctx.pids) do
-
-    err = process.start(pid)
-    if err then
-      return string.format("Internal Error. Failed to start process (err: %s)", err)
-    end
-
-    -- last_exit = process.wait(pid)
-    if debug then
-      output(string.format("Last exitcode: %s", last_exit))
-    end
-  end
-
-  -- Reset pids
-  ctx.pids = {}
-  -- Keep the last_exit info
-  ctx.last_exit = last_exit
-
-  return nil
-end
-
+---Executes a line node from the AST.
+---@param line_ast table A line ast node from parsing input.
+---@param ctx table Contextual information from travelling the overall AST.
+---@return string | nil An error message, nil by default
 function exec_line(line_ast, ctx)
 
   if not line_ast then
     return "Internal error. Line_ast is nil"
   end
 
+  -- EDGECASE: The grammar I created supports background processes,
+  --           but our system does not yet - report lack of support for now
   if line_ast.background then
     return "Background operation not yet supported."
   end
 
-  ctx.is_first_pipeline = true
-  -- If we only have one pipeline, it is also the last pipeline
+  -- Check if we're the last pipeline for contextual information
   if #line_ast.subsequent == 0 then
     ctx.is_last_pipeline = true
   else
     ctx.is_last_pipeline = false
   end
+
+  -- Execute first pipeline
   local err = exec_pipeline(line_ast.entry_pipeline, ctx)
   if err then
     return err
   end
-  ctx.is_first_pipeline = false
 
+  -- For any subsequent pipelines
   for i, pair in ipairs(line_ast.subsequent) do
+    -- Check if we're the last pipeline for contextual information
     if i == #line_ast.subsequent then
       ctx.is_last_pipeline = true
     else
       ctx.is_last_pipeline = false
     end
 
-    -- Exec pids if their exit code is needed for short-circuit expressions
+    -- Exec pids only as we need them for short-circuit evaluation
     local exec_pid_err = exec_pids(ctx)
     if exec_pid_err then
       return exec_pid_err
     end
 
+    -- Check if we should execute the next pipeline based on last exit code
     if pair.op == '&&' then
       if ctx.last_exit == 0 then
         err = exec_pipeline(pair.pipeline, ctx)
@@ -1020,7 +1047,7 @@ function exec_line(line_ast, ctx)
         end
       end
     else
-      -- Break the circuit (short-circuit)
+      -- 
       return nil
     end
   end
@@ -1029,6 +1056,10 @@ function exec_line(line_ast, ctx)
   return nil
 end
 
+---Executes a lines node from the AST.
+---@param lines_ast table A lines ast node from parsing input.
+---@param ctx table Contextual information from travelling the overall AST.
+---@return string | nil An error message, nil by default
 function exec_lines(lines_ast, ctx)
 
   local top_level = false
@@ -1041,7 +1072,6 @@ function exec_lines(lines_ast, ctx)
     ctx = {
       pids = {},
       group_depth = 0, -- If we're in a group
-      is_first_pipeline = false, -- If we're the first pipeline
       is_last_pipeline = false, -- If we're the last pipeline
       group_in_pipe = nil, -- For pipe input into a group
       group_out_pipe = nil, -- For pipe output from a group
@@ -1068,7 +1098,7 @@ function exec_lines(lines_ast, ctx)
     end
   end
 
-  -- If we're at the top-level, execute all pids
+  -- EDGECASE: If we're at the end of the top-level, execute all remaining pids
   if top_level then
     local exec_pid_err = exec_pids(ctx)
     if exec_pid_err then
