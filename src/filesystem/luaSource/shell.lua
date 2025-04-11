@@ -1,3 +1,31 @@
+-- #############################
+-- ####### Flag Handling #######
+-- #############################
+
+local debug = false
+local subshell = nil
+
+function handle_flags()
+  local i = 2
+  while i <= #process.argv do
+    local cur_arg = process.argv[i]
+    if cur_arg == "--subshell" then
+      i = i + 1
+      if i > #process.argv[i] then
+        output("Usage: shell.lua --subshell [command1] [command2]...")
+        process.exit(2)
+      end
+      subshell = table.concat(process.argv, " ", i)
+      break
+    end
+
+    if cur_arg == "--debug" then debug = true end
+
+    i = i + 1
+
+  end
+end
+
 -- #####################################
 -- ####### Envrionment Variables #######
 -- #####################################
@@ -734,144 +762,318 @@ end
 -- ####### AST Walking #######
 -- ###########################
 
-function exec_pipeline(pipeline_node)
-  local pids = {}
-  local commands = pipeline_node.commands
+function exec_pipeline(pipeline_ast, ctx)
+
+  if not pipeline_ast then
+    return "Internal error. Pipeline_ast is nil"
+  end
+
   local prev_pid = nil
 
-  -- Create all processes, piping them all together
   local i = 1
-  while i <= #commands do
-    local cmd = commands[i]
-    -- if it's a builtin, add the builtin closure to the `pids`
-    if is_built_in(cmd) then
-      table.insert(pids,
-        function()
-          built_in_table[cmd.argv[1]](cmd)
-        end
-      )
-      prev_pid = nil
-    -- otherwise add the pid to be started
-    else
-      local exec_path = find_exec_file(cmd.argv[1])
-      if not exec_path then
-        return string.format("Command not found: %s", cmd.argv[1])
-      end
-      -- TODO: Implement redirect_in_type and redirect_out_type on process.create
-      local pipe_in = i > 1
-      local pipe_out = i < #commands
-      local pid, create_err = process.create(exec_path,
-      { argv = cmd.argv, pipe_in = pipe_in, pipe_out = pipe_out, redirect_in = cmd.redirect_in, redirect_out = cmd.redirect_out })
-      if create_err then
-        return create_err
-      end
-      -- Pipe them all together
+  while i <= #pipeline_ast.commands do
+    local cmd = pipeline_ast.commands[i]
+
+    -- Grouped command
+    if cmd.kind == 'GROUP' then
+
+      local last_command = i == #pipeline_ast.commands
+      local at_top_level = ctx.group_depth == 0
+      if at_top_level and last_command then ctx.dont_pipe_out = true end
+
+      -- Increase our depth
+      ctx.group_depth = ctx.group_depth + 1
+
+      -- Create a closure for the inner group to pipe if there is a prev_pid
       if prev_pid then
-        local pipe_err = process.pipe(prev_pid, pid)
+        if debug then
+          output("Going into Group - Creating GROUP_IN_PIPE")
+        end
+        ctx.group_in_pipe = function(first_group_pip)
+            return process.pipe(prev_pid, first_group_pip)
+          end
+      end
+
+      local err = nil
+      err = exec_lines(cmd.block, ctx)
+      if err then return err end
+
+      ctx.dont_pipe_out = false
+      prev_pid = nil
+
+      ctx.group_depth = ctx.group_depth - 1
+    -- Simple command
+    else
+
+      local simple_cmd = cmd.block
+
+      -- Built-ins are not allowed to be in groups or a part of pipelines
+      if is_built_in(simple_cmd) then
+        local err = false
+        if i ~= 1 then
+          err = true
+        end
+        if #pipeline_ast.commands > 1 then
+          err = true
+        end
+        if ctx.group_depth > 0 then
+          err = true
+        end
+        if err then
+          return nil, "Built-ins are not allowed to be within pipelines or groups"
+        end
+
+        built_in(simple_cmd)
+
+        return nil
+      end
+
+      -- Get the execution path
+      local exec_path = find_exec_file(simple_cmd.argv[1])
+      if not exec_path then
+        return string.format("Command not found: %s", simple_cmd.argv[1])
+      end
+
+      -- Decide if we're piping in/out
+
+      local has_group_pipe_in = ctx.group_in_pipe ~= nil
+      local has_group_pipe_out = ctx.group_out_pipe ~= nil
+
+      if debug then
+        output(string.format("end_of_group = (%s and %s and %s)", ctx.group_depth > 0, i == #pipeline_ast.commands, ctx.is_last_pipeline))
+      end
+
+      -- We're at the end of a group IFF the depth is above 0 AND we're the final command AND we're the final pipeline
+      local end_of_group = (ctx.group_depth > 0 and i == #pipeline_ast.commands and ctx.is_last_pipeline)
+
+      -- Pipe in IFF there's a pipe_in closure from entering a group
+      -- OR
+      -- Pipe in IFF there's a pipe_out closure from exiting a group
+      -- OR
+      -- Pipe in IFF we're the in the middle of the pipeline
+      local pipe_in = has_group_pipe_in or has_group_pipe_out or (i > 1)
+      -- Pipe out IFF we're at the end of a group
+      -- OR
+      -- Pipe out IFF we're in the middle of a pipeline
+      local pipe_out = (end_of_group and not ctx.dont_pipe_out) or (i < #pipeline_ast.commands)
+
+      -- Create the process
+      -- TODO: Add redirect_type for both in and out ('<<', '>>')
+      local pid, err = process.create(exec_path, {
+        argv = simple_cmd.argv,
+        pipe_in = pipe_in,
+        pipe_out = pipe_out,
+        redirect_in = simple_cmd.redirect_in,
+        redirect_out = simple_cmd.redirect_out
+      })
+
+      if err then
+        return string.format("Failed to start process (err: %s)", err)
+      end
+
+      if debug then
+        output(string.format("CMD: %s | i: %s | pipe_in: %s | pipe_out: %s | pid %s | prev_pid %s", simple_cmd.argv[1], i, pipe_in, pipe_out, pid, prev_pid))
+      end
+
+      if pipe_in then
+        local pipe_err = nil
+
+        -- If we've just entered a group, use the group_in_pipe closure
+        if has_group_pipe_in then
+          if debug then
+            output("In a group WITH group_pipe_in - using it")
+          end
+          if not ctx.group_in_pipe then
+            return "Internal Error. Expected a group_in_pipe closure."
+          end
+          pipe_err = ctx.group_in_pipe(pid)
+          ctx.group_in_pipe = nil
+
+        -- If we're just out of a group, use the group_out_pipe closure
+        elseif has_group_pipe_out then
+          if debug then
+            output("Just after a group with group_pipe_out - using it")
+          end
+          if not ctx.group_out_pipe then
+            return "Internal Error. Expected a group_out_pipe closure."
+          end
+          pipe_err = ctx.group_out_pipe(pid)
+          ctx.group_out_pipe = nil
+
+        -- Otherwise, pipe to the prev_pid as normal
+        else
+          pipe_err = process.pipe(prev_pid, pid)
+        end
+
         if pipe_err then
-          return nil, string.format("Failed to pipe processes (err: %s)", pipe_err)
+          return string.format("Failed to create pipe (err: %s)", pipe_err)
         end
       end
-      table.insert(pids, pid)
+
+      -- Create a group_out_pipe closure
+      -- IFF we're at the end of a group
+      -- AND
+      -- IFF we're not told not to pipe out
+      if end_of_group and not ctx.dont_pipe_out then
+        -- Assumption - confirm it
+        if not pipe_out then
+          return "Internal Error. Expected pipe_out to be true"
+        end
+
+        -- EDGECASE: Could be exiting multiple groups at once, don't override if one exists
+        if not ctx.group_out_pipe then
+          if debug then output("End of Group - Creating GROUP_OUT_PIPE") end
+          ctx.group_out_pipe = function(new_pid)
+              return process.pipe(pid, new_pid)
+            end
+        end
+      end
+
+      -- Add pids to the ctx
+      table.insert(ctx.pids, pid)
+
       prev_pid = pid
     end
-    i = i + 1
-  end
-
-  return pids, nil
-end
-
-function exec_line(line_node)
-
-  -- TODO: Implement background processes
-  if line_node.background then
-    return "Background processes not implemented yet!"
-  end
-
-  -- Collect all piped pids + conditional operations '&&', '||' together in a chain
-  local chain = {}
-
-  -- Insert first pipeline
-  local pids, err = exec_pipeline(line_node.entry_pipeline)
-  if err then
-    return err
-  end
-  -- Insert subsequent ones
-  table.insert(chain, {pids = pids, op = nil})
-  local sub = line_node.subsequent
-  local i = 1
-  while i <= #sub do
-    local op = sub[i][1]
-    local pipeline = sub[i][2]
-    pids, err = exec_pipeline(pipeline)
-    if err then
-      return err
-    end
-    table.insert(chain, { pids = pids, op = op })
-    i = i + 1
-  end
-
-  local last_chain_exit_code = nil
-
-  -- Iterate over chain, starting all processes and waiting on them
-  i = 1
-  while i <= #chain do
-    local prev_and = and_map[chain[i].op]
-    local prev_or = or_map[chain[i].op]
-
-    -- Non-nested short-circuit evaluation supported currently only
-    if last_chain_exit_code == nil or (prev_and and last_chain_exit_code == 0) or (prev_or and last_chain_exit_code ~= 0) then
-      -- In order to support built-ins within pipelines, we need to
-      -- implement `sub-shelling`. Until this is done, built-ins are
-      -- considered an edge-case
-      if type(chain[i].pids[1]) == "function" then
-        if #chain[i].pids > 1 then
-          return "Built-ins can only be ran in isolation, not within pipelines"
-        end
-        chain[i].pids[1]()
-        last_chain_exit_code = 0
-      else
-        -- Start all processes
-        local j = 1
-        while j <= #(chain[i].pids) do
-          -- If it's a builtin, execute it
-          if type(chain[i].pids[j]) == "function" then
-            chain[i].pids[j]()
-          else
-          -- If it's a pid, start it
-            process.start(chain[i].pids[j])
-          end
-          j = j + 1
-        end
-
-        -- Wait for all processes to finish
-        j = 1
-        while j <= #(chain[i].pids) do
-          if j == #chain[i].pids then
-            last_chain_exit_code = process.wait(chain[i].pids[j])
-          else
-             process.wait(chain[i].pids[j])
-          end
-          j = j + 1
-        end
-
-      end
-    end
-
     i = i + 1
   end
 
   return nil
 end
 
-function exec_lines(lines_node)
-  local i = 1
-  while i <= #lines_node do
-    local err = exec_line(lines_node[i])
+function exec_pids(ctx)
+  if #ctx.pids == 0 then
+    return nil
+  end
+
+  local last_exit = nil
+  local err = nil
+
+  for _, pid in ipairs(ctx.pids) do
+
+    err = process.start(pid)
+    if err then
+      return string.format("Internal Error. Failed to start process (err: %s)", err)
+    end
+
+    -- last_exit = process.wait(pid)
+    if debug then
+      output(string.format("Last exitcode: %s", last_exit))
+    end
+  end
+
+  -- Reset pids
+  ctx.pids = {}
+  -- Keep the last_exit info
+  ctx.last_exit = last_exit
+
+  return nil
+end
+
+function exec_line(line_ast, ctx)
+
+  if not line_ast then
+    return "Internal error. Line_ast is nil"
+  end
+
+  if line_ast.background then
+    return "Background operation not yet supported."
+  end
+
+  ctx.is_first_pipeline = true
+  -- If we only have one pipeline, it is also the last pipeline
+  if #line_ast.subsequent == 0 then
+    ctx.is_last_pipeline = true
+  else
+    ctx.is_last_pipeline = false
+  end
+  local err = exec_pipeline(line_ast.entry_pipeline, ctx)
+  if err then
+    return err
+  end
+  ctx.is_first_pipeline = false
+
+  for i, pair in ipairs(line_ast.subsequent) do
+    if i == #line_ast.subsequent then
+      ctx.is_last_pipeline = true
+    else
+      ctx.is_last_pipeline = false
+    end
+
+    -- Exec pids if their exit code is needed for short-circuit expressions
+    local exec_pid_err = exec_pids(ctx)
+    if exec_pid_err then
+      return exec_pid_err
+    end
+
+    if pair.op == '&&' then
+      if ctx.last_exit == 0 then
+        err = exec_pipeline(pair.pipeline, ctx)
+        if err then
+          return err
+        end
+      end
+    elseif pair.op == '||' then
+      if ctx.last_exit ~= 0 then
+        err = exec_pipeline(pair.pipeline, ctx)
+        if err then
+          return err
+        end
+      end
+    else
+      -- Break the circuit (short-circuit)
+      return nil
+    end
+  end
+
+  -- Got through the entire pipeline!
+  return nil
+end
+
+function exec_lines(lines_ast, ctx)
+
+  local top_level = false
+
+  if not lines_ast then
+    return "Internal error. Lines_ast is nil"
+  end
+
+  if not ctx then
+    ctx = {
+      pids = {},
+      group_depth = 0, -- If we're in a group
+      is_first_pipeline = false, -- If we're the first pipeline
+      is_last_pipeline = false, -- If we're the last pipeline
+      group_in_pipe = nil, -- For pipe input into a group
+      group_out_pipe = nil, -- For pipe output from a group
+      last_exit = nil
+    }
+    top_level = true
+  end
+
+  local err = nil
+
+  for i, line in ipairs(lines_ast) do
+    err = exec_line(line, ctx)
     if err then
       return err
     end
-    i = i + 1
+
+    -- If we're at the end of a line, execute all pids
+    -- except if we're the last one ( could be at the end of a group )
+    if i ~= #lines_ast then
+      local exec_pid_err = exec_pids(ctx)
+      if exec_pid_err then
+        return exec_pid_err
+      end
+    end
+  end
+
+  -- If we're at the top-level, execute all pids
+  if top_level then
+    local exec_pid_err = exec_pids(ctx)
+    if exec_pid_err then
+      return exec_pid_err
+    end
   end
 
   return nil
@@ -881,33 +1083,48 @@ end
 -- ####### Main Loop #######
 -- #########################
 
-function prompt()
-  local PROMPT = get_env_var("PROMPT") or "$ "
-  output(PROMPT, { newline = false })
+-- Handle flags
+handle_flags()
+
+-- handle subshelling
+if subshell then
+  local tokens, err = tokenise(subshell)
+  if err then
+    process.exit(1)
+  end
+  local ast, _, err2 = parse_lines(tokens, 1, false)
+  if err2 then
+    process.exit(1)
+  end
+  local err3 = exec_lines(ast)
+  if err3 then
+    process.exit(1)
+  end
+else
+-- Not a subshell, execute interatively
+  local line = terminal.prompt("$ ")
+  while true do
+    if line == nil then
+      output("\nEOF: exiting")
+      break
+    end;
+    local tokens, token_err = tokenise(line)
+    if not token_err then
+      if #tokens ~= 0 then
+        local ast, _, parse_err = parse_lines(tokens, 1, false)
+        if not parse_err then
+          local exec_err = exec_lines(ast)
+          if exec_err then
+            output("Error: " .. exec_err)
+          end
+        else
+          output("Error: " .. parse_err)
+        end
+      end
+    else
+      output("Error: " .. token_err)
+    end
+    line = terminal.prompt("$ ")
+  end
 end
 
-local line = terminal.prompt("$ ")
-while true do
-  if line == nil then
-    output("\nEOF: exiting")
-    break
-  end;
-  local tokens, err = tokenise(line)
-  if not err then
-    if #tokens ~= 0 then
-      local ast, position, err = parse_lines(tokens, 1, false)
-      if not err then
-        -- local err = exec_lines(ast)
-        -- if err then
-        --   output("Error: " .. err)
-        -- end
-        output(inspect(ast))
-      else
-        output("Error: " .. err)
-      end
-    end
-  else
-    output("Error: " .. err)
-  end
-  line = terminal.prompt("$ ")
-end
