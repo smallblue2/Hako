@@ -118,6 +118,7 @@ export function initialiseAPI(Module) {
 
   Filesystem.initialiseFS = async () => {
     let M = window._FSM;
+
     let persistentRoot = "/persistent";
     let check = M.FS.analyzePath(persistentRoot, false);
     if (check.exists) {
@@ -172,31 +173,19 @@ export function initialiseAPI(Module) {
       // Set correct permissions so parent directory cannot be modified either
       // INFO: I don't believe we're currently using dir permission bits, but future proofing regardless
       M.FS.chmod(systemFilePath, 0o710);
-
-      return new Promise((res, rej) => {
-        M.FS.syncfs(
-          false, function(err) {
-            if (err) {
-              console.error("[JS] Error during sync:", err);
-              rej("Failed to syncronize");
-            } else {
-              console.log("[JS] Sync completed succesfully!");
-              res();
-            }
-        });
-      })
     }
+
 
     return new Promise((res, rej) => {
       // Pull in previous data after mounting
       M.FS.syncfs(
-        true, async (err) => {
+        true, (err) => {
           if (err) {
             console.error("[JS] Error during sync:", err);
             rej("Failed to syncronize")
           } else {
             console.log("[JS] Sync completed succesfully!");
-            await moveFilesIn(res);
+            moveFilesIn(res);
             res();
           }
       });
@@ -471,48 +460,27 @@ export function initialiseAPI(Module) {
 
     let entries = [];
 
-    let sp = Module.stackSave();
+    const { returnVal, errno } = callWithErrno(
+      "file__read_dir",
+      null,
+      ["string"],
+      [path]
+    );
 
-    // Allocate space on the heap for the Entry struct
-    // Heap is chosen here to allow the Entry to persist
-    // accross calls
-    let entryPtr = Module._malloc(sizeof(Module, "Entry"));
-    const entryView = new StructView(Module, "Entry", entryPtr);
-
-    while (true) {
-      let { errno } = callWithErrno(
-        "file__read_dir",
-        null,
-        ["string", "number"],
-        [path, entryPtr]
-      )
-
-      if (errno > 0) {
-        errorStr = errnoToString(errno);
-        break;
-      }
-
-      let entryNameLength = entryView.name_len;
-      let dataPtr = entryView.name;
-      let endIndicator = entryView.isEnd;
-      if (endIndicator == 1) break; // STOP if we're at the end
-
-      if (entryNameLength > 0) {
-        // Extract the entry name
-        const dataView = new Uint8Array(Module.HEAPU8.buffer, dataPtr, entryNameLength);
-        const copy = new Uint8Array(dataView);
-        const entryName = Filesystem._UTF8Decoder.decode(copy);
-        entries.push(entryName);
-        // Free the entry name string as it was created via
-        // `strdup` in C
-        Module._free(dataPtr);
-      }
+    function derefs(ptr) {
+      return Module.getValue(ptr, '*');
     }
 
-    // Free the entry pointer
-    Module._free(entryPtr);
-
-    Module.stackRestore(sp);
+    let i = 0;
+    let view = returnVal;
+    let entryPtr = derefs(view);
+    while (entryPtr !== 0) {
+      entries.push(Module.UTF8ToString(entryPtr));
+      Module._free(entryPtr);
+      i++;
+      entryPtr = derefs(view + i * 4);
+    }
+    Module._free(returnVal);
 
     return { error: errorStr, entries }
   }
