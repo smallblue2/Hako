@@ -1,29 +1,35 @@
-<script>
+<script lang="ts">
   import * as lib from "$lib";
   import * as windows from "$lib/windows.svelte.js";
-  import { onMount } from "svelte";
+  import _, * as overlay from "./Overlay.svelte";
+  import { scale } from "svelte/transition";
+  import { onMount, tick } from "svelte";
 
-  let { id, maximized = $bindable(), onResize, data, dataRef, layerFromId, title } = $props();
+  interface Props {
+    id: number,
+    maximized: boolean,
+    onResize: Function,
+    data: any,
+    dataRef: HTMLElement,
+    onClose?: Function,
+    layerFromId: number[],
+    title: string,
+    initOffset?: { x: number, y: number },
+  };
 
-  /** @type {HTMLDivElement | undefined} */
-  let root = $state();
+  let { id, maximized = $bindable(), onResize, data, dataRef, onClose, layerFromId, title, initOffset = {x: 0, y: 0} }: Props = $props();
 
-  /** @type {HTMLDivElement | undefined} */
-  let evWrap = $state();
+  let root: HTMLDivElement = $state();
+  let evWrap: HTMLDivElement = $state();
+  let visibleAreaOff: number = 0; // The size of the resize areas margin
 
-  /** @type {number} */
-  let visibleAreaOff = 0; // The size of the resize areas margin
-
-  let min = 100;
+  let min = 150;
   let resizing = false;
 
-  let maxY = undefined;
-  let maxX = undefined;
+  let maxY: number = undefined;
+  let maxX: number = undefined;
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  function onDragWindow(ev) {
+  function onDragWindow(ev: MouseEvent) {
     const rect = root.getBoundingClientRect();
     root.style.top = Math.max(-visibleAreaOff, rect.top + ev.movementY).toString() + "px";
     root.style.left = Math.max(-visibleAreaOff, rect.left + ev.movementX).toString() + "px";
@@ -33,27 +39,17 @@
     if (!maximized) {
       document.addEventListener("mousemove", onDragWindow);
       document.addEventListener("mouseup", onReleaseDecorations);
-      let overlay = document.getElementById("event-overlay");
-      overlay.style.display = "block";
+      overlay.toggleGrab();
     }
   }
 
   function onReleaseDecorations() {
     document.removeEventListener("mousemove", onDragWindow);
     document.removeEventListener("mouseup", onReleaseDecorations);
-    let overlay = document.getElementById("event-overlay");
-    overlay.style.display = "none";
+    overlay.toggleGrab();
   }
 
-  /**
-   * @param {number} ox
-   * @param {number} oy
-   * @param {number} cx
-   * @param {number} cy
-   * @param {number} m
-   * @returns {number}
-   */
-  function getSection(ox, oy, cx, cy, m) {
+  function getSection(ox: number, oy: number, cx: number, cy: number, m: number) {
     if (ox <= m && oy <= m) { return lib.TOP_LEFT_CORNER; }
     if (ox >= (cx - m) && oy <= m) { return lib.TOP_RIGHT_CORNER; }
     if (ox <= m && oy >= (cy - m)) { return lib.BOTTOM_LEFT_CORNER; }
@@ -65,10 +61,7 @@
     return -1;
   }
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  function onMoveResizeArea(ev) {
+  function onMoveResizeArea(ev: MouseEvent) {
     if (ev.target === root && !resizing) { // make sure hovering child element does not trigger this
       let { offsetX, offsetY } = ev;
       const sect = getSection(offsetX, offsetY, root.clientWidth, root.clientHeight, 10);
@@ -76,18 +69,12 @@
     }
   }
 
-  /** @type {number} */
-  let globalSect;
+  let globalSect: number;
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  function onDragResize(ev) {
-    // if (onResize(globalSect, ev.movementX, ev.movementY)) {
+  function onDragResize(ev: MouseEvent) {
+    const [ dw, dh ] = lib.getResizeFromSect(globalSect, ev.movementX, ev.movementY);
+    onResize(dw, dh);
 
-    onResize(globalSect, ev.movementX, ev.movementY);
-
-    const dataRect = dataRef.getBoundingClientRect(); // we need to look at the child itself (so as to exclude margin etc).
     const rect = root.getBoundingClientRect();
 
     let dy = 0;
@@ -113,10 +100,7 @@
     root.style.left = posX.toString() + "px";
   }
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  async function onHoldResizeArea(ev) {
+  async function onHoldResizeArea(ev: MouseEvent) {
     if (ev.target === root && !maximized) { // make sure hovering child element does not trigger this
       let { offsetX, offsetY } = ev;
       globalSect = getSection(offsetX, offsetY, root.clientWidth, root.clientHeight, 10);
@@ -136,15 +120,13 @@
       document.addEventListener("mousemove", onDragResize);
       document.addEventListener("mouseup", onReleaseResizeArea);
 
-      let overlay = document.getElementById("event-overlay");
-      overlay.style.display = "block";
-      overlay.style.cursor = lib.SECTION_CURSORS[globalSect];
+      overlay.toggleGrab();
+      overlay.setCursor(lib.SECTION_CURSORS[globalSect])
     }
   }
 
   function onReleaseResizeArea() {
-    let overlay = document.getElementById("event-overlay");
-    overlay.style.display = "none";
+    overlay.toggleGrab();
     root.classList.toggle(lib.SECTION_STYLE[globalSect]);
     resizing = false;
     document.removeEventListener("mousemove", onDragResize);
@@ -155,30 +137,37 @@
   function onExitResizeArea() {
     if (!resizing) {
       document.documentElement.style.cursor = "revert";
-      let overlay = document.getElementById("event-overlay");
-      overlay.style.cursor = "auto";
+      overlay.setCursor("auto");
     }
   }
 
-  /**
-   * @param {MouseEvent} ev
-   */
-  function noProp(ev) {
+  function noProp(ev: MouseEvent) {
     ev.stopPropagation();
   }
 
+  function closeWindow() {
+    if (onClose !== undefined) onClose();
+    windows.closeWindow(id);
+  }
+
   $effect(() => {
-    root.style.zIndex = layerFromId[id];
+    root.style.zIndex = layerFromId[id].toString();
   })
 
-  onMount(() => {
+  onMount(async () => {
+    await tick(); // wait until size of component settles
+    const rect = root?.getBoundingClientRect();
+    let x = Math.floor((window.innerWidth - rect.width) / 2) + initOffset.x;
+    let y = Math.floor((window.innerHeight - rect.height) / 2) + initOffset.y;
+    root.style.top = y + "px";
+    root.style.left = x + "px";
     visibleAreaOff = parseInt(window.getComputedStyle(evWrap).margin, 10);
   })
 </script>
 
 <!-- svelte-ignore a11y_mouse_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={() => windows.focusWindow(id)}
+<div transition:scale={{ duration: 200, start: 0.5 }} id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={() => windows.focusWindow(id)}
 
   onmousemove={onMoveResizeArea}
   onmouseout={onExitResizeArea}
@@ -189,18 +178,16 @@
       <!-- <div></div> -->
       <p class="title">{title}</p>
       <div class="btns">
-        <button title="Hide" class="btn" onmousedown={noProp} onclick={() => {
-          root.style.display = "none";
-        }}>
+        <button aria-label="Hide" title="Hide" class="btn" onmousedown={noProp} onclick={() => windows.hideWindow(id)}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M217-86v-126h526v126H217Z"/></svg>
         </button>
-        <button title="Maximize" class="btn" onmousedown={noProp} onclick={() => {
+        <button aria-label="Maximize" title="Maximize" class="btn" onmousedown={noProp} onclick={() => {
           root.classList.toggle("window-maximized");
-          maximized ^= true;
+          maximized = !maximized;
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
         </button>
-        <button title="Close" class="btn" onmousedown={noProp} onclick={() => windows.closeWindow(id)}>
+        <button aria-label="Close" title="Close" class="btn" onmousedown={noProp} onclick={() => closeWindow()}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
         </button>
       </div>
@@ -212,6 +199,8 @@
 <style>
 .window {
   position: absolute;
+  top: 0;
+  left: 0;
   background-color: rgba(0,0,0,0);
   outline: none;
 	background-repeat: no-repeat;
@@ -220,7 +209,7 @@
 
 :global(.window-maximized) {
   display: grid;
-  position: fixed;
+  position: relative !important;
   top: 0px !important;
   left: 0px !important;
   width: 100% !important;

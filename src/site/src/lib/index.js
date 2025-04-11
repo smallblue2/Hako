@@ -31,3 +31,47 @@ export function clamp(n, min) {
   }
   return n;
 }
+
+export function getInitWindowSize() {
+  const width = window.innerWidth * 0.4;
+  const height = window.innerHeight * 0.5;
+  return { initWidth: width, initHeight: height };
+}
+
+export function getResizeFromSect(sect, relX, relY) {
+  let dw = 0;
+  let dh = 0;
+
+  switch (sect) {
+    case BOTTOM_RIGHT_CORNER:
+      dw = relX;
+      dh = relY;
+      break;
+    case RIGHT:
+      dw = relX;
+      break;
+    case BOTTOM:
+      dh = relY;
+      break;
+    case TOP_LEFT_CORNER:
+      dw = -relX;
+      dh = -relY;
+      break;
+    case LEFT:
+      dw = -relX;
+      break;
+    case TOP:
+      dh = -relY;
+      break;
+    case TOP_RIGHT_CORNER:
+      dw = relX;
+      dh = -relY;
+      break;
+    case BOTTOM_LEFT_CORNER:
+      dw = -relX;
+      dh = relY;
+      break;
+  }
+
+  return [ dw, dh ];
+}

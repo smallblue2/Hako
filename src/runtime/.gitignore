@@ -1,2 +1,2 @@
-subprojects/lua-5.4.6
-subprojects/packagecache
+lua-5.4.6
+packagecache

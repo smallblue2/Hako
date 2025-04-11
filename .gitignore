@@ -1,0 +1,15 @@
+.gitlab-ci-local
+
+runtime.js
+runtime.wasm
+
+filesystem.js
+filesystem.wasm
+
+processes.js
+processes.wasm
+
+src/runtime/vendor/ncurses/
+src/runtime/vendor/libedit/
+
+gnu-keyring.gpg

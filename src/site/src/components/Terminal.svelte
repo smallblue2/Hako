@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import Window from "../components/Window.svelte";
   import * as lib from "$lib";
 
@@ -10,61 +10,23 @@
   import { openpty } from "xterm-pty";
   import { onMount } from "svelte";
 
-  let { id, wasmModule, layerFromId } = $props();
+  let { id, layerFromId } = $props();
 
-  let min = 100;
+  let min = 200;
 
-  /** @type {HTMLDivElement | undefined} */
-  let root = $state();
+  let root: HTMLDivElement = $state();
 
   let width = 320;
   let height = 260;
 
-  let terminal;
+  let terminal: xterm.Terminal;
 
-  /** @type {FitAddon} */
-  let fitAddon;
+  // PID attached to terminal
+  let pid = -1;
 
-  /**
-   * @param {number} sect
-   * @param {number} relX
-   * @param {number} relY
-   */
-  function onResize(sect, relX, relY) {
-    let dw = 0;
-    let dh = 0;
+  let fitAddon: FitAddon;
 
-    switch (sect) {
-      case lib.BOTTOM_RIGHT_CORNER:
-        dw = relX;
-        dh = relY;
-        break;
-      case lib.RIGHT:
-        dw = relX;
-        break;
-      case lib.BOTTOM:
-        dh = relY;
-        break;
-      case lib.TOP_LEFT_CORNER:
-        dw = -relX;
-        dh = -relY;
-        break;
-      case lib.LEFT:
-        dw = -relX;
-        break;
-      case lib.TOP:
-        dh = -relY;
-        break;
-      case lib.TOP_RIGHT_CORNER:
-        dw = relX;
-        dh = -relY;
-        break;
-      case lib.BOTTOM_LEFT_CORNER:
-        dw = -relX;
-        dh = relY;
-        break;
-    }
-
+  function onResize(dw: number, dh: number) {
     width = lib.clamp(width + dw, min);
     height = lib.clamp(height + dh, min);
     root.style.width = width.toString() + "px";
@@ -75,8 +37,8 @@
     return true; // you can return false to say you can't resize
   }
 
-  let master;
-  let slave;
+  let master: any;
+  let slave: any;
 
   let maximized = $state(false);
 
@@ -91,10 +53,29 @@
     }
   });
 
-  $effect(async () => {
-    let { default: initEmscripten } = await import(wasmModule);
+  function onClose() {
+    console.log(`Terminal with PID ${pid} is closing.`);
+    window.ProcessManager.killProcess(pid);
+  }
 
-    terminal = new Terminal({ fontFamily: "JetBrainsMono-Regular" });
+  onMount(async () => {
+    let { initWidth, initHeight } = lib.getInitWindowSize();
+    width = initWidth;
+    height = initHeight;
+    root.style.width = initWidth.toString() + "px";
+    root.style.height = initHeight.toString() + "px";
+
+    window.addEventListener("resize", () => {
+      if (maximized) {
+        fitAddon.fit();
+      }
+    })
+
+    const styles = getComputedStyle(document.documentElement);
+    const fg = styles.getPropertyValue("--md-sys-color-surface").trim();
+    const bg = styles.getPropertyValue("--md-sys-color-on-surface").trim();
+
+    terminal = new Terminal({ fontFamily: "monospace", fontSize: 20, theme: { foreground: fg, background: bg } });
     terminal.open(root);
 
     const pty = openpty();
@@ -107,21 +88,13 @@
     terminal.loadAddon(master);
     fitAddon.fit();
 
-    await initEmscripten({
-      pty: slave
-    });
-  })
-
-  onMount(() => {
-    window.addEventListener("resize", () => {
-      if (maximized) {
-        fitAddon.fit();
-      }
-    })
+    // Create a process which will start straight away and wont have its streams piped
+    // INFO: This will be the shell when it's created
+    pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false, start: true});
   })
 </script>
 
-<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root}>
+<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root} {onClose}>
   {#snippet data()}
     <div bind:this={root} class="contents"></div>
   {/snippet}
@@ -129,14 +102,10 @@
 
 <style>
 .contents {
-  background-color: black;
+  color: var(--md-sys-color-surface) !important;
+  background-color: var(--md-sys-color-on-surface) !important;
   width: 320px;
   height: 260px;
-}
-
-:global(.window-root-maximized) {
-  width: 100% !important;
-  height: 100% !important;
 }
 
 :global(.xterm-viewport) {

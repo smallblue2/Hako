@@ -1,6 +1,5 @@
 // Import modules for globals and API
-import './api/definitions.js';
-import { initialiseAPI, Filesystem } from './api/api.js';
+import { initialiseAPI, Filesystem } from './api.mjs'
 
 window.isFilesystemInitialised = false;
 
@@ -8,13 +7,14 @@ window.isFilesystemInitialised = false;
 const LoadFilesystem = (async () => {
   try {
     // Dynamically load the emscripten module
-    const { default: initEmscripten } = await import('./api/compiled.mjs'); // WARNING: RELATIVE PATH
+    const { default: initEmscripten } = await import('./filesystem.mjs'); // WARNING: RELATIVE PATH
 
     // Initialise the emscripten module
     const Module = await initEmscripten({
       onRuntimeInitialized: () => {
         console.log("Filesystem Emscripten module loaded.");
-      }
+      },
+      noExitRuntime: false
     });
 
     return Module
