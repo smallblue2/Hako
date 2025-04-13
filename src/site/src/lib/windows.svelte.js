@@ -27,7 +27,7 @@ export const applications = $state([
   },
   {
     icon: FileManagerIcon,
-    name: "FileManager",
+    name: "File Manager",
     instances: 0,
     alwaysShow: true,
     create: () => openWindow(FILE_MANAGER, FileManager),

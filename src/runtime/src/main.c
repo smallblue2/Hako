@@ -64,6 +64,8 @@ void export_custom_apis(lua_State *L) {
   lua_setglobal(L, "FILE_MANAGER");
   lua_pushnumber(L, 2);
   lua_setglobal(L, "EDITOR");
+  lua_pushnumber(L, 3);
+  lua_setglobal(L, "MANUAL");
 
   lua_settop(L, top); // restore stack
 }
