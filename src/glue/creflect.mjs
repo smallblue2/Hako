@@ -1,5 +1,5 @@
-// Below are all helpers to access exported variables from the C filesystem
-// module. This allows us to get size of structs aswell as the offsets of their
+// Below are all helpers to access exported variables from C emscripten C emscripten modules.
+// This allows us to get size of structs aswell as the offsets of their
 // fields in js.
 export function sizeof(M, structName) {
   const symbolName = `_sizeof_${structName}`;

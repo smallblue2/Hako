@@ -3,12 +3,14 @@
   import * as windows from "$lib/windows.svelte.js";
   import _, * as overlay from "./Overlay.svelte";
   import { scale } from "svelte/transition";
-  import { onMount, tick } from "svelte";
+  import { onMount } from "svelte";
+  import { cubicInOut } from "svelte/easing";
 
   interface Props {
     id: number,
-    maximized: boolean,
-    onResize: Function,
+    onMaximize: Function,
+    onUnMaximize: Function,
+    onResize?: Function,
     data: any,
     dataRef: HTMLElement,
     onClose?: Function,
@@ -17,35 +19,97 @@
     initOffset?: { x: number, y: number },
   };
 
-  let { id, maximized = $bindable(), onResize, data, dataRef, onClose, layerFromId, title, initOffset = {x: 0, y: 0} }: Props = $props();
+  let { id, onMaximize, onUnMaximize, onResize, data, dataRef, onClose, layerFromId, title, initOffset = {x: 0, y: 0} }: Props = $props();
+
+  // This is used to expose state to outside of the component
+  let ctx: WindowContext = {
+    position: { x: 0, y: 0 },
+    dimensions: { width: 0, height: 0 },
+  };
+
+  let vtable: WindowVTable = {
+    syncSize,
+    syncPosition,
+  };
 
   let root: HTMLDivElement = $state();
   let evWrap: HTMLDivElement = $state();
-  let visibleAreaOff: number = 0; // The size of the resize areas margin
 
-  let min = 150;
   let resizing = false;
 
-  let maxY: number = undefined;
   let maxX: number = undefined;
+  let maxY: number = undefined;
 
-  function onDragWindow(ev: MouseEvent) {
-    const rect = root.getBoundingClientRect();
-    root.style.top = Math.max(-visibleAreaOff, rect.top + ev.movementY).toString() + "px";
-    root.style.left = Math.max(-visibleAreaOff, rect.left + ev.movementX).toString() + "px";
+  let maximized = false;
+  let eventBorder: number = undefined;
+
+  let innerMin = 200;
+
+  function syncSize() {
+    updateInnerSize(0, 0);
+  }
+
+  function syncPosition() {
+    updatePosition();
+  }
+
+  function updateInnerSize(dw: number, dh: number) {
+    ctx.dimensions.width = Math.max(innerMin, ctx.dimensions.width + dw);
+    ctx.dimensions.height = Math.max(innerMin, ctx.dimensions.height + dh);
+    requestAnimationFrame(() => {
+      dataRef.style.width = `max(${innerMin}px, ${ctx.dimensions.width}px)`;
+      dataRef.style.height = `max(${innerMin}px, ${ctx.dimensions.height}px)`;
+      onResize?.();
+    });
+  }
+
+  function updatePosition() {
+    root.style.top = `clamp(-10vh, ${ctx.position.y}px, 90vh)`;
+    root.style.left = `clamp(-10vw, ${ctx.position.x}px, 90vw)`;
+  }
+
+  // https://nolanlawson.com/2019/08/11/high-performance-input-handling-on-the-web/
+  function throttle(timer: Function) {
+    let queuedCallback: Function;
+    return (callback: Function) => {
+      if (!queuedCallback) {
+        timer(() => {
+          const cb = queuedCallback
+          queuedCallback = null
+          cb()
+        })
+      }
+      queuedCallback = callback
+    }
+  }
+
+  const throttleWrite = throttle(requestAnimationFrame);
+
+  let deltaX: number = 0;
+  let deltaY: number = 0;
+  function onDragWindow(ev: PointerEvent) {
+    deltaX += ev.movementX;
+    deltaY += ev.movementY;
+    throttleWrite(() => {
+      ctx.position.x += deltaX;
+      ctx.position.y += deltaY;
+      deltaX = 0;
+      deltaY = 0;
+      updatePosition();
+    })
   }
 
   function onHoldDecorations() {
     if (!maximized) {
-      document.addEventListener("mousemove", onDragWindow);
-      document.addEventListener("mouseup", onReleaseDecorations);
+      document.addEventListener("pointermove", onDragWindow);
+      document.addEventListener("pointerup", onReleaseDecorations);
       overlay.toggleGrab();
     }
   }
 
   function onReleaseDecorations() {
-    document.removeEventListener("mousemove", onDragWindow);
-    document.removeEventListener("mouseup", onReleaseDecorations);
+    document.removeEventListener("pointermove", onDragWindow);
+    document.removeEventListener("pointerup", onReleaseDecorations);
     overlay.toggleGrab();
   }
 
@@ -73,9 +137,7 @@
 
   function onDragResize(ev: MouseEvent) {
     const [ dw, dh ] = lib.getResizeFromSect(globalSect, ev.movementX, ev.movementY);
-    onResize(dw, dh);
-
-    const rect = root.getBoundingClientRect();
+    updateInnerSize(dw, dh);
 
     let dy = 0;
     let dx = 0;
@@ -94,10 +156,11 @@
         break;
     }
 
-    const posY = Math.max(-visibleAreaOff, Math.min(rect.top + dy, maxY));
-    const posX = Math.max(-visibleAreaOff, Math.min(rect.left + dx, maxX));
-    root.style.top = posY.toString() + "px";
-    root.style.left = posX.toString() + "px";
+    ctx.position.y = Math.max(-eventBorder, Math.min(ctx.position.y + dy, maxY));
+    ctx.position.x = Math.max(-eventBorder, Math.min(ctx.position.x + dx, maxX));
+    requestAnimationFrame(() => {
+      updatePosition();
+    })
   }
 
   async function onHoldResizeArea(ev: MouseEvent) {
@@ -113,12 +176,12 @@
       // the parent based on that
       const dataRect = dataRef.getBoundingClientRect();
       const rootRect = root.getBoundingClientRect();
-      maxX = (dataRect.x + dataRect.width) - min - (dataRect.x - rootRect.x);
-      maxY = (dataRect.y + dataRect.height) - min - (dataRect.y - rootRect.y);
+      maxX = (dataRect.x + dataRect.width) - innerMin - (dataRect.x - rootRect.x);
+      maxY = (dataRect.y + dataRect.height) - innerMin - (dataRect.y - rootRect.y);
 
       resizing = true;
-      document.addEventListener("mousemove", onDragResize);
-      document.addEventListener("mouseup", onReleaseResizeArea);
+      document.addEventListener("pointermove", onDragResize);
+      document.addEventListener("pointerup", onReleaseResizeArea);
 
       overlay.toggleGrab();
       overlay.setCursor(lib.SECTION_CURSORS[globalSect])
@@ -129,8 +192,8 @@
     overlay.toggleGrab();
     root.classList.toggle(lib.SECTION_STYLE[globalSect]);
     resizing = false;
-    document.removeEventListener("mousemove", onDragResize);
-    document.removeEventListener("mouseup", onReleaseResizeArea);
+    document.removeEventListener("pointermove", onDragResize);
+    document.removeEventListener("pointerup", onReleaseResizeArea);
     onExitResizeArea();
   }
 
@@ -141,7 +204,7 @@
     }
   }
 
-  function noProp(ev: MouseEvent) {
+  function noProp(ev: PointerEvent) {
     ev.stopPropagation();
   }
 
@@ -154,40 +217,59 @@
     root.style.zIndex = layerFromId[id].toString();
   })
 
+  let decoRef: HTMLElement = $state();
+
   onMount(async () => {
-    await tick(); // wait until size of component settles
-    const rect = root?.getBoundingClientRect();
-    let x = Math.floor((window.innerWidth - rect.width) / 2) + initOffset.x;
-    let y = Math.floor((window.innerHeight - rect.height) / 2) + initOffset.y;
-    root.style.top = y + "px";
-    root.style.left = x + "px";
-    visibleAreaOff = parseInt(window.getComputedStyle(evWrap).margin, 10);
+    let win = windows.getWindowByID(id);
+    win.state.ctx = ctx;
+    win.state.vtable = vtable;
+
+    let { initWidth, initHeight } = lib.getInitWindowSize();
+    ctx.dimensions.width = initWidth;
+    ctx.dimensions.height = initHeight;
+    updateInnerSize(0, 0);
+    // We need to calculate the expected size of the window based on the dimensions
+    // of what we know and the initial width and height
+    eventBorder = parseInt(window.getComputedStyle(evWrap).margin, 10);
+    const { height: decoHeight } = decoRef.getBoundingClientRect();
+    const expectedWidth = 2 * eventBorder + initWidth;
+    const expectedHeight = 2 * eventBorder + initHeight + decoHeight;
+    ctx.position.x = Math.floor((window.innerWidth - expectedWidth) / 2) + (initOffset.x ?? 0);
+    ctx.position.y = Math.floor((window.innerHeight - expectedHeight) / 2) + (initOffset.y ?? 0);
+    updatePosition();
   })
 </script>
 
 <!-- svelte-ignore a11y_mouse_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div transition:scale={{ duration: 200, start: 0.5 }} id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={() => windows.focusWindow(id)}
+<div transition:scale={{ easing: cubicInOut, duration: 100, start: 0.5 }} id="window-{id}" bind:this={root} class="window" tabindex="-1" onfocusin={() => windows.focusWindow(id)}
 
-  onmousemove={onMoveResizeArea}
-  onmouseout={onExitResizeArea}
-  onmousedown={onHoldResizeArea}>
+  onpointermove={onMoveResizeArea}
+  onpointerout={onExitResizeArea}
+  onpointerdown={(ev) => {
+    const middleClick = ev.buttons === 4;
+    if (middleClick) {
+      closeWindow();
+      return;
+    }
+    onHoldResizeArea(ev);
+  }}>
 
   <div bind:this={evWrap} class="ev-wrapper">
-    <div class="decorations" onmousedown={onHoldDecorations}>
-      <!-- <div></div> -->
+    <div bind:this={decoRef} class="decorations" onpointerdown={onHoldDecorations}>
       <p class="title">{title}</p>
       <div class="btns">
-        <button aria-label="Hide" title="Hide" class="btn" onmousedown={noProp} onclick={() => windows.hideWindow(id)}>
+        <button aria-label="Hide" title="Hide" class="btn" onpointerdown={noProp} onclick={() => windows.hideWindow(id)}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M217-86v-126h526v126H217Z"/></svg>
         </button>
-        <button aria-label="Maximize" title="Maximize" class="btn" onmousedown={noProp} onclick={() => {
+        <button aria-label="Maximize" title="Maximize" class="btn" onpointerdown={noProp} onclick={() => {
           root.classList.toggle("window-maximized");
           maximized = !maximized;
+          if (maximized) { onMaximize(); } else { onUnMaximize(); }
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
         </button>
-        <button aria-label="Close" title="Close" class="btn" onmousedown={noProp} onclick={() => closeWindow()}>
+        <button aria-label="Close" title="Close" class="btn" onpointerdown={noProp} onclick={() => closeWindow()}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
         </button>
       </div>
@@ -203,8 +285,10 @@
   left: 0;
   background-color: rgba(0,0,0,0);
   outline: none;
-	background-repeat: no-repeat;
   border-radius: 0.3rem;
+  will-change: top, left;
+  backface-visibility: hidden;
+  /* TODO(improve performance - blocker: child context menu being clipped by contain property): contain: content strict; */
 }
 
 :global(.window-maximized) {
@@ -220,7 +304,6 @@
   display: flex;
   flex-direction: column;
   margin: var(--resize-area);
-  box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 50px;
   outline: var(--window-outline) solid var(--window-outline-area);
   overflow: hidden;
 }

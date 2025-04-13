@@ -4,6 +4,13 @@ interface DeApi {
   windowHide: (id: number) => void,
   windowShow: (id: number) => void,
   windowClose: (id: number) => void,
+  windowFocus: (id: number) => void,
+  windowMove: (id: number, x: number, y: number) => void,
+  windowGetX: (id: number) => number,
+  windowGetY: (id: number) => number,
+  windowResize: (id: number, width: number, height: number) => void,
+  windowGetWidth: (id: number) => number,
+  windowGetHeight: (id: number) => number,
   windowList: () => OpenWindowRestricted[],
 }
 
@@ -28,10 +35,20 @@ interface OpenWindowRestricted {
   readonly show: boolean,
 }
 
+interface WindowContext {
+  position: { x: number, y: number },
+  dimensions: { width: number, height: number },
+}
+
+interface WindowVTable {
+  syncSize: () => void,
+  syncPosition: () => void,
+}
+
 interface OpenWindow {
   readonly id: number,
   readonly type: WindowType,
-  state: { show: boolean },
+  state: { show: boolean, ctx: WindowContext, vtable: WindowVTable },
   readonly component: HTMLElement,
 }
 

@@ -1,6 +1,5 @@
 <script lang="ts">
   import Window from "../components/Window.svelte";
-  import * as lib from "$lib";
 
   import * as xterm from "@xterm/xterm";
   const { Terminal } = xterm;
@@ -8,16 +7,11 @@
   import { FitAddon } from "@xterm/addon-fit";
 
   import { openpty } from "xterm-pty";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
 
   let { id, layerFromId } = $props();
 
-  let min = 200;
-
-  let root: HTMLDivElement = $state();
-
-  let width = 320;
-  let height = 260;
+  let selfRef: HTMLDivElement = $state();
 
   let terminal: xterm.Terminal;
 
@@ -26,14 +20,8 @@
 
   let fitAddon: FitAddon;
 
-  function onResize(dw: number, dh: number) {
-    width = lib.clamp(width + dw, min);
-    height = lib.clamp(height + dh, min);
-    root.style.width = width.toString() + "px";
-    root.style.height = height.toString() + "px";
-
-    fitAddon.fit();
-
+  function onResize() {
+    requestAnimationFrame(() => fitAddon?.fit());
     return true; // you can return false to say you can't resize
   }
 
@@ -43,40 +31,29 @@
   let maximized = $state(false);
 
   $effect(() => {
-    if (maximized) {
-      root.classList.add("window-root-maximized");
-    } else {
-      root.classList.remove("window-root-maximized");
-    }
-    if (fitAddon !== undefined) {
-      fitAddon.fit();
-    }
+    fitAddon?.fit();
   });
 
   function onClose() {
-    console.log(`Terminal with PID ${pid} is closing.`);
-    window.ProcessManager.killProcess(pid);
+    try {
+      console.log(`Terminal with PID ${pid} is closing.`);
+      window.ProcessManager.killProcess(pid);
+    } finally {
+      // Always succeed at closing
+    }
   }
 
-  onMount(async () => {
-    let { initWidth, initHeight } = lib.getInitWindowSize();
-    width = initWidth;
-    height = initHeight;
-    root.style.width = initWidth.toString() + "px";
-    root.style.height = initHeight.toString() + "px";
+  const onWindowResize = () => fitAddon?.fit();
 
-    window.addEventListener("resize", () => {
-      if (maximized) {
-        fitAddon.fit();
-      }
-    })
+  onMount(async () => {
+    window.addEventListener("resize", onWindowResize);
 
     const styles = getComputedStyle(document.documentElement);
     const fg = styles.getPropertyValue("--md-sys-color-surface").trim();
     const bg = styles.getPropertyValue("--md-sys-color-on-surface").trim();
 
     terminal = new Terminal({ fontFamily: "monospace", fontSize: 20, theme: { foreground: fg, background: bg } });
-    terminal.open(root);
+    terminal.open(selfRef);
 
     const pty = openpty();
     master = pty.master;
@@ -92,11 +69,25 @@
     // INFO: This will be the shell when it's created
     pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false, start: true});
   })
+
+  onDestroy(() => {
+    window.removeEventListener("resize", onWindowResize);
+  })
+
+  function onMaximize() {
+    selfRef.classList.add("window-root-maximized");
+    fitAddon?.fit();
+  }
+
+  function onUnMaximize() {
+    selfRef.classList.remove("window-root-maximized");
+    fitAddon?.fit();
+  }
 </script>
 
-<Window title="Terminal" bind:maximized {layerFromId} {id} {onResize} dataRef={root} {onClose}>
+<Window title="Terminal" {layerFromId} {id} dataRef={selfRef} {onResize} {onMaximize} {onUnMaximize} {onClose}>
   {#snippet data()}
-    <div bind:this={root} class="contents"></div>
+    <div bind:this={selfRef} class="contents"></div>
   {/snippet}
 </Window>
 
@@ -104,8 +95,6 @@
 .contents {
   color: var(--md-sys-color-surface) !important;
   background-color: var(--md-sys-color-on-surface) !important;
-  width: 320px;
-  height: 260px;
 }
 
 :global(.xterm-viewport) {

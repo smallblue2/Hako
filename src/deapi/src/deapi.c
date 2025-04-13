@@ -63,13 +63,49 @@ EM_JS(void, _window__show, (void *data), {
   window.deapi.windowShow(id);
 })
 
+EM_JS(void, _window__focus, (void *data), {
+  const id = getValue(data, 'i32');
+  window.deapi.windowFocus(id);
+})
+
+EM_JS(void, _window__get_x, (void *data), {
+  const id = getValue(data, 'i32');
+  setValue(data, window.deapi.windowGetX(id), 'i32');
+})
+
+EM_JS(void, _window__get_y, (void *data), {
+  const id = getValue(data, 'i32');
+  setValue(data, window.deapi.windowGetY(id), 'i32');
+})
+
+EM_JS(void, _window__move, (void *data), {
+  const refl = window.deapi.creflect;
+  const view = new refl.StructView(Module, "Vec2WindowArgs", data);
+  window.deapi.windowMove(view.id, view.num0, view.num1);
+})
+
+EM_JS(void, _window__get_width, (void *data), {
+  const id = getValue(data, 'i32');
+  setValue(data, window.deapi.windowGetWidth(id), 'i32');
+})
+
+EM_JS(void, _window__get_height, (void *data), {
+  const id = getValue(data, 'i32');
+  setValue(data, window.deapi.windowGetHeight(id), 'i32');
+})
+
+EM_JS(void, _window__resize, (void *data), {
+  const refl = window.deapi.creflect;
+  const view = new refl.StructView(Module, "Vec2WindowArgs", data);
+  window.deapi.windowResize(view.id, view.num0, view.num1);
+})
+
 EM_JS(void, _window__close, (void *data), {
   const id = getValue(data, 'i32');
   window.deapi.windowClose(id);
 })
 
 Rect window__area() { PROXY_NO_ARGS(Rect, rect, _window__area); }
-WindowList window__list() { PROXY_NO_ARGS(WindowList, list, _window__list); }
 int window__open(WindowType type) {
   NewWindowSignature signature = { .param = type };
   PROXY_CALL(_window__open, &signature);
@@ -77,7 +113,33 @@ int window__open(WindowType type) {
 }
 void window__hide(int id) { PROXY_CALL(_window__hide, &id); }
 void window__show(int id) { PROXY_CALL(_window__show, &id); }
+void window__focus(int id) { PROXY_CALL(_window__focus, &id); }
 void window__close(int id) { PROXY_CALL(_window__close, &id); }
+int window__get_x(int id) {
+  PROXY_CALL(_window__get_x, &id);
+  return id;
+}
+int window__get_y(int id) {
+  PROXY_CALL(_window__get_y, &id);
+  return id;
+}
+void window__move(int id, int x, int y) {
+  Vec2WindowArgs moveWindow = { .id = id, .num0 = x, .num1 = y };
+  PROXY_CALL(_window__move, &moveWindow);
+}
+int window__get_width(int id) {
+  PROXY_CALL(_window__get_width, &id);
+  return id;
+}
+int window__get_height(int id) {
+  PROXY_CALL(_window__get_height, &id);
+  return id;
+}
+void window__resize(int id, int width, int height) {
+  Vec2WindowArgs resizeWindow = { .id = id, .num0 = width, .num1 = height };
+  PROXY_CALL(_window__resize, &resizeWindow);
+}
+WindowList window__list() { PROXY_NO_ARGS(WindowList, list, _window__list); }
 
 void deapi_deinit() {
   em_proxying_queue_destroy(proxy_queue);

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import TaskBar from "./TaskBar.svelte";
 </script>
 
@@ -24,10 +24,10 @@
 :global(#window-area) {
   width: 100%;
   height: 100%;
-  overflow: scroll;
+  /* overflow: scroll; */
 }
 :global(#window-area::-webkit-scrollbar) {
-    width: 0;  /* Remove scrollbar space */
-    background: transparent;  /* Optional: just make scrollbar invisible */
+  width: 0;  /* Remove scrollbar space */
+  background: transparent;  /* Optional: just make scrollbar invisible */
 }
 </style>

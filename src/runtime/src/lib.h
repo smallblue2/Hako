@@ -67,6 +67,7 @@ static const luaL_Reg process_module[] = {
 #define ERRORS_MODULE_NAME "errors"
 static const luaL_Reg errors_module[] = {
   {"as_string", lerrors__as_string},
+  {"ok", lerrors__ok},
   {NULL, NULL},
 };
 
@@ -88,6 +89,11 @@ static const luaL_Reg window_module[] = {
   {"hide", lwindow__hide},
   {"show", lwindow__show},
   {"close", lwindow__close},
+  {"focus", lwindow__focus},
+  {"position", lwindow__position},
+  {"move", lwindow__move},
+  {"dimensions", lwindow__dimensions},
+  {"resize", lwindow__resize},
 #endif
   {NULL, NULL},
 };
