@@ -1,5 +1,5 @@
 import { O_CREAT, O_RDONLY, O_WRONLY, O_RDWR, errnoToString } from './definitions.mjs';
-import { sizeof, StructView } from "./creflect.mjs";
+import { sizeof, StructView } from "/creflect.mjs?url";
 
 export const Filesystem = {};
 

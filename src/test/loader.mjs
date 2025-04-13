@@ -5,7 +5,8 @@ const importMap = {
   "/signal.mjs?url": "../../build/runtime/signal.mjs",
   "/pipe.mjs?url": "../../build/runtime/pipe.mjs",
   "/common.mjs?url": "../../build/runtime/common.mjs",
-  "/runtime-node.wasm?url": "../../build/runtime/runtime-node.wasm"
+  "/creflect.mjs?url": "../../glue/creflect.mjs",
+  "/runtime-node.wasm?url": "../../build/runtime/runtime-node.wasm",
 }
 
 /**
