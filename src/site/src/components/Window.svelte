@@ -253,6 +253,7 @@
   onpointerdown={(ev) => {
     const middleClick = ev.buttons === 4;
     if (middleClick) {
+      ev.preventDefault();
       closeWindow();
       return;
     }
