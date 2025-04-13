@@ -8,18 +8,20 @@
 
   interface Props {
     id: number,
-    onMaximize: Function,
-    onUnMaximize: Function,
+    onMaximize?: Function,
+    onUnMaximize?: Function,
     onResize?: Function,
+    onClose?: Function,
+    onMove?: Function,
+    onStop?: Function,
     data: any,
     dataRef: HTMLElement,
-    onClose?: Function,
     layerFromId: number[],
     title: string,
     initOffset?: { x: number, y: number },
   };
 
-  let { id, onMaximize, onUnMaximize, onResize, data, dataRef, onClose, layerFromId, title, initOffset = {x: 0, y: 0} }: Props = $props();
+  let { id, onMaximize, onUnMaximize, onResize, onClose, onMove, onStop, data, dataRef, layerFromId, title, initOffset = {x: 0, y: 0} }: Props = $props();
 
   // This is used to expose state to outside of the component
   let ctx: WindowContext = {
@@ -104,6 +106,7 @@
       document.addEventListener("pointermove", onDragWindow);
       document.addEventListener("pointerup", onReleaseDecorations);
       overlay.toggleGrab();
+      onMove?.();
     }
   }
 
@@ -111,6 +114,7 @@
     document.removeEventListener("pointermove", onDragWindow);
     document.removeEventListener("pointerup", onReleaseDecorations);
     overlay.toggleGrab();
+    onStop?.();
   }
 
   function getSection(ox: number, oy: number, cx: number, cy: number, m: number) {
@@ -265,7 +269,7 @@
         <button aria-label="Maximize" title="Maximize" class="btn" onpointerdown={noProp} onclick={() => {
           root.classList.toggle("window-maximized");
           maximized = !maximized;
-          if (maximized) { onMaximize(); } else { onUnMaximize(); }
+          if (maximized) { onMaximize?.(); } else { onUnMaximize?.(); }
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
         </button>
