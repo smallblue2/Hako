@@ -179,7 +179,6 @@ export default class ProcessManager {
         try {
           let toAwakeProcess = this.getProcess(waitingPID);
           // return exit code before awaking
-          console.log(`[PROC_MAN] Writing exit code '${exitCode}' to '${waitingPID}' [${toAwakeProcess}]`)
           toAwakeProcess.signal.write(exitCode);
           toAwakeProcess.signal.wake();
         } catch (e) {
@@ -255,7 +254,6 @@ export default class ProcessManager {
         try {
           this.getProcess(waiting_on);
         } catch (e) {
-          if (!(e instanceof CustomError)) console.log("[PROC_MAN] Error waiting on a process:", e);
           sendBackSignal.wake();
         }
 

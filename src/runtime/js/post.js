@@ -72,7 +72,6 @@ async function initWorkerForProcess(data) {
     },
     // DOESNT RETURN AN ERRORCODE
     wait: (pid) => {
-      console.log(`[${self.proc.pid}] Waiting on pid '${pid}'`)
       // Tell the manager we'd like to wait on a process
       self.postMessage({
         op: ProcessOperations.WAIT_ON_PID,
@@ -84,7 +83,6 @@ async function initWorkerForProcess(data) {
       self.proc.signal.sleep();
       let exitCode = self.proc.signal.read();
       changeState(ProcessStates.RUNNING);
-      console.log(`[${self.proc.pid}] Got '${exitCode}' from waiting on '${pid}'`)
       return exitCode;
     },
     create: (luaPath, args = [], pipeStdin = false, pipeStdout = false, redirectStdin = null, redirectStdout = null, cwd = "/persistent") => {
@@ -170,7 +168,6 @@ async function initWorkerForProcess(data) {
       return Number(errCode);
     },
     exit: (exitCode) => {
-      console.log(`[${self.proc.pid}] Exiting with exit code '${exitCode}'`)
       self.postMessage({
         op: ProcessOperations.EXIT_PROCESS,
         pid: self.proc.pid,
