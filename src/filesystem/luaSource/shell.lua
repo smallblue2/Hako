@@ -170,25 +170,6 @@ function split_paths(paths)
   return individual_paths
 end
 
-function path_resolution(file_path)
-  if not file_path or (file_path and file_path == "") then
-    return nil, "No path to prepend CWD to"
-  end
-
-  -- If it's an absolute path, just return it
-  if file_path:sub(1, 1) == '/' then
-    return file_path, nil
-  end
-
-  -- Otherwise, prepend cwd path
-  local cwd, err = file.cwd()
-  if err then
-    return nil, err
-  end
-
-  return join_paths(cwd, file_path)
-end
-
 -- ######################
 -- ####### Lexing #######
 -- ######################
@@ -479,7 +460,7 @@ function parse_redirect(tokens, position, command_node)
     if command_node.redirect_in then
       return nil, string.format("Invalid command. Multiple redirections of input")
     end
-    command_node.redirect_in = path_resolution(tokens[position].value)
+    command_node.redirect_in = tokens[position].value
     command_node.redirect_in_type = redirect_type
     position = position + 1
   end
@@ -496,7 +477,7 @@ function parse_redirect(tokens, position, command_node)
     if command_node.redirect_out then
       return nil, string.format("Invalid command. Multiple redirections of output")
     end
-    command_node.redirect_out = path_resolution(tokens[position].value)
+    command_node.redirect_out = tokens[position].value
     command_node.redirect_out_type = redirect_type
     position = position + 1
   end
