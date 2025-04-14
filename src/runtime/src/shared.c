@@ -45,7 +45,7 @@ char **split(const char *restrict string, const char delim) {
   int count = 0;
   const char *start = string;
 
-  while (1) {
+  while (1){
     // find the delimiter (of end of string)
     const char *end = strchr(start, delim);
 
@@ -55,7 +55,6 @@ char **split(const char *restrict string, const char delim) {
     // Allocate space for substring + terminator
     char *sub = (char*)calloc(length + 1, sizeof(char));
     if (!sub) {
-      // TODO: free everything so far
       free_char_array(result);
       return NULL;
     }
@@ -72,15 +71,14 @@ char **split(const char *restrict string, const char delim) {
       }
       result = tmp;
     }
+
     *(result + count++) = sub;
 
-    if (!end) {
-      break;
-    }
+    if (end == NULL) break;
 
     // Move past the delimeter
     start = end + 1;
-  }
+  };
 
   // Null terminate array
   *(result + count) = NULL;
@@ -126,7 +124,7 @@ char *join_paths(const char *restrict path1, const char *restrict path2) {
 }
 
 char_stack *char_stack_create(int capacity) {
-  if (capacity < 1) capacity = 1;
+  assert(capacity > 0);
   char_stack *stack = (char_stack*)calloc(1, sizeof(char_stack));
   stack->capacity = capacity;
   stack->top_index = -1;
@@ -135,20 +133,20 @@ char_stack *char_stack_create(int capacity) {
 }
 
 void char_stack_free(char_stack *restrict stack) {
-  if (stack == NULL) return;
+  assert(stack != NULL && stack->array != NULL);
   char **p = stack->array;
   while (*p != NULL) {
     free(*p);
     p++;
   }
-  if (stack->array != NULL) free(stack->array);
+  free(stack->array);
   stack->capacity=0;
   stack->top_index=-1;
   free(stack);
 }
 
 int char_stack_add(char_stack *restrict stack, char *restrict item) {
-  if (stack == NULL || item == NULL) return 1;
+  assert(stack != NULL && item != NULL);
   int item_length = strlen(item);
   char *store = calloc(item_length + 1, sizeof(char));
   if (store == NULL) return 1;
@@ -181,7 +179,7 @@ char *char_stack_pop(char_stack *restrict stack) {
 }
 
 char *char_stack_peek(char_stack *restrict stack) {
-  if (stack == NULL || stack->top_index < 0) return NULL;
+  assert(stack != NULL && stack->top_index > -1);
   return *(stack->array + stack->top_index);
 }
 
@@ -198,7 +196,14 @@ void char_stack_print(char_stack *restrict stack) {
 }
 
 char *char_stack_join(char_stack *restrict stack, const char delim) {
-  if (stack == NULL || stack->top_index < 0) return NULL;
+  assert(stack != NULL);
+  // If stack is empty, give an empty string
+  if (stack->top_index < 0) {
+    char *join_path = calloc(1, sizeof(char));
+    *join_path = '\0';
+    return join_path;
+  }
+  assert(stack != NULL && stack->top_index > -1);
 
   int total_len = 0;
   int num_elems = 0;
@@ -241,8 +246,8 @@ int normalise_path_into_char_stack(char_stack *restrict stack, char **restrict a
     if (strcmp(*start, "..") == 0) {
       char *popped = char_stack_pop(stack);
       if (popped != NULL) free(popped);
-    // If not '.', '', or 'FALSE_ROOT_NAME' add to the stack
-    } else if (strcmp(*start, ".") != 0 && strcmp(*start, "") != 0 && strcmp(*start, FALSE_ROOT_NAME) != 0) {
+    // If not '.' or '', add to the stack
+    } else if (strcmp(*start, ".") != 0 && strcmp(*start, "") != 0) {
       int ret = char_stack_add(stack, *start);
       if (ret) {
         return 1;
@@ -274,18 +279,25 @@ char *fake_path(const char *restrict path) {
       return NULL;
     }
 
-    char **split_array = split(cwd, '/');
-    free(cwd);
-    if (split_array == NULL) {
-      char_stack_free(stack);
-      return NULL;
-    }
-    int ret = normalise_path_into_char_stack(stack, split_array);
-    free_char_array(split_array);
-    if (ret) {
-      char_stack_free(stack);
+    // Trim FALSE_ROOT from the start of CWD
+    const int shift = FALSE_ROOT_SIZE;
+    const int cwd_length = strlen(cwd) + 1;
+    memmove(cwd, cwd + shift, cwd_length);
+
+    if (*cwd != '\0') {
+      char **split_array = split(cwd, '/');
+      free(cwd);
+      if (split_array == NULL) {
+        char_stack_free(stack);
+        return NULL;
+      }
+      int ret = normalise_path_into_char_stack(stack, split_array);
       free_char_array(split_array);
-      return NULL;
+      if (ret) {
+        char_stack_free(stack);
+        free_char_array(split_array);
+        return NULL;
+      }
     }
   }
 
@@ -306,10 +318,6 @@ char *fake_path(const char *restrict path) {
   char *normalised_path = char_stack_join(stack, '/');
   // normalised_path only fails if the stack is empty
   // Set it to an empty string if this is the case
-  if (normalised_path == NULL) {
-    normalised_path = calloc(1, sizeof(char));
-    *normalised_path = '\0';
-  }
 
   // Join the false root to the normalised path
   char *fake_path = join_paths(FALSE_ROOT, normalised_path);
