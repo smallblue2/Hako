@@ -28,14 +28,16 @@ Hako is a **fully client-side** web application that blends the familiarity of t
  - **Code Execution Environment**: Embedded Lua interpreter for writing and running code.
  - **Graphical Desktop Interface**: A windowed desktop with a taskbar.
  - **Core Applications**:
-  - **Terminal & Shell**: Lightweight shell with support for redirection and piping.
-  - **Core-Utils**: Core-utils inspired by GNU, for a useful and educational CLI experience.
-  - **Text-Editor**: Minimalist editor with syntax highlighting.
-  - **File Manager**: GUI for browsing and managing the filesystem.
+    - **Terminal & Shell**: Lightweight shell with support for redirection and piping.
+    - **Core-Utils**: Core-utils inspired by GNU, for a useful and educational CLI experience.
+    - **Text-Editor**: Minimalist editor with syntax highlighting.
+    - **File Manager**: GUI for browsing and managing the filesystem.
  - **System APIs**:
-  - Filesystem operations
-  - Process management
-  - Window management
+    - Filesystem operations
+    - Process management
+    - Window management
+    - Terminal management
+    - Error handling
  - **Processes**: UNIX-Inspired processes powered via webworkers.
  - **Persistent File Storage**: Built on the browser's IndexedDB.
 
