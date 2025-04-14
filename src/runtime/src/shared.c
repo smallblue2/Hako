@@ -50,7 +50,7 @@ char **split(const char *restrict string, const char delim) {
     const char *end = strchr(start, delim);
 
     // Figure out substring length
-    int length = end ? end - start : strlen(start);
+    int length = end ? (int) (end - start) : (int) strlen(start);
 
     // Allocate space for substring + terminator
     char *sub = (char*)calloc(length + 1, sizeof(char));
