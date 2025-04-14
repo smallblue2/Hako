@@ -160,6 +160,27 @@ build_runtime:
       paths:
         - ./install.sh
 
+build_site:
+  stage: build
+  needs:
+    - build_filesystem
+    - build_processes
+    - build_vendor
+  script:
+    - cat ./install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update
+    - apt-get install -y meson
+    - just site
+  # Artifacts are to be kept between jobs
+  artifacts:
+    paths:
+      - build/site/
+    expire_in: 1 day
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+
 # ----------------- VALIDATION ----------------- 
 
 validate_artefact_persistence:
@@ -241,4 +262,11 @@ test_integration:
     - apt-get install -y meson
     - just test-integration
 
-# ----------------- DEPLOYMENT ----------------- 
+# ----------------- DEPLOYMENT -----------------
+
+deploy_site:
+  stage: deploy
+  script:
+    - cd build/site
+    - zip -r ../site.zip .
+    - ls
