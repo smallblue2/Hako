@@ -9,6 +9,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <assert.h>
 
 bool can_read_s(const char *flags) { return strchr(flags, 'r') != NULL; }
 
@@ -28,11 +29,11 @@ int lfile__open(lua_State *L) {
   const char *path = luaL_checkstring(L, 1);
   const char *flagss = luaL_checkstring(L, 2);
 
-  path = absolute(path);
-  if (path == NULL) {
+  char *fpath = fake_path(path);
+  if (fpath == NULL) {
     lua_pushnil(L);
     lua_pushnumber(L, E_DOESNTEXIST);
-    return 2;
+    goto cleanup;
   }
 
   bool read = can_read_s(flagss);
@@ -52,16 +53,17 @@ int lfile__open(lua_State *L) {
     flags |= O_CREAT;
 
   Error err = 0;
-  int fd = file__open(path, flags, &err);
+  int fd = file__open(fpath, flags, &err);
   if (fd < 0) {
     lua_pushnil(L);
     lua_pushnumber(L, err);
-    return 2;
+    goto cleanup;
   }
 
   lua_pushnumber(L, fd);
   lua_pushnil(L);
-
+cleanup:
+  free(fpath);
   return 2;
 }
 
@@ -181,19 +183,21 @@ int lfile__remove(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
 
-  path = absolute(path);
-  if (path == NULL) {
+  char *fpath = fake_path(path);
+  if (fpath == NULL) {
     lua_pushnumber(L, E_DOESNTEXIST);
     return 1;
   }
 
   Error err;
-  file__remove(path, &err);
+  file__remove(fpath, &err);
   if (err != 0) {
     lua_pushnumber(L, errno);
-    return 1;
+    goto cleanup;
   }
   lua_pushnil(L);
+cleanup:
+  free(fpath);
   return 1;
 }
 
@@ -205,25 +209,30 @@ int lfile__move(lua_State *L) {
   const char *old_path = luaL_checkstring(L, 1);
   const char *new_path = luaL_checkstring(L, 2);
 
-  old_path = absolute(old_path);
-  if (old_path == NULL) {
+  char *old_fpath = fake_path(old_path);
+  if (old_fpath == NULL) {
     lua_pushnumber(L, E_DOESNTEXIST);
     return 1;
   }
 
-  new_path = absolute(new_path);
-  if (new_path == NULL) {
+  char *new_fpath = fake_path(new_path);
+  if (new_fpath == NULL) {
     lua_pushnumber(L, E_DOESNTEXIST);
+    free(old_fpath);
     return 1;
   }
 
   Error err;
-  file__move(old_path, new_path, &err);
+  file__move(old_fpath, new_fpath, &err);
   if (err != 0) {
     lua_pushnumber(L, errno);
-    return 1;
+    goto cleanup;
   }
   lua_pushnil(L);
+
+cleanup:
+  free(new_fpath);
+  free(old_fpath);
   return 1;
 }
 
@@ -234,20 +243,22 @@ int lfile__make_dir(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
 
-  path = absolute(path);
-  if (path == NULL) {
+  char *fpath = fake_path(path);
+  if (fpath == NULL) {
     lua_pushnumber(L, E_DOESNTEXIST);
-    return 1;
+    goto cleanup;
   }
 
   Error err;
-  file__make_dir(path, &err);
+  file__make_dir(fpath, &err);
 
   if (err != 0) {
     lua_pushnumber(L, errno);
-    return 1;
+    goto cleanup;
   }
   lua_pushnil(L);
+cleanup:
+  free(fpath);
   return 1;
 }
 
@@ -258,19 +269,21 @@ int lfile__remove_dir(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
 
-  path = absolute(path);
-  if (path == NULL) {
+  char *fpath = fake_path(path);
+  if (fpath == NULL) {
     lua_pushnumber(L, E_DOESNTEXIST);
-    return 1;
+    goto cleanup;
   }
 
   Error err;
-  file__remove_dir(path, &err);
+  file__remove_dir(fpath, &err);
   if (err != 0) {
     lua_pushnumber(L, errno);
-    return 1;
+    goto cleanup;
   }
   lua_pushnil(L);
+cleanup:
+  free(fpath);
   return 1;
 }
 
@@ -281,19 +294,21 @@ int lfile__change_dir(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
 
-  path = absolute(path);
-  if (path == NULL) {
+  char *fpath = fake_path(path);
+  if (fpath == NULL) {
     lua_pushnumber(L, E_DOESNTEXIST);
-    return 1;
+    goto cleanup;
   }
 
   Error err;
-  file__change_dir(path, &err);
+  file__change_dir(fpath, &err);
   if (err != 0) {
     lua_pushnumber(L, errno);
-    return 1;
+    goto cleanup;
   }
   lua_pushnil(L);
+cleanup:
+  free(fpath);
   return 1;
 }
 
@@ -304,41 +319,37 @@ int lfile__read_dir(lua_State *L) {
   lua_settop(L, 2);
   const char *path = luaL_checkstring(L, 1);
 
-  path = absolute(path);
-  if (path == NULL) {
+  char *fpath = fake_path(path);
+  if (fpath == NULL) {
     lua_pushnil(L);
     lua_pushnumber(L, E_DOESNTEXIST);
-    return 2;
+    goto cleanup;
   }
 
-  Entry entry = {0};
   Error err = 0;
   lua_newtable(L);
 
-  int idx = 1;
-  file__read_dir(path, &entry, &err);
-
-  do {
-    lua_pushstring(L, entry.name);
-    free(entry.name);
-    entry.name = NULL;
-
-    lua_pushinteger(L, idx);
-    lua_insert(L, -2);
-    lua_settable(L, -3);
-
-    file__read_dir(path, &entry, &err);
-    idx++;
-  } while (!entry.isEnd && err == 0);
-
+  char **entries = file__read_dir(fpath, &err);
   if (err != 0) {
-    lua_pop(L, 1);
     lua_pushnil(L);
     lua_pushnumber(L, errno);
-    return 2;
+    goto cleanup;
+  }
+
+  int idx = 0;
+  while (*(entries + idx) != NULL) {
+    char *entry = *(entries + idx);
+    lua_pushstring(L, entry);
+    free(entry);
+    lua_pushinteger(L, idx + 1);
+    lua_insert(L, -2);
+    lua_settable(L, -3);
+    idx++;
   }
 
   lua_pushnil(L);
+cleanup:
+  free(fpath);
   return 2;
 }
 
@@ -430,8 +441,8 @@ int lfile__stat(lua_State *L) {
   lua_settop(L, 1);
   const char *path = luaL_checkstring(L, 1);
 
-  path = absolute(path);
-  if (path == NULL) {
+  char *fpath = fake_path(path);
+  if (fpath == NULL) {
     lua_pushnil(L);
     lua_pushnumber(L, E_DOESNTEXIST);
     return 2;
@@ -439,14 +450,16 @@ int lfile__stat(lua_State *L) {
 
   StatResult sr;
   Error err;
-  file__stat(path, &sr, &err);
+  file__stat(fpath, &sr, &err);
   if (err != 0) {
     lua_pushnil(L);
     lua_pushnumber(L, errno);
-    return 2;
+    goto cleanup;
   }
   statr_as_l(L, &sr);
   lua_pushnil(L);
+cleanup:
+  free(fpath);
   return 2;
 }
 
@@ -502,8 +515,8 @@ int lfile__permit(lua_State *L) {
   const char *path = luaL_checkstring(L, 1);
   const char *flagss = luaL_checkstring(L, 2);
 
-  path = absolute(path);
-  if (path == NULL) {
+  char *fpath = fake_path(path);
+  if (fpath == NULL) {
     lua_pushnumber(L, E_DOESNTEXIST);
     return 1;
   }
@@ -521,13 +534,15 @@ int lfile__permit(lua_State *L) {
     flags |= 0100;
 
   Error err;
-  file__permit(path, flags, &err);
+  file__permit(fpath, flags, &err);
   if (err != 0) {
     lua_pushnumber(L, err);
-    return 1;
+    goto cleanup;
   }
 
   lua_pushnil(L);
+cleanup:
+  free(fpath);
   return 1;
 }
 

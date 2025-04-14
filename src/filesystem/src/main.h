@@ -54,16 +54,6 @@
 // >0 if an error is reported
 typedef int Error;
 
-// Struct for iteravely reading directories.
-//
-// isEnd == 1 if we're at the end, 0 otherwise
-typedef struct __attribute__((packed)) {
-  int name_len;
-  char *name; // WARNING: MUST BE FREED IN WASM/JS
-  int isEnd;
-  DIR *dirp;
-} Entry;
-
 // Output parameter struct, filled with file content when read
 typedef struct __attribute__((packed)) {
   char *data; // WARNING: MUST BE FREED IN WASM/JS
@@ -91,11 +81,6 @@ typedef struct __attribute__((packed)) {
 } StatResult; 
 
 #ifdef FILE_IMPL
-const int sizeof_Entry = sizeof(Entry);
-const int offsetof_Entry__name_len = offsetof(Entry, name_len);
-const int offsetof_Entry__name = offsetof(Entry, name);
-const int offsetof_Entry__isEnd = offsetof(Entry, isEnd);
-const int offsetof_Entry__dirp = offsetof(Entry, dirp);
 const int sizeof_ReadResult = sizeof(ReadResult);
 const int offsetof_ReadResult__data = offsetof(ReadResult, data);
 const int offsetof_ReadResult__size = offsetof(ReadResult, size);
@@ -170,8 +155,7 @@ void file__change_dir(const char *restrict path, Error *restrict err);
 
 // Reads a directory
 // WARNING: entry->name MUST be freed in WASM/JS
-void file__read_dir(const char *restrict path, Entry *restrict entry,
-                    Error *restrict err); // Keep calling, state kept in DIR*
+char **file__read_dir(const char *restrict path, Error *restrict err); // Keep calling, state kept in DIR*
 
 // Stats a node
 void file__stat(const char *restrict path, StatResult *restrict sr, Error *restrict err);
@@ -187,7 +171,7 @@ void file__permit(const char *restrict path, int flags, Error *restrict err);
 void file__truncate(int fd, int length, Error *restrict err);
 
 // Returns the current working directory
-const char *file__cwd(Error *restrict err);
+char *file__cwd(Error *restrict err);
 
 
 #endif

@@ -1,9 +1,10 @@
 project('filesystem', 'c',
   version : '0.1',
-  default_options : ['warning_level=3', 'default_library=static'])
+  default_options : ['warning_level=3', 'default_library=static', 'werror=true'])
 
 if host_machine.system() == 'emscripten'
   add_global_arguments('-pthread', language: 'c')
+  add_global_arguments('-Wno-dollar-in-identifier-extension', language: 'c')
 endif
 
 configure_file(input: 'index.html', output: 'index.html', copy: true)
@@ -23,7 +24,7 @@ custom_target('copy_lua_source_dir',
 )
 
 if host_machine.system() == 'emscripten'
-  executable('filesystem', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lidbfs.js', '-sFORCE_FILESYSTEM', '-sEXPORTED_FUNCTIONS=_file__pushToPersist,_file__pullFromPersist,_file__initialiseFSNode,_file__open,_file__close,_file__read,_file__write,_file__read_all,_file__shift,_file__goto,_file__remove,_file__move,_file__make_dir,_file__remove_dir,_file__read_dir,_file__stat,_file__fdstat,_file__change_dir,_file__permit,_file__truncate,_file__cwd,_malloc,_free,_sizeof_Entry,_offsetof_Entry__name_len,_offsetof_Entry__name,_offsetof_Entry__isEnd,_offsetof_Entry__dirp,_sizeof_ReadResult,_offsetof_ReadResult__data,_offsetof_ReadResult__size,_sizeof_Time,_offsetof_Time__sec,_offsetof_Time__nsec,_sizeof_StatResult,_offsetof_StatResult__size,_offsetof_StatResult__blocks,_offsetof_StatResult__blocksize,_offsetof_StatResult__ino,_offsetof_StatResult__perm,_offsetof_StatResult__type,_offsetof_StatResult__atime,_offsetof_StatResult__mtime,_offsetof_StatResult__ctime', '-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue,stackAlloc,stackSave,stackRestore,UTF8ToString,FS,SYSCALLS,IDBFS', '--embed-file', 'luaSource', '-sEXPORT_ES6', '--post-js=post.js'])
+  executable('filesystem', sources, name_suffix: 'mjs', c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lidbfs.js', '-sFORCE_FILESYSTEM', '-sEXPORTED_FUNCTIONS=_file__pushToPersist,_file__pullFromPersist,_file__initialiseFSNode,_file__open,_file__close,_file__read,_file__write,_file__read_all,_file__shift,_file__goto,_file__remove,_file__move,_file__make_dir,_file__remove_dir,_file__read_dir,_file__stat,_file__fdstat,_file__change_dir,_file__permit,_file__truncate,_file__cwd,_malloc,_free,_sizeof_ReadResult,_offsetof_ReadResult__data,_offsetof_ReadResult__size,_sizeof_Time,_offsetof_Time__sec,_offsetof_Time__nsec,_sizeof_StatResult,_offsetof_StatResult__size,_offsetof_StatResult__blocks,_offsetof_StatResult__blocksize,_offsetof_StatResult__ino,_offsetof_StatResult__perm,_offsetof_StatResult__type,_offsetof_StatResult__atime,_offsetof_StatResult__mtime,_offsetof_StatResult__ctime', '-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue,stackAlloc,stackSave,stackRestore,UTF8ToString,FS,SYSCALLS,IDBFS', '--embed-file', 'luaSource', '-sEXPORT_ES6', '--post-js=post.js'])
 
   library('filesystem', sources, c_args: ['-std=gnu2x', '-Os', '-Wall', '-Wextra', '-pthread'], link_args: ['-lidbfs.js', '-sFORCE_FILESYSTEM', '-pthread', '-sEXPORT_ES6', '-sPROXY_TO_PTHREAD', '-sENVIRONMENT=web,worker'], install: true)
 else

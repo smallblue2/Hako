@@ -1,6 +1,6 @@
 project('process', 'c',
   version : '0.1',
-  default_options : ['warning_level=3', 'default_library=static'])
+  default_options : ['warning_level=3', 'default_library=static', 'werror=true'])
 
 if host_machine.system() == 'emscripten'
   add_global_arguments('-pthread', language: 'c')

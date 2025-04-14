@@ -64,7 +64,7 @@ export default class ProcessManager {
     // Check the filesystem for the luaPath
     let luaCode = ''
     let { error, fd } = this.#Filesystem.open(luaPath, "r");
-    if (fd < 0) {
+    if (error !== null) {
       throw new CustomError(CustomError.symbols.LUA_FILE_NO_EXIST);
     } else {
       let readResp = this.#Filesystem.readAll(fd);
@@ -162,6 +162,11 @@ export default class ProcessManager {
     if (toKill.worker === undefined) {
       throw CustomError(CustomError.symbols.PROC_NO_WORKER);
     }
+    // Close pipes
+    toKill.stdin.close()
+    toKill.stdout.close()
+    toKill.stderr.close()
+
     toKill.worker.terminate();
     this.#processesTable.freeProcess(pid);
   }
@@ -249,7 +254,6 @@ export default class ProcessManager {
         try {
           this.getProcess(waiting_on);
         } catch (e) {
-          if (!(e instanceof CustomError)) console.log("[PROC_MAN] Error waiting on a process:", e);
           sendBackSignal.wake();
         }
 

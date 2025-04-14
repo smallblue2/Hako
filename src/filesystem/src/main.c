@@ -1,3 +1,4 @@
+#include <dirent.h>
 #define FILE_IMPL
 #include "main.h"
 #include <stdio.h>
@@ -67,6 +68,7 @@ void file__pullFromPersist() {
             console.log("[JS] Sync completed succesfully!");
           }
         });
+    console.log("PULLED FROM PERSISTENT")
   });
 #endif
   return;
@@ -84,6 +86,7 @@ void file__pushToPersist() {
             console.log("[JS] Sync completed succesfully!");
           }
         });
+    console.log("PUSHED TO PERSISTENT")
   });
 #endif
 
@@ -467,50 +470,52 @@ void file__remove_dir(const char *path, Error *err) {
   return;
 }
 
-void file__read_dir(const char *restrict path, Entry *restrict entry, int *restrict err) {
-  // NOTE: No permission checks as we're not enforcing permissions
-  //       on directories.
+char **file__read_dir(const char *restrict path, int *restrict err) {
+  DIR *dir = opendir(path);
+  if (dir == NULL) {
+    *err = translate_errors(errno);
+    return NULL;
+  }
 
-  // If this is the first call (dirp == NULL), open the directory
-  if (entry->dirp == NULL) {
-    entry->dirp = opendir(path);
-    if (entry->dirp == NULL) {
+  static const int chk = 16;
+  int len = 0;
+  int cap = chk;
+  char **buf = malloc(cap * sizeof(char *));
+
+  while (true) {
+    errno = 0;
+    const struct dirent *ent = readdir(dir);
+    if (ent == NULL && errno != 0) {
       *err = translate_errors(errno);
-      return;
+      return NULL;
+    }
+    if (ent == NULL) break;
+    if (len >= cap) {
+      cap += chk;
+      char **old = buf;
+      buf = realloc(buf, cap * sizeof(char *));
+      if (buf == NULL) {
+        free(old);
+        *err = translate_errors(errno);
+        return NULL;
+      }
+    }
+    buf[len++] = strdup(ent->d_name);
+  }
+
+  if (len >= cap) {
+    cap += chk;
+    char **old = buf;
+    buf = realloc(buf, cap * sizeof(char *));
+    if (buf == NULL) {
+      free(old);
+      *err = translate_errors(errno);
+      return NULL;
     }
   }
+  buf[len] = NULL;
 
-  // Read the next entry
-  errno = 0; // readdir signals an error when at End of Directory, but doesn't
-             // set errno
-  struct dirent *ep = readdir(entry->dirp);
-
-  if (ep == NULL) {
-    // Errno still being 0 signals end of directory
-    if (errno == 0) {
-      entry->isEnd = 1;
-      closedir(entry->dirp);
-      entry->dirp =
-          NULL; // Ensure `dirp` is reset to avoid reuse of closed pointer
-      return;
-    }
-    *err = translate_errors(errno);
-    return;
-  }
-
-  // Store the entry name
-  entry->name = strdup(ep->d_name);
-  if (entry->name == NULL) {
-    closedir(entry->dirp);
-    entry->dirp = NULL; // Prevent reuse of closed pointer
-    *err = translate_errors(errno);
-    return;
-  }
-
-  entry->name_len = strlen(entry->name);
-  entry->isEnd = 0;
-  *err = 0;
-  return;
+  return buf;
 }
 
 void file__stat(const char *restrict name, StatResult *restrict sr, Error *restrict err) {
@@ -641,7 +646,8 @@ void file__truncate(int fd, int length, Error *err) {
   }
 }
 
-const char *file__cwd(Error *err) {
+// Resulting pointer has static lifetime
+char *file__cwd(Error *err) {
   static char cwd[PATH_MAX] = {0};
   char *errorPtr = getcwd(cwd, PATH_MAX);
   if (errorPtr == NULL) {
