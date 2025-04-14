@@ -5,6 +5,7 @@ stages:
   - lint
   - build
   - validate
+  - measure
   - test
   - deploy
 
@@ -205,6 +206,19 @@ validate_wasm:
     - wasm-validate --enable-threads build/runtime/runtime.wasm
     - wasm-validate --enable-threads build/runtime/runtime-node.wasm
 
+# ----------------- VALIDATION ----------------- 
+
+measure_lines_of_code:
+  stage: measure
+  script:
+    - export LOC=$(./measure-loc.sh)
+    - echo "Lines of Code: $LOC"
+    - mkdir -p public
+    - echo "{\"loc\": $LOC}" > public/loc.json
+  artifacts:
+    paths:
+      - public
+
 # ----------------- TESTING ----------------- 
 
 test_filesystem:
@@ -242,3 +256,12 @@ test_integration:
     - just test-integration
 
 # ----------------- DEPLOYMENT ----------------- 
+
+pages:
+  stage: deploy
+  script:
+    - mv public/ dist/
+    - cp dist/loc.json dist/404.html
+  artifacts:
+    paths:
+      - dist

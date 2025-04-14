@@ -13,3 +13,7 @@ src/runtime/vendor/ncurses/
 src/runtime/vendor/libedit/
 
 gnu-keyring.gpg
+
+compiled.js
+compiled.mjs
+compiled.wasm
