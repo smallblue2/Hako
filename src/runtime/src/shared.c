@@ -16,7 +16,7 @@ bool checkboolean(lua_State *L, int narg) {
 }
 
 // WARNING: Assumes null terminated array
-void free_char_array(char **restrict array) {
+void free_char_array(char **array) {
   char **p = array;
   while (*p != NULL) {
     free(*p);
@@ -26,7 +26,7 @@ void free_char_array(char **restrict array) {
 }
 
 // Provides the length of a character array
-int char_array_length(char **restrict array) {
+int char_array_length(char **array) {
   int len = 0;
   char **p = array;
   while (*p != NULL) {
@@ -36,7 +36,7 @@ int char_array_length(char **restrict array) {
   return len;
 }
 
-char **split(const char *restrict string, const char delim) {
+char **split(const char *string, const char delim) {
   int initial_size = 8;
 
   char **result = (char**)calloc(initial_size, sizeof(*result));
@@ -85,7 +85,7 @@ char **split(const char *restrict string, const char delim) {
   return result;
 }
 
-void print_char_array(char **restrict array) {
+void print_char_array(char **array) {
   int i = 0;
   char **pos = array;
   while (*pos != NULL) {
@@ -132,7 +132,7 @@ char_stack *char_stack_create(int capacity) {
   return stack;
 }
 
-void char_stack_free(char_stack *restrict stack) {
+void char_stack_free(char_stack *stack) {
   assert(stack != NULL && stack->array != NULL);
   char **p = stack->array;
   while (*p != NULL) {
@@ -170,7 +170,7 @@ int char_stack_add(char_stack *restrict stack, char *restrict item) {
   return 0;
 }
 
-char *char_stack_pop(char_stack *restrict stack) {
+char *char_stack_pop(char_stack *stack) {
   if (stack == NULL || stack->top_index < 0) return NULL;
   char *item = *(stack->array + stack->top_index);
   *(stack->array + stack-> top_index) = NULL;
@@ -178,12 +178,12 @@ char *char_stack_pop(char_stack *restrict stack) {
   return item;
 }
 
-char *char_stack_peek(char_stack *restrict stack) {
+char *char_stack_peek(char_stack *stack) {
   assert(stack != NULL && stack->top_index > -1);
   return *(stack->array + stack->top_index);
 }
 
-void char_stack_print(char_stack *restrict stack) {
+void char_stack_print(char_stack *stack) {
   char **ptr = stack->array;
   int i = 0;
   printf("BOTTOM\n");
@@ -195,7 +195,7 @@ void char_stack_print(char_stack *restrict stack) {
   printf("TOP\n");
 }
 
-char *char_stack_join(char_stack *restrict stack, const char delim) {
+char *char_stack_join(char_stack *stack, const char delim) {
   assert(stack != NULL);
   // If stack is empty, give an empty string
   if (stack->top_index < 0) {
@@ -260,7 +260,7 @@ int normalise_path_into_char_stack(char_stack *restrict stack, char **restrict a
   return 0;
 }
 
-char *fake_path(const char *restrict path) {
+char *fake_path(const char *path) {
 #ifndef __EMSCRIPTEN__
   // Tests run natively, but return is still expected to be owned
   // (sorry for strdup :( )

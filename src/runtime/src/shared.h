@@ -27,7 +27,7 @@ typedef struct {
 char_stack *char_stack_create(int capacity);
 void char_stack_free(char_stack *stack);
 int char_stack_add(char_stack *stack, char *item);
-char *char_stack_pop(char_stack *rstack);
+char *char_stack_pop(char_stack *stack);
 char *char_stack_peek(char_stack *stack);
 void char_stack_print(char_stack *stack);
 char *char_stack_join(char_stack *stack, const char delim);
