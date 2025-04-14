@@ -111,7 +111,7 @@ build-libedit:
 
 [working-directory('src/site')]
 site: exported-runtime
-  deno run build
+  npm run build
 
 [working-directory('src/filesystem')]
 test-filesystem: filesystem
