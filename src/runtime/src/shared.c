@@ -256,6 +256,11 @@ int normalise_path_into_char_stack(char_stack *restrict stack, char **restrict a
 }
 
 char *fake_path(const char *restrict path) {
+#ifndef __EMSCRIPTEN__
+  // Tests run natively, but return is still expected to be owned
+  // (sorry for strdup :( )
+  return strdup(path);
+#endif
 
   // Create stack
   char_stack *stack = char_stack_create(4);
