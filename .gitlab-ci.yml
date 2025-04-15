@@ -206,7 +206,7 @@ validate_wasm:
     - wasm-validate --enable-threads build/runtime/runtime.wasm
     - wasm-validate --enable-threads build/runtime/runtime-node.wasm
 
-# ----------------- VALIDATION ----------------- 
+# ----------------- MEASUREMENT ----------------- 
 
 measure_lines_of_code:
   stage: measure
@@ -261,8 +261,7 @@ test_integration:
 pages:
   stage: deploy
   script:
-    - mv public/ dist/
-    - cp dist/loc.json dist/404.html
+    - cp public/loc.json public/404.html
   artifacts:
     paths:
-      - dist
+      - public
