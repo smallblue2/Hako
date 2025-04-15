@@ -57,7 +57,6 @@
   });
 
   function updateFiles() {
-    console.log(fsView.cwd());
     const {entries, error} = window.Filesystem.read_dir(fsView.cwd());
     if (error !== null) {
       openAlertModal("Operation Failed", error);

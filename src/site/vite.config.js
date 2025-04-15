@@ -14,8 +14,8 @@ const crossOriginIsolation = {
 };
 
 export default defineConfig({
-	plugins: [
+  plugins: [
     crossOriginIsolation,
     sveltekit()
-  ],
+  ]
 });

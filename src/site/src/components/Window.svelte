@@ -87,11 +87,15 @@
 
   const throttleWrite = throttle(requestAnimationFrame);
 
+  let lastX: number | undefined = undefined;
+  let lastY: number | undefined = undefined;
+
   let deltaX: number = 0;
   let deltaY: number = 0;
+
   function onDragWindow(ev: PointerEvent) {
-    deltaX += ev.movementX;
-    deltaY += ev.movementY;
+    deltaX += ev.screenX - (lastX ?? ev.screenX);
+    deltaY += ev.screenY - (lastY ?? ev.screenY);
     throttleWrite(() => {
       ctx.position.x += deltaX;
       ctx.position.y += deltaY;
@@ -99,6 +103,8 @@
       deltaY = 0;
       updatePosition();
     })
+    lastX = ev.screenX;
+    lastY = ev.screenY;
   }
 
   function onHoldDecorations() {
@@ -115,6 +121,8 @@
     document.removeEventListener("pointerup", onReleaseDecorations);
     overlay.toggleGrab();
     onStop?.();
+    lastX = undefined;
+    lastY = undefined;
   }
 
   function getSection(ox: number, oy: number, cx: number, cy: number, m: number) {
@@ -140,7 +148,10 @@
   let globalSect: number;
 
   function onDragResize(ev: MouseEvent) {
-    const [ dw, dh ] = lib.getResizeFromSect(globalSect, ev.movementX, ev.movementY);
+    const moveX = ev.screenX - (lastX ?? ev.screenX);
+    const moveY = ev.screenY - (lastY ?? ev.screenY);
+
+    const [ dw, dh ] = lib.getResizeFromSect(globalSect, moveX, moveY);
     updateInnerSize(dw, dh);
 
     let dy = 0;
@@ -148,15 +159,15 @@
 
     switch (globalSect) {
       case lib.TOP_LEFT_CORNER:
-        dy = ev.movementY;
-        dx = ev.movementX;
+        dy = moveY;
+        dx = moveX;
       case lib.TOP:
       case lib.TOP_RIGHT_CORNER:
-        dy = ev.movementY;
+        dy = moveY;
         break;
       case lib.LEFT:
       case lib.BOTTOM_LEFT_CORNER:
-        dx = ev.movementX;
+        dx = moveX;
         break;
     }
 
@@ -165,6 +176,9 @@
     requestAnimationFrame(() => {
       updatePosition();
     })
+
+    lastX = ev.screenX;
+    lastY = ev.screenY;
   }
 
   async function onHoldResizeArea(ev: MouseEvent) {
@@ -199,6 +213,8 @@
     document.removeEventListener("pointermove", onDragResize);
     document.removeEventListener("pointerup", onReleaseResizeArea);
     onExitResizeArea();
+    lastX = undefined;
+    lastY = undefined;
   }
 
   function onExitResizeArea() {

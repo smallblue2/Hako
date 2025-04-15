@@ -10,15 +10,14 @@
     loadingPopup.showModal();
 
     deapi.expose();
-
-    let { initialiseAPI, Filesystem } = await import("/api.mjs?url") as unknown as { initialiseAPI: Function, Filesystem: any };
+    const { initialiseAPI, Filesystem } = await import(/* @vite-ignore */ new URL("/api.mjs", import.meta.url).href) as unknown as { initialiseAPI: Function, Filesystem: any };
     window.isFilesystemInitialised = false;
 
     // Define a promise for loading the Emscripten module
     const LoadFilesystem = (async () => {
       try {
         // Dynamically load the emscripten module
-        const { default: initEmscripten } = await import("/filesystem.mjs?url") as unknown as { default: Function };
+        const { default: initEmscripten }  = await import(/* @vite-ignore */ new URL("/filesystem.mjs", import.meta.url).href) as unknown as { default: Function };
 
         // Initialise the emscripten module
         const Module = await initEmscripten({
@@ -45,7 +44,7 @@
 
       window.Filesystem.initialiseFS();
     
-      let { default: ProcessManager } = await import("/processManager.mjs?url") as { default: any };
+      let { default: ProcessManager } = await import(/* @vite-ignore */ new URL("/processManager.mjs", import.meta.url).href) as { default: any };
       window.ProcessManager = new ProcessManager();
       console.log("Created process manager");
 
