@@ -277,12 +277,15 @@ test_integration:
     - apt-get install -y meson
     - just test-integration
 
-# ----------------- DEPLOYMENT ----------------- 
+# ----------------- DEPLOYMENT -----------------
 
-pages:
-  stage: deploy
-  script:
-    - cp public/loc.json public/404.html
-  artifacts:
-    paths:
-      - public
+# deploy_site:
+#   stage: deploy
+#   script:
+#     |
+#     cd build/site && \
+#     zip -r ../site.zip . && \
+#     curl -X POST -H "X-API-Key: $HAKO_DEPLOY_API_KEY" -F "bundle=@site.zip" "http://ci.cathal.xyz:2002/artifact?id=site"
+#   artifacts:
+#     paths:
+#       - public
