@@ -1,4 +1,4 @@
-import { mount, unmount } from "svelte";
+import { flushSync, mount, unmount } from "svelte";
 
 import PlaceHolderIcon from "/src/placeholder.svg?raw";
 import FileManagerIcon from "/src/adwaita/file-manager.svg?raw";
@@ -20,27 +20,21 @@ export const applications = $state([
     name: "Terminal",
     instances: 0,
     alwaysShow: true,
-    create: () => {
-      openWindow(TERMINAL, Terminal);
-    },
+    create: () => openWindow(TERMINAL, Terminal),
   },
   {
     icon: FileManagerIcon,
     name: "FileManager",
     instances: 0,
     alwaysShow: true,
-    create: () => {
-      openWindow(FILE_MANAGER, FileManager);
-    }
+    create: () => openWindow(FILE_MANAGER, FileManager),
   },
   {
     icon: TextEditorIcon,
     name: "Text Editor",
     instances: 0,
     alwaysShow: true,
-    create: () => {
-      openWindow(EDITOR, Editor);
-    },
+    create: () => openWindow(EDITOR, Editor),
   },
   {
     icon: PlaceHolderIcon,
@@ -105,7 +99,8 @@ export function openWindow(type, component, options) {
 
   // Object.freeze is used here to prevent some odd behaviour
   // with svelte mangling the component, making it unmountable
-  _windows.push(Object.freeze({ id: id, type: type, state: { show: true }, component: mount(component, options)}));
+  _windows.push(Object.freeze({ id: id, type: type, state: { show: true, ctx: null, updateFn: null }, component: mount(component, options)}));
+  flushSync(); // make sure to wait for onMount handler to finish so it registers its position and update function
   return id;
 }
 

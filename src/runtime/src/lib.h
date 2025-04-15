@@ -7,6 +7,9 @@
 #include "errors.h"
 #include "terminal.h"
 #include "lauxlib.h"
+#ifdef __EMSCRIPTEN__
+#include "window.h"
+#endif
 
 typedef struct {
   const char *name;
@@ -64,6 +67,7 @@ static const luaL_Reg process_module[] = {
 #define ERRORS_MODULE_NAME "errors"
 static const luaL_Reg errors_module[] = {
   {"as_string", lerrors__as_string},
+  {"ok", lerrors__ok},
   {NULL, NULL},
 };
 
@@ -76,11 +80,30 @@ static const luaL_Reg terminal_module[] = {
   {NULL, NULL},
 };
 
+#define WINDOW_MODULE_NAME "window"
+static const luaL_Reg window_module[] = {
+#ifdef __EMSCRIPTEN__
+  {"area", lwindow__area},
+  {"list", lwindow__list},
+  {"open", lwindow__open},
+  {"hide", lwindow__hide},
+  {"show", lwindow__show},
+  {"close", lwindow__close},
+  {"focus", lwindow__focus},
+  {"position", lwindow__position},
+  {"move", lwindow__move},
+  {"dimensions", lwindow__dimensions},
+  {"resize", lwindow__resize},
+#endif
+  {NULL, NULL},
+};
+
 static const Named_Module custom_modules[] = {
   {FILE_MODULE_NAME, file_module},
   {PROCESS_MODULE_NAME, process_module},
   {ERRORS_MODULE_NAME, errors_module},
   {TERMINAL_MODULE_NAME, terminal_module},
+  {WINDOW_MODULE_NAME, window_module},
   {NULL, NULL}
 };
 

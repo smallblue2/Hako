@@ -171,7 +171,7 @@ STDOUT --[[@type number]] = nil
 
 ---Create a new process (Does not start it!).
 ---@param path string The absolute path to the Lua source code for the new process.
----@param opts? Create_Opts Create options (Optional).
+---@param opts? Create_Opts Create options (optional).
 ---@return number | nil pid The new process' identifier.
 ---@return number | nil err Error code.
 ---@see process.start
@@ -212,14 +212,14 @@ function process.close_input() end
 
 ---Output text to standard output.
 ---@param text string The text to output.
----@param opts? Output_Opts Output options (Optional).
+---@param opts? Output_Opts Output options (optional).
 ---@return number | nil err Error code.
 ---@diagnostic disable-next-line: unused-local
 function process.output(text, opts) end
 
 ---Wait for process to exit.
 ---@param pid number The identifier of the process to wait for.
----@return number | nil err Error code.
+---@return number | nil err Er_Descriptorror code.
 ---@diagnostic disable-next-line: unused-local
 function process.wait(pid) end
 
@@ -230,11 +230,14 @@ function process.wait(pid) end
 function process.kill(pid) end
 
 ---List the current processes.
----@return Process_Descriptor[] | nil processes The list of current processes.
+---@return Process_Descriptor[] | nil Window_Descriptorrocesses The list of current processes.
 ---@return number | nil err Error code.
 function process.list() end
 
----Get the process identifier for the current running process.
+---Open a new window of the given type.
+---@param Window_Type type the type of window
+---Get the process identifier for the current running protypecess.
+-- 
 ---@return number | nil pid The process identifier.
 ---@return number | nil err Error code.
 function process.get_pid() end
@@ -261,11 +264,17 @@ output = process.output
 ---Error inspection and handling.
 errors = {}
 
----Convert error number into human readable string
----@param code number The error code.
+---Convert error number into human readable string.
+---@param code number the error code.
 ---@return string errs The string form of error code.
 ---@diagnostic disable-next-line: unused-local, missing-return
 function errors.as_string(code) end
+
+---Exit with error if given code is not nil.
+---@param code number | nil the error code.
+---@param msg? string the context message, usually used to indicate what activity raised the error (optional).
+---@diagnostic disable-next-line: unused-local
+function errors.ok(code, msg) end
 
 ---Terminal specific functions.
 terminal = {}
@@ -281,3 +290,87 @@ function terminal.clear() end
 ---@return number | nil err Error code.
 ---@diagnostic disable-next-line: unused-local, missing-return
 function terminal.prompt(prompt_text) end
+
+---Window management specific functions.
+window = {}
+
+TERMINAL --[[@type number]] = nil
+FILE_MANAGER --[[@type number]] = nil
+EDITOR --[[@type number]] = nil
+
+---@diagnostic disable-next-line: undefined-doc-name
+---@alias Window_Type (TERMINAL | FILE_MANAGER | EDITOR | OTHER)
+
+---@class Size
+---@field width number horizontal size.
+---@field height number vertical size.
+
+---@class Position
+---@field x number horizontal position.
+---@field y number vertical position.
+
+---@class Window_Descriptor
+---@field id number the window identifier.
+---@field type Window_Type the type of the window
+-- @field show boolean whether the window is hidden or not.
+
+---Get the size of the valid window area.
+---@return Size dimensions the dimensions of the window area.
+---@diagnostic disable-next-line: missing-return
+function window.area() end
+
+---Get the list of current open windows.
+---@return Window_Descriptor[]
+---@diagnostic disable-next-line: missing-return
+function window.list() end
+
+---Open a new window of the given type.
+---@param type Window_Type the type of window.
+---@diagnostic disable-next-line: unused-local
+function window.open(type) end
+
+---Hide a window.
+---@param id number the identifier associated with the window to hide.
+---@diagnostic disable-next-line: unused-local
+function window.hide(id) end
+
+---Show a window.
+---@param id number the identifier associated with the window to show.
+---@diagnostic disable-next-line: unused-local
+function window.show(id) end
+
+---Focus a window.
+---@param id number the identifier associated with the window to focus.
+---@diagnostic disable-next-line: unused-local
+function window.focus(id) end
+
+---Get the position of a window.
+---@param id number the identifier associated with the window to get the position of.
+---@return Position position the position of the window.
+---@diagnostic disable-next-line: unused-local, missing-return
+function window.position(id) end
+
+---Move a window to the given position.
+---@param id number the identifier associated with the window to move.
+---@param x number the horizontal position.
+---@param y number the vertical position.
+---@diagnostic disable-next-line: unused-local
+function window.move(id, x, y) end
+
+---Get the dimensions of a window.
+---@param id number the identifier associated with the window to get the dimensions of.
+---@return Size dimensions the dimensions of the window.
+---@diagnostic disable-next-line: unused-local, missing-return
+function window.dimensions(id) end
+
+---Resize a window to given dimensions.
+---@param id number the identifier associated with the window to resize.
+---@param width number the horizontal size.
+---@param height number the vertical size.
+---@diagnostic disable-next-line: unused-local
+function window.resize(id, width, height) end
+
+---Close a window.
+---@param id number the identifier associated with the window to close.
+---@diagnostic disable-next-line: unused-local
+function window.close(id) end

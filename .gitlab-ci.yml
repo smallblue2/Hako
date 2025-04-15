@@ -115,6 +115,24 @@ build_processes:
   needs:
     - cached_dependencies
 
+build_deapi:
+  stage: build
+  script:
+    - cat ./install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update
+    - apt-get install -y meson
+    - just deapi
+  artifacts:
+    paths:
+      - build/deapi/
+    expire_in: 1 day
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  needs:
+    - cached_dependencies
+
 build_vendor:
   stage: build
   script:
@@ -145,6 +163,7 @@ build_runtime:
   needs:
     - build_filesystem
     - build_processes
+    - build_deapi
     - build_vendor
   script:
     - cat ./install.sh | bash -s -- --to /usr/local/bin/
@@ -169,6 +188,7 @@ validate_artefact_persistence:
     - build_filesystem
     - build_processes
     - build_vendor
+    - build_deapi
     - build_runtime
   script:
     # Ensure artifacts have persisted
@@ -192,6 +212,7 @@ validate_artefact_persistence:
     - test -e build/runtime/runtime.wasm
     - test -e build/runtime/runtime-node.mjs
     - test -e build/runtime/runtime-node.wasm
+    - test -e build/deapi/libdeapi.a
 
 validate_wasm:
   stage: validate

@@ -1,7 +1,13 @@
 #include "errors.h"
 #include "lauxlib.h"
 #include "lua.h"
+#include "process.h"
+#include "../processes/c/processes.h"
+#include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
 
 
 const char *str_of_errno(int errno_) {
@@ -49,4 +55,42 @@ int lerrors__as_string(lua_State *L) {
   const char *msg = str_of_errno(errno_);
   lua_pushstring(L, msg);
   return 1;
+}
+
+int lerrors__ok(lua_State *L) {
+  static char fmt_buf[1024] = {0};
+
+  // Error was nil, just return
+  if (lua_type(L, 1) == LUA_TNIL) {
+    return 0;
+  }
+
+  int errcode = luaL_checknumber(L, 1);
+  const char *msg = luaL_optstring(L, 2, "system error");
+  const char *errmsg = str_of_errno(errcode);
+  static const char delim[] = ": ";
+  static const int delim_len = sizeof(delim) - 1;
+
+  int formatted_size = strlen(msg) + delim_len + strlen(errmsg);
+  int formatted_sizez = formatted_size + 1; // with null byte
+
+  char *fmt = fmt_buf;
+  bool buf_owned = formatted_sizez > (int)sizeof(fmt_buf);
+  if (buf_owned) {
+    fmt = malloc(formatted_sizez);
+  }
+
+  assert(formatted_size == snprintf(fmt, formatted_sizez, "%s%s%s", msg, delim, errmsg));
+
+  lua_pushstring(L, fmt);
+  if (buf_owned) {
+    free(fmt);
+  }
+
+  lprocess__output(L);
+  Error err = 0;
+  proc__exit(1, &err);
+  assert(err == 0);
+
+  return 0;
 }

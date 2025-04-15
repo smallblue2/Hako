@@ -16,21 +16,18 @@
   import InputText, { type OpenFn } from "./InputText.svelte";
   import BreadCrumbs from "./BreadCrumbs.svelte";
   import Alert, { type OpenAlertFn } from "./Alert.svelte";
-  import * as lib from "$lib";
   import * as win from "$lib/windows.svelte.js";
   import { onMount } from "svelte";
   import { FSView } from "$lib/files";
   import { Resolver } from "$lib/resolver";
   import type { DragEventHandler, KeyboardEventHandler } from "svelte/elements";
+  import { flip } from "svelte/animate";
 
   let { id, layerFromId, initOffset = {x: 0, y: 0}, selection = new Resolver() }: Props = $props();
 
-  let root: HTMLDivElement = $state();
-  let maximized = $state(false);
+  let selfRef: HTMLDivElement = $state();
 
-  let width = 320;
-  let height = 260;
-  let min = 200;
+  const enterDirDelay = 750;
 
   interface FileMeta {
     type: string,
@@ -54,15 +51,8 @@
   });
 
   onMount(() => {
-    let { initWidth, initHeight } = lib.getInitWindowSize();
-    width = initWidth;
-    height = initHeight;
-    root.style.width = initWidth.toString() + "px";
-    root.style.height = initHeight.toString() + "px";
-
     const inotifyChannel = new BroadcastChannel("inotify");
     inotifyChannel.onmessage = (_ev) => updateFiles();
-
     fsView.changeDir("persistent");
   });
 
@@ -77,21 +67,13 @@
     files = entries.map((entry) => {
       let { error, stat } = window.Filesystem.stat(fsView.relative(entry)) as StatResult;
       if (error !== null) {
-        console.log(error);
+        console.error(error);
         return { type: "file", name: entry };
       }
       return { type: stat.type, name: entry };
     }).filter((entry) => {
       return !inPersist || (entry.name !== "." && entry.name !== "..");
     });
-  }
-
-  function onResize(dw: number, dh: number) {
-    width = lib.clamp(width + dw, min);
-    height = lib.clamp(height + dh, min);
-    root.style.width = width.toString() + "px";
-    root.style.height = height.toString() + "px";
-    return true; // you can return false to say you can't resize
   }
 
   function clickedFolder(file: FileMeta) {
@@ -264,24 +246,25 @@
     }
   }
 
-  function setDropZoneStyles(abs: string) {
-    const el = document.getElementById(`fm-file-${id}-${abs}`);
-    if (!el.classList.contains("fm-dropzone")) {
-      el.classList.add("fm-dropzone");
-    }
+  let fileRefs: HTMLDivElement[] = $state([]);
+
+  function setDropZoneStyles(index: number) {
+    fileRefs[index].classList.add("fm-dropzone");
   }
 
-  function removeDropZoneStyles(abs: string) {
-    const el = document.getElementById(`fm-file-${id}-${abs}`);
-    el.classList.remove("fm-dropzone");
+  function removeDropZoneStyles(index: number) {
+    fileRefs[index].classList.remove("fm-dropzone");
   }
 
-  function onDragStart<T extends EventTarget>(file: FileMeta): DragEventHandler<T> {
+  function onDragStart<T extends EventTarget>(index: number): DragEventHandler<T> {
     return (ev) => {
+      const filepath = fileRefs[index].dataset.filepath;
+      const filetype = fileRefs[index].dataset.filetype;
+
       const data = {
         appid: id, // unique id for this file drag area
-        type: file.type,
-        absPath: fsView.relative(file.name),
+        type: filetype,
+        absPath: filepath,
       };
       ev.dataTransfer.setData("application/json", JSON.stringify(data));
       ev.dataTransfer.effectAllowed = 'move';
@@ -299,17 +282,19 @@
     move(src, dest);
   }
 
-  function onDrop<T extends EventTarget>(file: FileMeta): DragEventHandler<T> {
-    const abs = fsView.relativeDelim(file.name, "-");
+  function onDrop<T extends EventTarget>(index: number): DragEventHandler<T> {
     return (ev) => {
+      const filepath = fileRefs[index].dataset.filepath;
+      const filetype = fileRefs[index].dataset.filetype;
+
       ev.preventDefault();
       ev.stopPropagation();
-      if (file.type === "directory") {
-        removeDropZoneStyles(abs);
+      if (filetype === "directory") {
+        removeDropZoneStyles(index);
         const data = JSON.parse(ev.dataTransfer.getData("application/json"));
         const src = data.absPath;
-        const dest = abs.replaceAll("-", "/");
-        console.log("DROP: from", src, "to", dest);
+        const dest = filepath;
+        console.log("DROP: from", src, "to", filepath);
         move(src, dest);
         if (timer !== undefined) clearTimeout(timer);
         timer = undefined;
@@ -328,47 +313,58 @@
   // did leave the parent element.
   let counter = 0;
 
-  function onDragEnter<T extends EventTarget>(file: FileMeta): DragEventHandler<T> {
-    const abs = fsView.relativeDelim(file.name, "-");
-    const pathParts = [...fsView.entries(), file.name];
+  function onDragEnter<T extends EventTarget>(index: number): DragEventHandler<T> {
     return (_ev) => {
-      if (file.type === "directory") {
+      const filepath = fileRefs[index].dataset.filepath;
+      const filetype = fileRefs[index].dataset.filetype;
+      const pathParts = filepath.split("/").filter(s => s.length !== 0);
+
+      if (filetype === "directory") {
         counter++;
-        setDropZoneStyles(abs);
+        setDropZoneStyles(index);
         if (timer !== undefined) clearTimeout(timer);
         timer = setTimeout(() => {
-          fsView.changeDirAbs([]);
-          for (const part of pathParts) {
-            fsView.changeDir(part);
-          }
-        }, 500);
+          fsView.changeDirAbs(pathParts);
+          // treat this as a sort of drag leave, reset counter and remove styles
+          counter = 0;
+          removeDropZoneStyles(index);
+        }, enterDirDelay);
       }
     }
   }
 
-  function onDragLeave<T extends EventTarget>(file: FileMeta): DragEventHandler<T> {
-    const abs = fsView.relativeDelim(file.name, "-");
+  function onDragLeave<T extends EventTarget>(index: number): DragEventHandler<T> {
     return (_ev) => {
-      if (file.type === "directory") {
-        counter--;
+      const filetype = fileRefs[index].dataset.filetype;
+
+      if (filetype === "directory") {
+        if (counter !== 0) counter--; // make sure we never get negative counter
         if (counter === 0) {
-          removeDropZoneStyles(abs);
+          removeDropZoneStyles(index);
           if (timer !== undefined) clearTimeout(timer);
           timer = undefined;
         }
       }
     }
   }
+
+  function onMaximize() {
+    selfRef.classList.add("file-manager-maximized");
+  }
+
+  function onUnMaximize() {
+    selfRef.classList.remove("file-manager-maximized");
+  }
 </script>
 
-<Window title="File Manager" bind:maximized {layerFromId} {id} {onResize} dataRef={root} {onClose} {initOffset}>
+<Window title="File Manager" {layerFromId} {id} dataRef={selfRef} {onMaximize} {onUnMaximize} {onClose} {initOffset}>
   {#snippet data()}
     <Alert bind:open={openAlertModal}></Alert>
     <InputText bind:open={openTextModal}></InputText>
     <div role="menu" bind:this={contextmenu} tabindex="-1" onkeydown={onContextMenuKey} class={`contextmenu ${!showContextMenu ? "hide-contextmenu" : ""}`}>
       <ContextMenu bind:keydown={forwardKeydown} items={operations}></ContextMenu>
     </div>
-    <div class={`content-wrapper ${maximized ? "file-manager-maximized" : ""}`} bind:this={root}>
+    <div class="content-wrapper" bind:this={selfRef}>
       <div role="main" oncontextmenu={(ev) => {
           ev.preventDefault();
           operations = globalOperations;
@@ -377,18 +373,18 @@
           ondrop={onDropGlobal}
           ondragover={(ev) => ev.preventDefault()} class="fm-fill">
         <div class="file-manager">
-          {#each files as file}
-            <div role="main" oncontextmenu={(ev) => {
+          {#each files as file, index (file.name)}
+            <div animate:flip={{ duration: 200 }} role="main" oncontextmenu={(ev) => {
               ev.preventDefault();
               ev.stopPropagation();
               operations = file.type === "file" ? fileOperations(file.name) : dirOperations(file.name);
               updateContextMenu(ev.clientX, ev.clientY);
-            }} class="fm-object" id={`fm-file-${id}-${fsView.relativeDelim(file.name, "-")}`} draggable="true"
-              ondragstart={onDragStart(file)}
-              ondrop={onDrop(file)}
+            }} class="fm-object" bind:this={fileRefs[index]} data-filetype={file.type} data-filepath={fsView.relative(file.name)} draggable="true"
+              ondragstart={onDragStart(index)}
+              ondrop={onDrop(index)}
               ondragover={onDragOver}
-              ondragenter={onDragEnter(file)}
-              ondragleave={onDragLeave(file)}>
+              ondragenter={onDragEnter(index)}
+              ondragleave={onDragLeave(index)}>
               <button class="remove-button-styles fm-icon" onclick={file.type === "file" ? clickedFile(file) : clickedFolder(file)}>
                 {#if file.type === "file"}
                   {@html TextFileIcon}

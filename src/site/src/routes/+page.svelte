@@ -2,11 +2,14 @@
   import Desktop from "../components/Desktop.svelte";
   import Overlay, * as overlay from "../components/Overlay.svelte";
   import { onMount } from "svelte";
+  import * as deapi from "$lib/deapi.svelte";
 
   let loadingPopup: HTMLDialogElement = $state();
 
   onMount(async () => {
     loadingPopup.showModal();
+
+    deapi.expose();
 
     let { initialiseAPI, Filesystem } = await import("/api.mjs?url") as unknown as { initialiseAPI: Function, Filesystem: any };
     window.isFilesystemInitialised = false;

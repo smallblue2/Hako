@@ -60,10 +60,6 @@
   let fd: number | null = null;
   let data = $state("");
 
-  let min = 200;
-
-  let width = 320;
-  let height = 260;
   let perm = undefined;
 
   let view = undefined;
@@ -73,12 +69,6 @@
   let openAlertModal: OpenAlertFn = $state();
 
   onMount(async () => {
-    let { initWidth, initHeight } = lib.getInitWindowSize();
-    width = initWidth;
-    height = initHeight;
-    root.style.width = initWidth.toString() + "px";
-    root.style.height = initHeight.toString() + "px";
-
     let keepGoing = true;
     function abort() {
       win.closeWindow(id);
@@ -133,7 +123,7 @@
     const updateListener = EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         saved = false;
-        debounce(onSave(update.state), 2000);
+        debounce(onSave(update.state), 500);
       }
     });
 
@@ -176,8 +166,6 @@
     readOnly = view.state.readOnly;
   });
 
-  let maximized = $state(false);
-
   function onSave(state: EditorState) {
     return () => {
       if (!state.readOnly) {
@@ -192,32 +180,32 @@
     }
   }
 
-  function onResize(dw: number, dh: number) {
-    width = lib.clamp(width + dw, min);
-    height = lib.clamp(height + dh, min);
-    root.style.width = width.toString() + "px";
-    root.style.height = height.toString() + "px";
-    return true; // you can return false to say you can't resize
-  }
-
   let openConfirmationDialog: OpenConfirmationFn = $state();
   async function confirmSelectFile() {
     return await openConfirmationDialog();
+  }
+
+  function onMaximize() {
+    root.classList.add("editor-maximized");
+  }
+
+  function onUnMaximize() {
+    root.classList.remove("editor-maximized");
   }
 </script>
 
 <Window
   title={filePath === undefined ? "Editor" : `Editing ${filePath.replace("/persistent", "")}`}
-  bind:maximized
   {layerFromId}
   {id}
-  {onResize}
+  {onMaximize}
+  {onUnMaximize}
   dataRef={root}
 >
   {#snippet data()}
     <Alert bind:open={openAlertModal}></Alert>
     <Confirmation bind:open={openConfirmationDialog} title="No file opened" subtext="You must choose a file to open the editor on." confirmLabel="Select file" denyLabel="Cancel"></Confirmation>
-    <div class={`area ${maximized ? "editor-maximized" : ""}`} bind:this={root}>
+    <div class="area" bind:this={root}>
       <div tabindex="-1" role="textbox"
         bind:this={editArea}
         onkeydown={(ev) => {
@@ -255,6 +243,9 @@
     width: 100% !important;
     height: 100% !important;
     overflow: auto;
+  }
+  :global(.cm-content, .cm-gutter) {
+    font-family: var(--font-mono);
   }
   :global(.cm-editor) {
     width: 100%;

@@ -36,7 +36,7 @@
   }
 
   function newInstance(type: WindowType, app: Application) {
-    app.create()
+    app.create();
     hideMenu(type);
   }
 

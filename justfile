@@ -20,8 +20,12 @@ reconfigure-filesystem:
 reconfigure-processes:
   meson setup --cross-file ../emscripten.ini ../../build/processes
 
+[working-directory('src/deapi')]
+reconfigure-deapi:
+  meson setup --cross-file ../emscripten.ini ../../build/deapi
+
 [working-directory('src/runtime')]
-reconfigure-runtime: processes filesystem
+reconfigure-runtime: processes filesystem deapi
   meson setup --cross-file ../emscripten.ini ../../build/runtime --wrap-mode=forcefallback
 
 # Native compilation is used for running tests, just so we don't need to run them in a wasm + browser context
@@ -44,6 +48,10 @@ runtime-native: filesystem-native
 filesystem:
   if [ ! -d build/filesystem ]; then just reconfigure-filesystem; fi
   ninja -C build/filesystem
+
+deapi:
+  if [ ! -d build/deapi ]; then just reconfigure-deapi; fi
+  ninja -C build/deapi
 
 runtime-novendor:
   if [ ! -d build/runtime ]; then just reconfigure-runtime; fi
@@ -70,6 +78,7 @@ exported-runtime: runtime
   cp ../../build/filesystem/definitions.mjs static/
   cp ../../build/filesystem/filesystem.mjs static/
   cp ../../build/filesystem/filesystem.wasm static/
+  cp ../glue/creflect.mjs static/
 
 [working-directory('src/runtime/vendor')]
 build-ncurses:

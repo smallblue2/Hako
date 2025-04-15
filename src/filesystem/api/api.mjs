@@ -1,56 +1,7 @@
 import { O_CREAT, O_RDONLY, O_WRONLY, O_RDWR, errnoToString } from './definitions.mjs';
+import { sizeof, StructView } from "/creflect.mjs?url";
 
 export const Filesystem = {};
-
-// Below are all helpers to access exported variables from the C filesystem
-// module. This allows us to get size of structs aswell as the offsets of their
-// fields in js.
-function sizeof(M, structName) {
-  const symbolName = `_sizeof_${structName}`;
-  const symbol = M[symbolName];
-  if (symbol === undefined) {
-    throw new Error("symbol not found: " + symbolName);
-  }
-  return M.getValue(symbol, 'i32');
-}
-
-function offsetof(M, structName, field) {
-  const symbolName = `_offsetof_${structName}__${field}`;
-  const symbol = M[symbolName];
-  if (symbol === undefined) {
-    throw new Error("symbol not found: " + symbolName);
-  }
-  return M.getValue(M[symbolName], 'i32');
-}
-
-function derefi32(M, ptr, structName, field) {
-  return M.getValue(ptr + offsetof(M, structName, field), 'i32');
-}
-
-class StructView {
-  M;
-  ptr;
-  structName;
-  constructor(M, structName, ptr) {
-    this.M = M;
-    this.ptr = ptr;
-    this.structName = structName;
-    return new Proxy(this, {
-      get(target, prop, receiver) {
-        if (prop in target) {
-          return Reflect.get(target, prop, receiver);
-        }
-        return derefi32(target.M, target.ptr, target.structName, prop);
-      }
-    });
-  }
-  offsetof(field) {
-    return offsetof(this.M, this.structName, field);
-  }
-  addressof(field) {
-    return this.ptr + this.offsetof(field);
-  }
-}
 
 export function initialiseAPI(Module) {
   console.log("Initialising filesystem API");
