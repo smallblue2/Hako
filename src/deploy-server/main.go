@@ -189,6 +189,8 @@ func handleLOCDeploy(w http.ResponseWriter, r *http.Request) {
 
 	// Copy uploaded file into temp file
 	_, err = io.Copy(tmpFile, file)
+	// Close it to flush it to disk
+	tmpFile.Close()
 	if err != nil {
 		http.Error(w, "Failed to copy LOC file to tmp file", http.StatusInternalServerError)
 		log.Printf("Failed to copy LOC file to tmp file\n")
