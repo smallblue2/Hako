@@ -178,6 +178,14 @@ func handleLOCDeploy(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tmpFile.Close()
 
+	// Copy uploaded file into temp file
+	_, err = io.Copy(tmpFile, file)
+	if err != nil {
+		http.Error(w, "Failed to copy LOC file to tmp file", http.StatusInternalServerError)
+		log.Printf("Failed to copy LOC file to tmp file\n")
+		return
+	}
+
 	// Remove the current deployed instance
 	err = os.RemoveAll(locDeployPath)
 	if err != nil {
