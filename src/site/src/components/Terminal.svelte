@@ -38,8 +38,8 @@
     try {
       console.log(`Terminal with PID ${pid} is closing.`);
       window.ProcessManager.killProcess(pid);
-    } finally {
-      // Always succeed at closing
+    } catch (e) {
+      console.error(e);
     }
   }
 
