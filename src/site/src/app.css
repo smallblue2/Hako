@@ -8,8 +8,8 @@
 }
 
 :root {
-  --font-mono: "Inconsolata", monospace;
-  --font-sans: "Noto Sans", sans-serif;
+  --font-mono: "Fira Code";
+  --font-sans: "Fira Sans";
 }
 
 body {

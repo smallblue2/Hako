@@ -391,8 +391,8 @@
                 {:else}
                   {@html FolderIcon}
                 {/if}
+                <p>{file.name}</p>
               </button>
-              <p>{file.name}</p>
             </div>
           {/each}
         </div>
@@ -429,7 +429,7 @@
     gap: 0.5rem;
     flex-wrap: wrap;
   }
-  .fm-object > p {
+  .fm-icon > p {
     padding: 0;
     margin: 0;
   }

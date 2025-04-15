@@ -1,18 +1,21 @@
 import { flushSync, mount, unmount } from "svelte";
 
 import PlaceHolderIcon from "/src/placeholder.svg?raw";
+import ManualIcon from "/src/adwaita/manual.svg?raw";
 import FileManagerIcon from "/src/adwaita/file-manager.svg?raw";
 import TerminalIcon from "/src/adwaita/terminal.svg?raw";
 import TextEditorIcon from "/src/adwaita/text-editor.svg?raw";
 import Terminal from "../components/Terminal.svelte";
-import Editor from "../components/Editor.svelte";
 import FileManager from "../components/FileManager.svelte";
+import Editor from "../components/Editor.svelte";
+import Manual from "../components/Manual.svelte";
 
 // Window types
 export const TERMINAL = 0;
 export const FILE_MANAGER = 1;
 export const EDITOR = 2;
-export const OTHER = 3;
+export const MANUAL = 3;
+export const OTHER = 4;
 
 export const applications = $state([
   {
@@ -24,7 +27,7 @@ export const applications = $state([
   },
   {
     icon: FileManagerIcon,
-    name: "FileManager",
+    name: "File Manager",
     instances: 0,
     alwaysShow: true,
     create: () => openWindow(FILE_MANAGER, FileManager),
@@ -35,6 +38,13 @@ export const applications = $state([
     instances: 0,
     alwaysShow: true,
     create: () => openWindow(EDITOR, Editor),
+  },
+  {
+    icon: ManualIcon,
+    name: "Manual",
+    instances: 0,
+    alwaysShow: true,
+    create: () => openWindow(MANUAL, Manual),
   },
   {
     icon: PlaceHolderIcon,
@@ -77,6 +87,9 @@ export function openWindow(type, component, options) {
       break;
     case FILE_MANAGER:
       applications[FILE_MANAGER].instances += 1;
+      break;
+    case MANUAL:
+      applications[MANUAL].instances += 1;
       break;
     default:
       applications[OTHER].instances += 1;

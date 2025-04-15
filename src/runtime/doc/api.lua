@@ -297,9 +297,10 @@ window = {}
 TERMINAL --[[@type number]] = nil
 FILE_MANAGER --[[@type number]] = nil
 EDITOR --[[@type number]] = nil
+MANUAL --[[@type number]] = nil
 
 ---@diagnostic disable-next-line: undefined-doc-name
----@alias Window_Type (TERMINAL | FILE_MANAGER | EDITOR | OTHER)
+---@alias Window_Type (TERMINAL | FILE_MANAGER | EDITOR | MANUAL)
 
 ---@class Size
 ---@field width number horizontal size.

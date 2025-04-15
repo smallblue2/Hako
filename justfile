@@ -60,12 +60,15 @@ runtime-novendor:
 runtime: build-ncurses build-libedit
   just runtime-novendor
 
+runtime-doc:
+  ldoc src/runtime/doc/api.lua -d build/runtime/doc
+
 processes:
   if [ ! -d build/processes ]; then just reconfigure-processes; fi
   ninja -C build/processes
 
 [working-directory('src/site')]
-exported-runtime: runtime
+exported-runtime: runtime runtime-doc
   cp ../../build/runtime/runtime.mjs static/
   cp ../../build/runtime/runtime.wasm static/
   cp ../../build/runtime/signal.mjs static/
@@ -79,6 +82,7 @@ exported-runtime: runtime
   cp ../../build/filesystem/filesystem.mjs static/
   cp ../../build/filesystem/filesystem.wasm static/
   cp ../glue/creflect.mjs static/
+  cp -r ../../build/runtime/doc static/
 
 [working-directory('src/runtime/vendor')]
 build-ncurses:
