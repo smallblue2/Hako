@@ -176,10 +176,11 @@ func handleLOCDeploy(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to copy LOC bundle to temporary location\n")
 		return
 	}
-	defer tmpFile.Close()
 
 	// Copy uploaded file into temp file
 	_, err = io.Copy(tmpFile, file)
+	// Close it to flush it to disk
+	tmpFile.Close()
 	if err != nil {
 		http.Error(w, "Failed to copy LOC file to tmp file", http.StatusInternalServerError)
 		log.Printf("Failed to copy LOC file to tmp file\n")
@@ -210,6 +211,14 @@ func handleLOCDeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer deployFile.Close()
+
+	tmpFile, err = os.Open(tmpPath)
+	if err != nil {
+		http.Error(w, "Failed to open LOC tmp file again", http.StatusInternalServerError)
+		log.Printf("Failed to open LOC tmp file again\n")
+		return
+	}
+	defer tmpFile.Close()
 
 	_, err = io.Copy(deployFile, tmpFile)
 	if err != nil {
