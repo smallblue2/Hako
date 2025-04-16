@@ -3,8 +3,8 @@
 ---Manipulate files and directories.
 file = {}
 
-FILE --[[@type number]] = nil
-DIRECTORY --[[@type number]] = nil
+FILE --[[@type string]] = "file"
+DIRECTORY --[[@type string ]] = "directory"
 
 ---@diagnostic disable-next-line: undefined-doc-name
 ---@alias File_Type (FILE | DIRECTORY)

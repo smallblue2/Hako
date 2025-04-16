@@ -368,7 +368,12 @@ void statr_as_l(lua_State *L, StatResult *sr) {
   lua_pushnumber(L, sr->ino);
   lua_setfield(L, -2, "ino");
 
-  lua_pushnumber(L, sr->type);
+  if (sr->type == 1) {
+    lua_pushstring(L, "directory");
+  } else {
+    lua_pushstring(L, "file");
+  }
+  
   lua_setfield(L, -2, "type");
 
   int usr = (sr->perm & 0700) >> 6;
