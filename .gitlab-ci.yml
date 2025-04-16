@@ -5,7 +5,6 @@ stages:
   - lint
   - build
   - validate
-  - measure
   - test
   - deploy
 
@@ -180,6 +179,30 @@ build_runtime:
       paths:
         - ./install.sh
 
+build_site:
+  stage: build
+  script:
+    - cat ./install.sh | bash -s -- --to /usr/local/bin/
+    - apt-get update && apt-get install -y lua-ldoc
+    - just runtime-doc
+    - just copy-static-files
+    - cd src/site/ && npm install && npm run build
+  artifacts:
+    paths:
+      - build/site/
+    expire_in: 1 day
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  needs:
+    - cached_dependencies
+    - build_filesystem
+    - build_processes
+    - build_deapi
+    - build_vendor
+    - build_runtime
+
 # ----------------- VALIDATION ----------------- 
 
 validate_artefact_persistence:
@@ -227,20 +250,6 @@ validate_wasm:
     - wasm-validate --enable-threads build/runtime/runtime.wasm
     - wasm-validate --enable-threads build/runtime/runtime-node.wasm
 
-# ----------------- MEASUREMENT ----------------- 
-
-measure_lines_of_code:
-  stage: measure
-  script:
-    - |
-      export LOC=$(./measure-loc.sh)
-      echo "Lines of Code: $LOC"
-      mkdir -p public
-      echo "{\"loc\": $LOC}" > public/loc.json
-  artifacts:
-    paths:
-      - public
-
 # ----------------- TESTING ----------------- 
 
 test_filesystem:
@@ -279,13 +288,26 @@ test_integration:
 
 # ----------------- DEPLOYMENT -----------------
 
-# deploy_site:
-#   stage: deploy
-#   script:
-#     |
-#     cd build/site && \
-#     zip -r ../site.zip . && \
-#     curl -X POST -H "X-API-Key: $HAKO_DEPLOY_API_KEY" -F "bundle=@site.zip" "http://ci.cathal.xyz:2002/artifact?id=site"
-#   artifacts:
-#     paths:
-#       - public
+deploy_site:
+  stage: deploy
+  script:
+    |
+    cd build/site && \
+    zip -r ../site.zip . && \
+    curl -X PUT -H "X-API-Key: $HAKO_DEPLOY_API_KEY" -F "bundle=@../site.zip" "https://deploy.hakoapp.com/artifact?id=site"
+  needs:
+    - build_site
+  only:
+    - main
+
+measure_and_deploy_lines_of_code:
+  stage: deploy
+  script:
+    - |
+      export LOC=$(./measure-loc.sh) && \
+      echo "Lines of Code: $LOC" && \
+      mkdir -p public && \
+      echo "{\"loc\": $LOC}" > loc.json && \
+      curl -X PUT -H "X-API-Key: $HAKO_DEPLOY_API_KEY" -F "bundle=@loc.json" "https://deploy.hakoapp.com/artifact?id=loc"
+  only:
+    - main
