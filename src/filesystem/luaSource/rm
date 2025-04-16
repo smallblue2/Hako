@@ -97,7 +97,7 @@ function remove_path(path, opts, top_level)
   end
 
   -- If it's a dir do some checks
-  if stat.is_dir then
+  if stat.type == "directory" then
     -- If we're not set to be recursive
     if not opts.recursive then
       -- If we're not set to force
@@ -105,7 +105,7 @@ function remove_path(path, opts, top_level)
         -- Complain it's a directory
         output(string.format("rm: cannot remove '%s': Is a directory", path))
       end
-    return
+      return
     end
 
     if not confirm(string.format("rm: descend into directory '%s'? [y/N]", path), opts) then
