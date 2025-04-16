@@ -23,6 +23,16 @@ function print_dir(entries, path)
   end
 end
 
+-- Handle any errors
+function handle_error(path, err)
+  -- 44 means it doesn't exist!
+  if err == 44 then
+    output(string.format("ls: cannot access '%s': No such file or directory", path))
+  else
+    output(string.format("ls: Error reading path '%s' (err: %d)", path, err))
+  end
+end
+
 -- If there are more than 1 arguments (e.g. path(s) provided)
 if #process.argv > 1 then
   -- Read all directories (skipping first argv as it is `ls`, the name of the program)
@@ -30,7 +40,7 @@ if #process.argv > 1 then
   while i <= #process.argv do
     local err = read_dir(process.argv[i])
     if err then
-      output(string.format("ls: Error reading path '%s' (err: %d)", path, err))
+      handle_error(process.argv[i], err)
     end
     i = i + 1
   end
@@ -39,6 +49,6 @@ else
   -- Default to reading the current directory (denoted as '.')
   local err = read_dir(".")
   if err then
-    output(string.format("ls: Error reading path '%s' (err: %d)", path, err))
+    handle_error(".", err)
   end
 end
