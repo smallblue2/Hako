@@ -97,7 +97,7 @@ function remove_path(path, opts, top_level)
   end
 
   -- If it's a dir do some checks
-  if stat.type == "directory" then
+  if stat.type == DIRECTORY then
     -- If we're not set to be recursive
     if not opts.recursive then
       -- If we're not set to force
