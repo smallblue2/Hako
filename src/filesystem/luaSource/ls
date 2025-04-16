@@ -1,0 +1,44 @@
+-- Label directories if there are multiple provided
+local label = #process.argv > 2
+
+-- Reads a directory, returning an error if there is one
+function read_dir(path)
+  local entries, err = file.read_dir(path)
+  if err then
+    return err
+  end
+
+  print_dir(entries, path)
+  return nil
+end
+
+-- Prints a directory, and optionally the parent path if `label = true`
+function print_dir(entries, path)
+  if label then
+    output(string.format("\n%s:", path))
+  end
+  
+  for _, entry in ipairs(entries) do
+    output(entry)
+  end
+end
+
+-- If there are more than 1 arguments (e.g. path(s) provided)
+if #process.argv > 1 then
+  -- Read all directories (skipping first argv as it is `ls`, the name of the program)
+  local i = 2
+  while i <= #process.argv do
+    local err = read_dir(process.argv[i])
+    if err then
+      output(string.format("ls: Error reading path '%s' (err: %d)", path, err))
+    end
+    i = i + 1
+  end
+-- Otherwise if there is only 1 argument (just `ls`)
+else
+  -- Default to reading the current directory (denoted as '.')
+  local err = read_dir(".")
+  if err then
+    output(string.format("ls: Error reading path '%s' (err: %d)", path, err))
+  end
+end
