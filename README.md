@@ -14,7 +14,7 @@
 <p>
  <img src="https://gitlab.computing.dcu.ie/ryann62/2025-csc1097-ryann62-ogradc23/badges/dev/pipeline.svg" alt="Pipeline status"/>
 
- <img src="https://img.shields.io/badge/dynamic/json?color=blue&label=Lines%20Of%20Code&query=$.loc&url=https%3A%2F%2Fgitlab.computing.dcu.ie%2F2025-csc1097-ryann62-ogradc23%2Floc.json" alt="Lines of Code"/>
+ <img src="https://img.shields.io/badge/dynamic/json?color=blue&label=Lines%20Of%20Code&query=$.loc&url=https%3A%2F%2Fartifacts.hakoapp.com%2Floc.json" alt="Lines of Code"/>
 </p>
 
 # Hako - A friendly box to learn development principles

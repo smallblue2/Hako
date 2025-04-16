@@ -36,6 +36,9 @@ src/site/src/components/* \
 src/site/src/lib/* \
 src/site/src/routes/* \
 justfile \
-install.sh \
 src/emscripten.ini \
+src/glue/* \
+src/deapi/meson.build \
+src/deapi/src/* \
+src/deploy-server/* \
 | wc -l

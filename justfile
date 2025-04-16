@@ -67,8 +67,11 @@ processes:
   if [ ! -d build/processes ]; then just reconfigure-processes; fi
   ninja -C build/processes
 
-[working-directory('src/site')]
 exported-runtime: runtime runtime-doc
+  just copy-static-files
+ 
+[working-directory('src/site')]
+copy-static-files:
   cp ../../build/runtime/runtime.mjs static/
   cp ../../build/runtime/runtime.wasm static/
   cp ../../build/runtime/signal.mjs static/
