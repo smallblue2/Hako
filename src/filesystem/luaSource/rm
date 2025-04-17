@@ -55,8 +55,8 @@ function parse_args()
     end
   end
 
-  -- -f overrides -i (According to GNU)
-  if opts.force then opts.interactive = false end
+  -- -i overrides -f (GNU states the opposite, but I believe prioritising the weaker is better)
+  if opts.interactive then opts.force = false end
 
   return opts, files
 end
