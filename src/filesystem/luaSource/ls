@@ -304,7 +304,7 @@ function list_dir(path, opts, label_paths, first_call)
     end
   elseif opts.one then
     for _, e in ipairs(list) do
-      output(fmt_name(e, opts))
+      output(fmt_entry(e, opts))
     end
   else
     print_columns(list, opts)
