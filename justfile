@@ -86,6 +86,7 @@ copy-static-files:
   cp ../../build/filesystem/filesystem.wasm static/
   cp ../glue/creflect.mjs static/
   cp -r ../../build/runtime/doc static/
+  cp ../../docs/logos/hako_logo.png static/
 
 [working-directory('src/runtime/vendor')]
 build-ncurses:
