@@ -124,6 +124,12 @@ end
 
 -- Searches the PATH for command, returns path | nil
 function find_exec_file(name)
+
+  -- If there is no `.lua` at the end, add it
+  if name:sub(-4) ~= ".lua" then
+    name = name .. ".lua"
+  end
+
   local exec_path = get_env_var("PATH")
   if not exec_path then
     output("Error: PATH environment variable not set")
