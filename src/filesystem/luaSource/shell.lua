@@ -73,7 +73,10 @@ function env()
 end
 
 function cd(cmd)
-  local err = file.change_dir(cmd.argv[2])
+  -- Home is '/', default to it with no second argument
+  local path = "/"
+  if (cmd.argv[2]) then path = cmd.argv[2] end
+  local err = file.change_dir(path)
   if err ~= nil then
     output(string.format("cd: %s", errors.as_string(err)))
   end
