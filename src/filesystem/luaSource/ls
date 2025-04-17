@@ -28,7 +28,7 @@ function get_extension(name)
 end
 
 function fmt_time(sec)
-  return "TODO-TIME"
+  return fmt.date("%b %e %H:%M", sec)
 end
 
 function fmt_perm(stat)
@@ -47,6 +47,15 @@ function fmt_name(entry, opts)
   return name
 end
 
+function fmt_entry(entry, opts)
+  local s = entry.stat
+  local parts = {}
+  if opts-s      List allocated blocks.inode and s.ino then parts[#parts + 1] = string.format("%4d", s.ino) end
+  if opts.blocks and s.blocks then parts[#parts + 1] = string.format("%4d", s.blocks) end
+  parts[#parts + 1] = fmt_name(entry, opts)
+  return table.concat(parts, " ")
+end
+
 -- ===================================================
 -- Parse args / Print help
 -- ===================================================
@@ -59,6 +68,7 @@ function parse_args()
     recurse = false, -- -R
     long = false, -- -l
     inode = false, -- -i
+    blocks = false, -- -s
     slash_dir = false, -- -p
     time_field = "mtime", -- smtime / sctime / satime
     list_time = "mtime", -- l, lc, lu
@@ -77,6 +87,7 @@ function parse_args()
       elseif arg == "--recurse" then opts.recurse = true
       elseif arg == "--long" then opts.long = true
       elseif arg == "--inode" then opts.inode = true
+      elseif arg == "--block" then opts.blocks = true
       elseif arg == "--human" then opts.human = true
       elseif arg == "--size" then opts.sort = "size"
       elseif arg == "--ext" then opts.sort = "ext"
@@ -99,6 +110,7 @@ function parse_args()
         elseif f == "R" then opts.recurse = true
         elseif f == "l" then opts.long = true
         elseif f == "i" then opts.inode = true
+        elseif f == "s" then opts.blocks = true
         elseif f == "p" then opts.slash_dir = true
         elseif f == "h" then opts.human = true
         elseif f == "S" then opts.sort = "size"
@@ -144,6 +156,7 @@ Options:
  -R, --recurse     follow sub-directories and list their contents too
  -l, --long        long format
  -i, --inode       list inode numbers
+ -s, --block       lists allocated blocks
  -p,               append / to directory names
  -c, --ctime       list ctime
  -u, --atime       list atime
@@ -173,14 +186,14 @@ function get_key(opts)
 end
 
 -- ===================================================
--- Print helper
+-- Print helpers
 -- ===================================================
 
 function long_line(entry, opts)
   local s = entry.stat
   local parts = {}
   if opts.inode and s.ino then parts[#parts + 1] = string.format("%4d", s.ino) end
-  -- TODO: print time stuff, checking flags
+  if opts.blocks then parts[#parts + 1] = string.format("%4d", s.blocks) end
   parts[#parts + 1] = fmt_perm(s)
   parts[#parts + 1] = string.format("%10s", opts.human and human(s.size) or tostring(s.size))
   parts[#parts + 1] = fmt_time(s[opts.list_time].sec)
@@ -188,11 +201,54 @@ function long_line(entry, opts)
   return table.concat(parts, " ")
 end
 
-function fmt_elem(entry, opts)
-  local parts = {}
-  if opts.inode and s.ino then parts[#parts + 1] = string.format("%4d", s.ino) end
-  -- TODO: print time stuff for their flags
-  
+function print_columns(list, opts)
+  -- Decide how many characters we can fit on the 
+  -- screen (default to 80)
+  local is_tty, _ = process.isatty(STDOUT)
+  local term_w = (is_tty and terminal.width()) or 80
+
+  -- Format entries and collect them
+  -- Also keep track of the longest entry
+  local names, maxlen = {}, 0
+  for _, e in ipairs(list) do
+    local n = fmt_entry(e, opts)
+    names[#names + 1] = n
+    if #n > maxlen then maxlen = #n end
+  end
+
+  -- Add two spaces between columns (GNU ls behaviour)
+  local col_w = maxlen + 2
+
+  -- The number of columns we can fit on a line
+  local cols = math.max(1, math.floor(term_w / col_w))
+  -- The number of rows we will have
+  local rows = math.ceil(#names / cols)
+
+  -- Print row-by-row
+  for r = 1, rows do
+    -- Collect the cells in this row
+    local pieces = {}
+    -- Iterate over columns
+    for c = 0, cols - 1 do
+      -- Convert (row, col) into a flat index
+      -- row 1: names[1], names[1 + rows], names[1 + 2 * rows]
+      -- row2: names[2], names[2 + rows], names[2 + 2 * 2]
+      local i = r + c * rows
+      local n = names[i]
+      -- Could be nil in the last column
+      if n then
+        -- Pad all but the last column on the row so that subsequent
+        -- columns line up
+        local pad = (c == cols - 1) and 0 or (col_w - #n)
+        pieces[#pieces + 1] = n .. string.rep(" ", pad)
+      end
+    end
+    -- Concat the cells into a single physical line
+    local line = table.concat(pieces)
+    -- Remove trailing spaces added to fill the last column
+    line = line:gsub("%s+$", "")
+    output(line)
+  end
 end
 
 -- ===================================================
@@ -245,11 +301,12 @@ function list_dir(path, opts, label_paths, first_call)
     for _, e in ipairs(list) do
       output(long_line(e, opts))
     end
-  else
-    for idx, e in ipairs(list) do
-      local name = fmt_name(e, opts)
-      output(name .. ((idx == #list or opts.one) and "\n" or " "), { newline = false })
+  elseif opts.one then
+    for _, e in ipairs(list) do
+      output(fmt_name(e, opts))
     end
+  else
+    print_columns(list, opts)
   end
   
   -- Recurse (-R)
