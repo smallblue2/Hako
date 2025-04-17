@@ -77,6 +77,8 @@ static const luaL_Reg terminal_module[] = {
 #ifdef __EMSCRIPTEN__
   {"prompt", lterminal__prompt},
 #endif
+  {"width", lterminal__get_width},
+  {"height", lterminal__get_height},
   {NULL, NULL},
 };
 

@@ -291,6 +291,14 @@ function terminal.clear() end
 ---@diagnostic disable-next-line: unused-local, missing-return
 function terminal.prompt(prompt_text) end
 
+---Gets the number of columns in the terminal.
+---@return number width The number of columns in the terminal.
+function terminal.width() end
+
+---Gets the number of rows in the terminal.
+---@return number height The number of rows in the terminal.
+function terminal.height() end
+
 ---Window management specific functions.
 window = {}
 

@@ -9,6 +9,47 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef __EMSCRIPTEN__
+#include <curses.h>
+#endif
+
+int get_terminal_width() {
+#ifdef __EMSCRIPTEN__
+  initscr();
+  int rows, cols;
+  getmaxyx(stdscr, rows, cols);
+  (void)rows;
+  endwin();
+  return cols;
+#endif
+  return -1;
+}
+
+int get_terminal_height() {
+#ifdef __EMSCRIPTEN__
+  initscr();
+  int cols, rows;
+  getmaxyx(stdscr, rows, cols);
+  (void)cols;
+  endwin();
+  return rows;
+#endif
+  return -1;
+}
+
+int lterminal__get_width(lua_State *L) {
+  int width = get_terminal_width();
+
+  lua_pushnumber(L, width);
+  return 1;
+}
+
+int lterminal__get_height(lua_State *L) {
+  int height = get_terminal_height();
+
+  lua_pushnumber(L, height);
+  return 1;
+}
 
 int lterminal__clear(__attribute__((unused)) lua_State *L) {
   printf("\033[2J\033[H");
