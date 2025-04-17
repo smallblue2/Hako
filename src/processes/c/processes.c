@@ -394,27 +394,29 @@ char *proc__input_line(Error *err) {
   return lineptr;
 }
 
+int _redir_fd = -1;
+char *_redir_name;
+
 void proc__output(const char *restrict buf, int len, Error *restrict err) {
   // Short-circuit evaluation as to where we direct output
   //  1. File
   //  2. Pipe
   //  3. Stdout
 
-  // Check if we redirect to a file instead
-  char *file_redirect = proc__get_redirect_out(err);
-  if (file_redirect[0] != '\0') {
-    int fd = file__open(file_redirect, O_CREAT | O_WRONLY, err);
-    if (fd == -1 && *err == E_EXISTS) {
-      fd = file__open(file_redirect, O_WRONLY, err);
+
+  if (_redir_name == NULL) {
+    _redir_name = proc__get_redirect_out(err);
+    if (_redir_name[0] != '\0') {
+      _redir_fd = file__open(_redir_name, O_CREAT | O_WRONLY, err);
+      if (_redir_fd == -1 && *err == E_EXISTS) {
+        _redir_fd = file__open(_redir_name, O_WRONLY, err);
+      }
+      if (_redir_fd == -1) return;
     }
-    if (fd == -1)
-      return;
+  }
 
-    file__write(fd, buf, err);
-    file__close(fd, err);
-
-    free(file_redirect);
-
+  if (_redir_fd != -1) {
+    file__write(_redir_fd, buf, err);
     return;
   }
 
