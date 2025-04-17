@@ -124,6 +124,20 @@ function find_exec_file(name)
     name = name .. ".lua"
   end
 
+  local look_custom = false
+  if name:sub(1, 1) == "/" then look_custom = true
+  elseif name:sub(1, 2) == "./" then look_custom = true end
+
+  if look_custom then
+    local fd, err = file.open(name, "r")
+    if not err then
+      file.close(fd)
+      return name
+    else
+      return nil
+    end
+  end
+
   local exec_path = get_env_var("PATH")
   if not exec_path then
     output("Error: PATH environment variable not set")
