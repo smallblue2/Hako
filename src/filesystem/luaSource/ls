@@ -50,7 +50,7 @@ end
 function fmt_entry(entry, opts)
   local s = entry.stat
   local parts = {}
-  if opts-s      List allocated blocks.inode and s.ino then parts[#parts + 1] = string.format("%4d", s.ino) end
+  if opts.inode and s.ino then parts[#parts + 1] = string.format("%4d", s.ino) end
   if opts.blocks and s.blocks then parts[#parts + 1] = string.format("%4d", s.blocks) end
   parts[#parts + 1] = fmt_name(entry, opts)
   return table.concat(parts, " ")
@@ -109,6 +109,7 @@ function parse_args()
         elseif f == "A" then opts.almost_all = true
         elseif f == "R" then opts.recurse = true
         elseif f == "l" then opts.long = true
+        elseif f == "b" then opts.blocks = true
         elseif f == "i" then opts.inode = true
         elseif f == "s" then opts.blocks = true
         elseif f == "p" then opts.slash_dir = true
