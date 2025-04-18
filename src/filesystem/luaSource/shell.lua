@@ -82,14 +82,6 @@ function cd(cmd)
   end
 end
 
-function ls(cmd)
-  -- TODO: take into account possible arguments
-  local entries = file.read_dir(".")
-  for _, entry in ipairs(entries) do
-    output(entry)
-  end
-end
-
 function pwd(cmd)
   local cwd, err = file.cwd()
   if err ~= nil then
@@ -100,7 +92,6 @@ function pwd(cmd)
 end
 
 local built_in_table = {
-  ["ls"] = ls,
   ["cd"] = cd,
   ["export"] = export,
   ["env"] = env
