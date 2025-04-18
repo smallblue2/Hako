@@ -291,6 +291,16 @@ function terminal.clear() end
 ---@diagnostic disable-next-line: unused-local, missing-return
 function terminal.prompt(prompt_text) end
 
+---Gets the number of columns in the terminal.
+---@return number width The number of columns in the terminal.
+---@diagnostic disable-next-line: missing-return
+function terminal.width() end
+
+---Gets the number of rows in the terminal.
+---@return number height The number of rows in the terminal.
+---@diagnostic disable-next-line: missing-return
+function terminal.height() end
+
 ---Window management specific functions.
 window = {}
 
@@ -375,3 +385,19 @@ function window.resize(id, width, height) end
 ---@param id number the identifier associated with the window to close.
 ---@diagnostic disable-next-line: unused-local
 function window.close(id) end
+
+---Formatting specific functionality.
+fmt = {}
+
+---Formats a date and time as a string or returns a date table - refer to Lua's `os.date`
+---@param format string The format string
+---@param time number The epoch time in seconds
+---@return string|table A formatted date string or a table with the time components
+---@diagnostic disable-next-line: missing-return, unused-local
+function fmt.date(format, time) end
+
+---Returns the current time or encodes a date table into a Unix timestamp - refer to Lua's `os.time`.
+---@param[opt] date_table table A table with fields `year`, `month`, `day`, `hour`, `min`, `sec`, `isdst`
+---@return number The number of seconds since the epoch
+---@diagnostic disable-next-line: missing-return, unused-local
+function fmt.time(date_table) end

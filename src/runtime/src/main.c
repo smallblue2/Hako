@@ -143,6 +143,20 @@ int setup_env(void) {
   return 0;
 }
 
+void expose_only(lua_State *L, const char *from_ns, const char *to_ns, const char **names) {
+  lua_newtable(L);
+  lua_getglobal(L, from_ns);
+  for (int i = 0; names[i] != NULL; i++) {
+    lua_getfield(L, -1, names[i]);
+    lua_setfield(L, -3, names[i]);
+  }
+  lua_pop(L, 1); // pop from_ns table
+  lua_setglobal(L, to_ns);
+  // Remove old namespace
+  lua_pushnil(L);
+  lua_setglobal(L, from_ns);
+}
+
 int main(void) {
 #ifdef __EMSCRIPTEN__
   deapi_init();
@@ -158,6 +172,11 @@ int main(void) {
   luaL_requiref(L, LUA_MATHLIBNAME, luaopen_math, 1);
   luaL_requiref(L, LUA_GNAME, luaopen_base, 1);
   luaL_requiref(L, LUA_DBLIBNAME, luaopen_debug, 1);
+
+  luaL_requiref(L, LUA_OSLIBNAME, luaopen_os, 1);
+  expose_only(L, "os", "fmt", (const char *[]){"time", "date", NULL});
+  
+  lua_getfield(L, -1, "date");
 
   exclude_globals(L);
   export_custom_apis(L);
