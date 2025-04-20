@@ -119,10 +119,11 @@ end
 -- Searches the PATH for command, returns path | nil
 function find_exec_file(name)
 
-  -- If there is no `.lua` at the end, add it
-  if name:sub(-4) ~= ".lua" then
-    name = name .. ".lua"
+  local exec_path = get_env_var("PATH")
+  if not exec_path then
+    return
   end
+
 
   local look_custom = false
   if name:sub(1, 1) == "/" then look_custom = true
@@ -138,12 +139,20 @@ function find_exec_file(name)
     end
   end
 
-  local exec_path = get_env_var("PATH")
-  if not exec_path then
-    output("Error: PATH environment variable not set")
-    return
-  end
   local paths = split_paths(exec_path)
+  -- If there is no `.lua` at the end, add it
+  if name:sub(-4) ~= ".lua" then
+    local luaName = name .. ".lua"
+    for _, path in ipairs(paths) do
+      local looking_for = join_paths(path, luaName)
+      local fd, err = file.open(looking_for, "r")
+      if not err then
+        file.close(fd)
+        return looking_for
+      end
+    end
+  end
+
   for _, path in ipairs(paths) do
     local looking_for = join_paths(path, name)
     local fd, err = file.open(looking_for, "r")
@@ -887,8 +896,10 @@ function exec_pipeline(pipeline_ast, ctx)
       end
 
       -- Get the execution path
+      output("GETTING EXEC_PATH")
       local exec_path = find_exec_file(simple_cmd.argv[1])
       if not exec_path then
+        output("Couldn't find :(")
         return string.format("Command not found: %s", simple_cmd.argv[1])
       end
 
