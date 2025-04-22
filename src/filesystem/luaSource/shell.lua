@@ -896,10 +896,8 @@ function exec_pipeline(pipeline_ast, ctx)
       end
 
       -- Get the execution path
-      output("GETTING EXEC_PATH")
       local exec_path = find_exec_file(simple_cmd.argv[1])
       if not exec_path then
-        output("Couldn't find :(")
         return string.format("Command not found: %s", simple_cmd.argv[1])
       end
 
