@@ -109,9 +109,8 @@ function parse_args()
         elseif f == "A" then opts.almost_all = true
         elseif f == "R" then opts.recurse = true
         elseif f == "l" then opts.long = true
-        elseif f == "b" then opts.blocks = true
-        elseif f == "i" then opts.inode = true
         elseif f == "s" then opts.blocks = true
+        elseif f == "i" then opts.inode = true
         elseif f == "p" then opts.slash_dir = true
         elseif f == "h" then opts.human = true
         elseif f == "S" then opts.sort = "size"
