@@ -316,10 +316,13 @@ cleanup:
  * @@ file.read_dir(dir_path: string) -> (entries: string[], err: number | nil)
  */
 int lfile__read_dir(lua_State *L) {
+  char **entries = NULL;
+  char *fpath = NULL;
+
   lua_settop(L, 2);
   const char *path = luaL_checkstring(L, 1);
 
-  char *fpath = fake_path(path);
+  fpath = fake_path(path);
   if (fpath == NULL) {
     lua_pushnil(L);
     lua_pushnumber(L, E_DOESNTEXIST);
@@ -329,7 +332,7 @@ int lfile__read_dir(lua_State *L) {
   Error err = 0;
   lua_newtable(L);
 
-  char **entries = file__read_dir(fpath, &err);
+  entries = file__read_dir(fpath, &err);
   if (err != 0) {
     lua_pushnil(L);
     lua_pushnumber(L, errno);
@@ -341,7 +344,7 @@ int lfile__read_dir(lua_State *L) {
     char *entry = *(entries + idx);
     lua_pushstring(L, entry);
     free(entry);
-    lua_pushinteger(L, idx + 1);
+    lua_pushnumber(L, idx + 1);
     lua_insert(L, -2);
     lua_settable(L, -3);
     idx++;
@@ -349,6 +352,7 @@ int lfile__read_dir(lua_State *L) {
 
   lua_pushnil(L);
 cleanup:
+  free(entries);
   free(fpath);
   return 2;
 }

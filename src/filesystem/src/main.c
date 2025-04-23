@@ -472,51 +472,70 @@ void file__remove_dir(const char *path, Error *err) {
 }
 
 char **file__read_dir(const char *restrict path, int *restrict err) {
-  DIR *dir = opendir(path);
+  DIR *dir = NULL;
+  char **buf = NULL;
+  static const int CHUNK = 16;
+  int len = 0, cap = 0;
+  
+  dir = opendir(path);
   if (dir == NULL) {
     *err = translate_errors(errno);
     return NULL;
   }
 
-  static const int chk = 16;
-  int len = 0;
-  int cap = chk;
-  char **buf = malloc(cap * sizeof(char *));
+  cap = CHUNK;
+  buf = malloc(cap * sizeof(*buf));
+  if (buf == NULL) {
+    *err = translate_errors(errno);
+    goto cleanup;
+  }
 
   while (true) {
     errno = 0;
-    const struct dirent *ent = readdir(dir);
+    struct dirent *ent = readdir(dir);
     if (ent == NULL && errno != 0) {
       *err = translate_errors(errno);
-      return NULL;
+      goto cleanup;
     }
     if (ent == NULL) break;
     if (len >= cap) {
-      cap += chk;
-      char **old = buf;
-      buf = realloc(buf, cap * sizeof(char *));
-      if (buf == NULL) {
-        free(old);
+      char **tmp = realloc(buf, (cap + CHUNK) * sizeof(*buf));
+      if (tmp == NULL) {
         *err = translate_errors(errno);
-        return NULL;
+        goto cleanup;
       }
+      buf = tmp;
+      cap += CHUNK;
     }
-    buf[len++] = strdup(ent->d_name);
+    buf[len] = strdup(ent->d_name);
+    if (buf[len] == NULL) {
+      *err = translate_errors(errno);
+      goto cleanup;
+    }
+    len++;
   }
 
-  if (len >= cap) {
-    cap += chk;
-    char **old = buf;
-    buf = realloc(buf, cap * sizeof(char *));
-    if (buf == NULL) {
-      free(old);
+  if (len + 1 > cap) {
+    char **tmp = realloc(buf, (len + 1) * sizeof(*buf));
+    if (tmp == NULL) {
       *err = translate_errors(errno);
-      return NULL;
+      goto cleanup;
     }
+    buf = tmp;
   }
   buf[len] = NULL;
 
+  *err = 0;
+  closedir(dir);
   return buf;
+
+cleanup:
+  for (int i = 0; i < len; i++) {
+    free(buf[i]);
+  }
+  free(buf);
+  if (dir) closedir(dir);
+  return NULL;
 }
 
 void file__stat(const char *restrict name, StatResult *restrict sr, Error *restrict err) {
