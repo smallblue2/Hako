@@ -21,6 +21,9 @@
 
 **Hako** is a browser-based, Unix-inspired educational operating system designed to teach students fundamental systems programming concepts through a simplified execution environment.
 
+Try it out: [hakoapp.com](https://hakoapp.com) \
+**NOTE:** This is a self hosted website, and although effort is put in to keep the website up, it is subject local network outages and alike.
+
 ## About the Project
 
 Hako is a **fully client-side** web application that blends the familiarity of traditional desktop interfaces with the structure and philosophy of Unix-like systems. It aims to reduce the abstraction commonly found in modern programming environments, helping learners understand how code interacts with the underlying system.
