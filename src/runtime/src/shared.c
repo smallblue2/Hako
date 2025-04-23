@@ -58,10 +58,10 @@ char **split(const char *string, const char delim) {
       free_char_array(result);
       return NULL;
     }
-    memcpy(sub, start, length * sizeof(char));
-    *(sub + length) = '\0';
+    memcpy(sub, start, length);
+    sub[length] = '\0';
 
-    if (count == initial_size - 1) {
+    if (count >= initial_size - 1) {
       // Need more capacity
       initial_size *= 2;
       char **tmp = realloc(result, initial_size * sizeof(*result));
@@ -72,7 +72,7 @@ char **split(const char *string, const char delim) {
       result = tmp;
     }
 
-    *(result + count++) = sub;
+    result[count++] = sub;
 
     if (end == NULL) break;
 
@@ -81,7 +81,7 @@ char **split(const char *string, const char delim) {
   };
 
   // Null terminate array
-  *(result + count) = NULL;
+  result[count] = NULL;
   return result;
 }
 
@@ -126,6 +126,7 @@ char *join_paths(const char *restrict path1, const char *restrict path2) {
 char_stack *char_stack_create(int capacity) {
   assert(capacity > 0);
   char_stack *stack = (char_stack*)calloc(1, sizeof(char_stack));
+  if (stack == NULL) return NULL;
   stack->capacity = capacity;
   stack->top_index = -1;
   stack->array = (char**)calloc(capacity, sizeof(char*));
@@ -151,12 +152,13 @@ int char_stack_add(char_stack *restrict stack, char *restrict item) {
   char *store = calloc(item_length + 1, sizeof(char));
   if (store == NULL) return 1;
   memcpy(store, item, item_length);
-  *(store + item_length) = '\0';
+  store[item_length] = '\0';
 
-  if (stack->top_index == stack->capacity - 1) {
+  if (stack->top_index + 2 > stack->capacity) {
     stack->capacity *= 2;
     char **new_array = realloc(stack->array, stack->capacity * sizeof(char*));
     if (new_array == NULL) {
+      free(stack->array);
       free(store);
       return 1;
     }
@@ -165,22 +167,22 @@ int char_stack_add(char_stack *restrict stack, char *restrict item) {
 
   stack->top_index++;
 
-  *(stack->array + stack->top_index) = store;
-  *(stack->array + stack->top_index + 1)  = NULL;
+  stack->array[stack->top_index] = store;
+  stack->array[stack->top_index + 1] = NULL;
   return 0;
 }
 
 char *char_stack_pop(char_stack *stack) {
   if (stack == NULL || stack->top_index < 0) return NULL;
-  char *item = *(stack->array + stack->top_index);
-  *(stack->array + stack-> top_index) = NULL;
+  char *item = stack->array[stack->top_index];
+  stack->array[stack->top_index] = NULL;
   stack->top_index--;
   return item;
 }
 
 char *char_stack_peek(char_stack *stack) {
   assert(stack != NULL && stack->top_index > -1);
-  return *(stack->array + stack->top_index);
+  return stack->array[stack->top_index];
 }
 
 void char_stack_print(char_stack *stack) {
@@ -282,7 +284,7 @@ char *fake_path(const char *path) {
     // Trim FALSE_ROOT from the start of CWD
     const int shift = FALSE_ROOT_SIZE;
     const int cwd_length = strlen(cwd) + 1;
-    memmove(cwd, cwd + shift, cwd_length);
+    memmove(cwd, cwd + shift, cwd_length - shift);
 
     if (*cwd != '\0') {
       char **split_array = split(cwd, '/');
@@ -295,7 +297,6 @@ char *fake_path(const char *path) {
       free_char_array(split_array);
       if (ret) {
         char_stack_free(stack);
-        free_char_array(split_array);
         return NULL;
       }
     }
