@@ -531,7 +531,7 @@ char **file__read_dir(const char *restrict path, int *restrict err) {
 
 cleanup:
   for (int i = 0; i < len; i++) {
-    free(*(buf + i));
+    free(buf[i]);
   }
   free(buf);
   if (dir) closedir(dir);
