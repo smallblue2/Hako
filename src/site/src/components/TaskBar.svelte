@@ -7,6 +7,8 @@
   // NOTE: Each number represents the index into the group of windows NOT the window ids themselves
   let focusPreference: number[] = [-1, -1, -1, -1, -1];
 
+  let root: HTMLElement = $state();
+
   const windows: OpenWindow[] = _windows;
   const applications: Application[] = _applications;
 
@@ -58,7 +60,7 @@
 </script>
 
 <div class="wrapper">
-  <div class="tasks">
+  <div class="tasks" bind:this={root}>
     {#each applications as app, type}
       {#if app.alwaysShow || app.instances !== 0}
         <div>
@@ -105,7 +107,7 @@
                 }
               }
               let index = focusPreference[type];
-              const instances = Array.from(lib.instances(type));
+              const instances: OpenWindow[] = Array.from(lib.instances(type));
               instances.sort((a, b) => lib.getLayer(a.id) - lib.getLayer(b.id));
               if (index === -1) {
                 index = instances.length - 1;
@@ -129,6 +131,17 @@
     {/each}
   </div>
 </div>
+
+<!-- If the user clicks anything other than the taskbar, we need to stop
+     cycling and just preserve the last focused items  -->
+<svelte:window onclick={(ev) => {
+  // TODO is it OK to just cast to Node here?
+  if (!root.contains(ev.target as Node)) {
+    for (let i = 0; i < focusPreference.length; i++) {
+      focusPreference[i] = -1;
+    }
+  }
+}}/>
 
 <style>
   .wrapper {
