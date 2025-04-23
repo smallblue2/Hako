@@ -119,7 +119,7 @@ export function openWindow(type, component, options) {
 
 export function closeWindow(id) {
   for (let i = 0; i < _windows.length; i++) {
-    if (_windows[i].id == id) {
+    if (_windows[i].id === id) {
       applications[_windows[i].type].instances -= 1;
       unmount(_windows[i].component, { outro: true });
       _windows.splice(i, 1);
@@ -130,10 +130,22 @@ export function closeWindow(id) {
 
 export function getWindowByID(id) {
   for (let i = 0; i < _windows.length; i++) {
-    if (_windows[i].id == id) {
+    if (_windows[i].id === id) {
       return _windows[i];
     }
   }
+}
+
+export function* instances(type) {
+  for (let i = 0; i < _windows.length; i++) {
+    if (_windows[i].type === type) {
+      yield _windows[i];
+    }
+  }
+}
+
+export function getLayer(id) {
+  return _layerFromId[id];
 }
 
 export function hideWindow(id) {
