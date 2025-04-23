@@ -340,12 +340,12 @@ local function grep(parent, files_or_dirs)
       end
       local stat, err = file.stat(full_path)
       if err ~= nil then
-        error_if(fname, errors.as_string(err), not config.suppress)
+        error_if(full_path, errors.as_string(err), not config.suppress)
       else
         if stat.type == DIRECTORY then
-          local entries, err = file.read_dir(fname)
+          local entries, err = file.read_dir(full_path)
           if err ~= nil then
-            error_if(fname, errors.as_string(err), not config.supress)
+            error_if(full_path, errors.as_string(err), not config.supress)
           else
             filter_rel(entries)
             match = grep(full_path, entries) or match
@@ -365,6 +365,11 @@ errors.ok(err)
 local files_or_dirs = {}
 for fname, _ in pairs(config.file_set) do
   table.insert(files_or_dirs, fname)
+end
+
+-- Assume stdin if no files specified
+if #files_or_dirs == 0 then
+  table.insert(files_or_dirs, "-")
 end
 
 if grep(cwd, files_or_dirs) then
