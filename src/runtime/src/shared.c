@@ -158,7 +158,6 @@ int char_stack_add(char_stack *restrict stack, char *restrict item) {
     stack->capacity *= 2;
     char **new_array = realloc(stack->array, stack->capacity * sizeof(char*));
     if (new_array == NULL) {
-      free(stack->array);
       free(store);
       return 1;
     }
