@@ -1,6 +1,10 @@
-<p align="center">
+<h1 align="center">
   <img src="./docs/logos/hako_banner.png" alt="Project Banner" style="image-rendering: pixelated; width: 100%; max-width: 512px;" />
-</p>
+
+  <a href="https://hakoapp.com">Hako Site</a> | <a href="https://gitlab.computing.dcu.ie/ryann62/2025-csc1097-ryann62-ogradc23/-/tree/main/docs">Documentation</a> 
+</h1>
+
+<hr/>
 
 <p>
   <img src="https://img.shields.io/badge/WebAssembly-654FF0?style=for-the-badge&logo=WebAssembly&logoColor=white" alt="Web Assembly"/>
@@ -16,6 +20,8 @@
 
  <img src="https://img.shields.io/badge/dynamic/json?color=blue&label=Lines%20Of%20Code&query=$.loc&url=https%3A%2F%2Fartifacts.hakoapp.com%2Floc.json" alt="Lines of Code"/>
 </p>
+
+<hr/>
 
 # Hako - A friendly box to learn development principles
 
