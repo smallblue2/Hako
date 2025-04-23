@@ -3,6 +3,12 @@
   import { applications as _applications, _windows } from "$lib/windows.svelte.js";
   import ContextMenu from "./ContextMenu.svelte";
 
+  // Stores preference window index per app, to bring into focus when clicking the app icon when there is open windows
+  // NOTE: Each number represents the index into the group of windows NOT the window ids themselves
+  let focusPreference: number[] = [-1, -1, -1, -1, -1];
+
+  let root: HTMLElement = $state();
+
   const windows: OpenWindow[] = _windows;
   const applications: Application[] = _applications;
 
@@ -54,7 +60,7 @@
 </script>
 
 <div class="wrapper">
-  <div class="tasks">
+  <div class="tasks" bind:this={root}>
     {#each applications as app, type}
       {#if app.alwaysShow || app.instances !== 0}
         <div>
@@ -93,7 +99,22 @@
             if (app.instances === 0 && app.create !== null) {
               app.create();
             } else {
-              showAll(type);
+              // Reset everbody else's preference indices
+              // this allows the user to swap back and forth between 2 preferrred applications
+              for (let i = 0; i < focusPreference.length; i++) {
+                if (i !== type && focusPreference[i] !== -1) {
+                  focusPreference[i] = -1;
+                }
+              }
+              let index = focusPreference[type];
+              const instances: OpenWindow[] = Array.from(lib.instances(type));
+              instances.sort((a, b) => lib.getLayer(a.id) - lib.getLayer(b.id));
+              if (index === -1) {
+                index = instances.length - 1;
+              }
+              index = Math.max(0, Math.min(instances.length - 1, index)); // make absolutely sure we index in range - user could have closed a window since
+              lib.focusWindow(instances[index].id);
+              focusPreference[type] = Math.max(0, index - 1);
             }
           }} oncontextmenu={(ev) => {
             ev.preventDefault();
@@ -110,6 +131,17 @@
     {/each}
   </div>
 </div>
+
+<!-- If the user clicks anything other than the taskbar, we need to stop
+     cycling and just preserve the last focused items  -->
+<svelte:window onclick={(ev) => {
+  // TODO is it OK to just cast to Node here?
+  if (!root.contains(ev.target as Node)) {
+    for (let i = 0; i < focusPreference.length; i++) {
+      focusPreference[i] = -1;
+    }
+  }
+}}/>
 
 <style>
   .wrapper {

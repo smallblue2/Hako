@@ -157,10 +157,10 @@ export default class ProcessManager {
     // Kill the process
     let toKill = this.getProcess(pid);
     if (!toKill) {
-      throw CustomError(CustomError.symbols.PROC_NO_EXIST);
+      throw new CustomError(CustomError.symbols.PROC_NO_EXIST);
     }
     if (toKill.worker === undefined) {
-      throw CustomError(CustomError.symbols.PROC_NO_WORKER);
+      throw new CustomError(CustomError.symbols.PROC_NO_WORKER);
     }
     // Close pipes
     toKill.stdin.close()
@@ -183,7 +183,7 @@ export default class ProcessManager {
           toAwakeProcess.signal.wake();
         } catch (e) {
           // INFO: Maybe this shouldn't throw an error, but just report it?
-          throw CustomError(CustomError.symbols.WAITING_PROC_NO_EXIST);
+          throw new CustomError(CustomError.symbols.WAITING_PROC_NO_EXIST);
         }
       })
     }

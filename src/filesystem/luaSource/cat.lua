@@ -12,7 +12,7 @@ for i = 2, #process.argv do
   -- Make sure it's a file and not a directory
   local stat, err0 = file.stat(filename)
   if err0 then
-    output(string.format("Erorr: Cannot stat '%s' (err: %s)", filename, err0))
+    output(string.format("Error: Cannot stat '%s' (err: %s)", filename, err0))
     return
   end
   if stat.type == DIRECTORY then
@@ -31,8 +31,7 @@ for i = 2, #process.argv do
       -- Try and read 1024 bytes
       local chunk, err2 = file.read(fd, 1024)
       if err2 then
-        -- We couldn't read it, lets move onto
- the next file, something is wrong
+        -- We couldn't read it, lets move onto the next file, something is wrong
         -- with this one
         output(string.format("Error: Failed a read on '%s' (err: %s)", filename, err2))
         break
