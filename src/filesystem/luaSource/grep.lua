@@ -367,6 +367,11 @@ for fname, _ in pairs(config.file_set) do
   table.insert(files_or_dirs, fname)
 end
 
+-- Assume stdin if no files specified
+if #files_or_dirs == 0 then
+  table.insert(files_or_dirs, "-")
+end
+
 if grep(cwd, files_or_dirs) then
   process.exit(0)
 else
