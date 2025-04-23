@@ -25,7 +25,8 @@ export default class ProcessManager {
   #waitingProcesses;
   #processesToBeInitialised;
   #Filesystem;
-  #onExit
+  #onExit;
+  #channel;
 
   /**
    * Creates a new ProcessManager instance with a maximum PID capacity.
@@ -40,6 +41,7 @@ export default class ProcessManager {
     this.#waitingProcesses = new Map();
     this.#processesToBeInitialised = [];
     this.#onExit = onExit;
+    this.#channel = new BroadcastChannel("process");
   }
 
   /**
@@ -145,12 +147,14 @@ export default class ProcessManager {
   killProcess(pid) {
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, ProcessExitCodeConventions.KILLED);
+    this.#channel.postMessage({ type: "kill", pid });
   }
 
   #exitProcess(pid, exitCode) {
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, exitCode);
     if (this.#onExit !== null) this.#onExit({ pid, exitCode });
+    this.#channel.postMessage({ type: "exit", exitCode, pid });
   }
 
   #stopAndCleanupProcess(pid) {

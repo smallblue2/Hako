@@ -50,8 +50,9 @@
     return crumbs;
   });
 
+  let inotifyChannel: BroadcastChannel;
   onMount(() => {
-    const inotifyChannel = new BroadcastChannel("inotify");
+    inotifyChannel = new BroadcastChannel("inotify");
     inotifyChannel.onmessage = (_ev) => updateFiles();
     fsView.changeDir("persistent");
   });
@@ -221,6 +222,7 @@
     if (selection !== undefined) {
       selection.reject("file selection was cancelled");
     }
+    inotifyChannel.close();
   }
 
   function baseName(path: string) {
