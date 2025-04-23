@@ -400,9 +400,9 @@ local function find(depth, parent, files_or_dirs)
       error(full_path, errors.as_string(err))
     else
       if stat.type == DIRECTORY then
-        local entries, err = file.read_dir(fname)
+        local entries, err = file.read_dir(full_path)
         if err ~= nil then
-          error(fname, errors.as_string(err))
+          error(full_path, errors.as_string(err))
         else
           filter_rel(entries)
           match = action(depth, stat, full_path) or match
