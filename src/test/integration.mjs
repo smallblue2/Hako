@@ -54,10 +54,18 @@ async function main() {
   assert(error === null, "error in test setup");
 
   let { default: ProcessManager } = await import("../../build/processes/processManager.mjs");
-  let procmgr = new ProcessManager(onExit);
+  let procmgr = new ProcessManager();
   globalThis.ProcessManager = procmgr;
 
-  await procmgr.createProcess({ luaPath: "/integration.lua", pipeStdin: true, pipeStdout: false, start: true});
+  globalThis.pid = await procmgr.createProcess({ luaPath: "/integration.lua", pipeStdin: true, pipeStdout: false, start: true});
+  globalThis.chan = new BroadcastChannel("process");
+  globalThis.chan.onmessage = (ev) => {
+    if (ev.data.pid == globalThis.pid) {
+      onExit(ev.data);
+      globalThis.chan.close();
+      globalThis.ProcessManager.deinit();
+    }
+  }
 }
 
 function onExit({ exitCode }) {
