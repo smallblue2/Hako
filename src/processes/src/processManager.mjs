@@ -25,12 +25,12 @@ export default class ProcessManager {
   #waitingProcesses;
   #processesToBeInitialised;
   #Filesystem;
-  #onExit
+  #channel;
 
   /**
    * Creates a new ProcessManager instance with a maximum PID capacity.
    */
-  constructor(onExit = null) {
+  constructor() {
     this.#Filesystem = isNode ? globalThis.Filesystem : window.Filesystem;
     /**
      * The ProcessTable instance that stores all process data.
@@ -39,7 +39,11 @@ export default class ProcessManager {
     this.#processesTable = new ProcessTable(MAX_PID);
     this.#waitingProcesses = new Map();
     this.#processesToBeInitialised = [];
-    this.#onExit = onExit;
+    this.#channel = new BroadcastChannel("process");
+  }
+
+  deinit() {
+    this.#channel.close();
   }
 
   /**
@@ -145,12 +149,13 @@ export default class ProcessManager {
   killProcess(pid) {
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, ProcessExitCodeConventions.KILLED);
+    this.#channel.postMessage({ type: "kill", pid });
   }
 
   #exitProcess(pid, exitCode) {
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, exitCode);
-    if (this.#onExit !== null) this.#onExit({ pid, exitCode });
+    this.#channel.postMessage({ type: "exit", exitCode, pid });
   }
 
   #stopAndCleanupProcess(pid) {
