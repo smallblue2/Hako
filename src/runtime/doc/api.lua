@@ -187,9 +187,8 @@ function process.start(pid) end
 
 ---Exit the current running process.
 ---@param code number The exit code.
----@return number | nil err Error code.
 ---@diagnostic disable-next-line: unused-local
-function process.exit(code) end
+function process.exit(code) os.exit(code) end
 
 ---Read some text from standard input.
 ---@return string | nil text The text read.

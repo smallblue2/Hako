@@ -75,7 +75,7 @@
 
     processChannel = new BroadcastChannel("process");
     processChannel.onmessage = (ev) => {
-      if (ev.data.type == "exit" && ev.data.pid == pid) {
+      if ((ev.data.type === "kill" || ev.data.type === "exit") && ev.data.pid === pid) {
         closeWindow(id);
       }
     }
