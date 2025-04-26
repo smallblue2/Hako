@@ -26,32 +26,44 @@ function parse_args()
   }
   local files = {}
 
+  local reading_flags = true
+
   -- check for flags
   for i, arg in ipairs(process.argv) do
     if i ~= 1 then
-      if arg == "--help" or arg == "-h" then
-        opts.help = true
-      elseif arg == "--force" or arg == "-f" then
-        opts.force = true
-      elseif arg == "--recursive" or arg == "-r" then
-        opts.recursive = true
-      elseif arg == "--interactive" or arg == "-i" then
-        opts.interactive = true
-      -- bundled flags
-      elseif arg ~= "-" and arg:sub(1,1) == "-" then
-        for flag in arg:sub(2):gmatch(".") do
-          if flag == "i" then opts.interactive = true
-          elseif flag == "r" then opts.recursive = true
-          elseif flag == "f" then opts.force = true
-          else
-            output(string.format("rm: invalid option -- '%s'", flag))
-            output("Try 'rm --help' for more information")
-            process.exit(1)
+      if arg == "--" then
+        reading_flags = false
+        goto continue
+      end
+
+      if reading_flags then
+        if arg == "--help" or arg == "-h" then
+          opts.help = true
+        elseif arg == "--force" or arg == "-f" then
+          opts.force = true
+        elseif arg == "--recursive" or arg == "-r" then
+          opts.recursive = true
+        elseif arg == "--interactive" or arg == "-i" then
+          opts.interactive = true
+        -- bundled flags
+        elseif arg ~= "-" and arg:sub(1,1) == "-" then
+          for flag in arg:sub(2):gmatch(".") do
+            if flag == "i" then opts.interactive = true
+            elseif flag == "r" then opts.recursive = true
+            elseif flag == "f" then opts.force = true
+            else
+              output(string.format("rm: invalid option -- '%s'", flag))
+              output("Try 'rm --help' for more information")
+              process.exit(1)
+            end
           end
+        else
+          table.insert(files, arg)
         end
       else
         table.insert(files, arg)
       end
+      ::continue::
     end
   end
 

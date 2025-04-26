@@ -133,20 +133,23 @@ EM_JS(void, proc__kill, (int pid, Error *err), {
 EM_JS(Process *, proc__list, (int *restrict length, Error *restrict err), {
   try {
     let procJSON = self.proc.list();
-    let heapAllocationSize = procJSON.length * 16; // C 'Process' struct is 16 bytes long
+    let heapAllocationSize = procJSON.length * 20; // C 'Process' struct is 20 bytes long
     // WARNING: NEEDS TO BE FREED IN C
     let memPointer = _malloc(heapAllocationSize);
     procJSON.forEach((item, index) => {
-      const off = index * 16;
+      let stringPointer = stringToNewUTF8(item.path ?? "");
+      const off = index * 20;
       setValue(memPointer + off, item.pid, 'i32');
-      setValue(memPointer + off + 4, Math.floor(item.alive), 'i32');
-      setValue(memPointer + off + 8, Math.floor(item.created), 'i32');
-      setValue(memPointer + off + 12, item.state, 'i32');
+      setValue(memPointer + off + 4, stringPointer, '*');
+      setValue(memPointer + off + 8, Math.floor(item.alive), 'i32');
+      setValue(memPointer + off + 12, Math.floor(item.created), 'i32');
+      setValue(memPointer + off + 16, item.state, 'i32');
     });
     setValue(err, 0, 'i32');
     setValue(length, procJSON.length, 'i32');
     return memPointer;
   } catch (e) {
+    throw e;
     setValue(err, -1, 'i32');
     setValue(length, 0, 'i32');
     return -1;

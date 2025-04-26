@@ -179,6 +179,7 @@ async function initWorkerForProcess(data) {
       self.proc.signal.sleep();
     }
   }
+  changeState(ProcessStates.RUNNING);
 }
 
 // Function intercepts thread creation to add a MessageChannel

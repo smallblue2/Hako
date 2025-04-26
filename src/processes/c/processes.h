@@ -10,10 +10,11 @@ typedef enum { READY, RUNNING, SLEEPING, TERMINATING, STARTING } ProcessState;
 
 typedef struct __attribute__((packed)) {
   int pid;             // 0
-  int alive;           // 4
-  int created;         // 8
-  ProcessState state; // 12
-} Process;             // 16
+  char *path;          // 4
+  int alive;           // 8
+  int created;         // 12
+  ProcessState state; // 16
+} Process;             // 20
 
 // Input
 int proc__input_pipe(char *restrict buf, int max_bytes, Error *restrict err); // INFO: Not meant to be used directly, used by `proc__input`

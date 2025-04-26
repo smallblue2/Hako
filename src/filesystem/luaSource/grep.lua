@@ -96,6 +96,7 @@ local flags = {
     handle = function() config.suppress = true end,
   },
 }
+local flag_order = {"l", "L", "o", "i", "n", "e", "h", "H", "help", "v", "q", "s"}
 
 local function is_sflag(s)
   return s:match("^%-[^%-]") ~= nil
@@ -142,7 +143,8 @@ local function usage()
   usage_banner()
   local max_col1 = 0
   local max_col2 = 0
-  for flag_name, flag in pairs(flags) do
+  for _, flag_name in ipairs(flag_order) do
+    local flag = flags[flag_name]
     if #flag_name > max_col1 then
       max_col1 = #flag_name + (flag.long and #"--" or #"-")
     end
@@ -150,9 +152,11 @@ local function usage()
       max_col2 = #flag.argument
     end
   end
-  for flag_name, flag in pairs(flags) do
+  for _, flag_name in ipairs(flag_order) do
+    local flag = flags[flag_name]
     local flagp = flag.long and "--" or "-"
-    output(string.format("%s %s %s", padl(flagp .. flag_name, max_col1 + 1), padr(flag.argument or "", max_col2), flag.help))
+    output(string.format("%s %s %s", padl(flagp .. flag_name, max_col1 + 1), padr(flag.argument or "", max_col2),
+      flag.help))
   end
 end
 
@@ -340,12 +344,12 @@ local function grep(parent, files_or_dirs)
       end
       local stat, err = file.stat(full_path)
       if err ~= nil then
-        error_if(fname, errors.as_string(err), not config.suppress)
+        error_if(full_path, errors.as_string(err), not config.suppress)
       else
         if stat.type == DIRECTORY then
-          local entries, err = file.read_dir(fname)
+          local entries, err = file.read_dir(full_path)
           if err ~= nil then
-            error_if(fname, errors.as_string(err), not config.supress)
+            error_if(full_path, errors.as_string(err), not config.supress)
           else
             filter_rel(entries)
             match = grep(full_path, entries) or match
@@ -365,6 +369,11 @@ errors.ok(err)
 local files_or_dirs = {}
 for fname, _ in pairs(config.file_set) do
   table.insert(files_or_dirs, fname)
+end
+
+-- Assume stdin if no files specified
+if #files_or_dirs == 0 then
+  table.insert(files_or_dirs, "-")
 end
 
 if grep(cwd, files_or_dirs) then

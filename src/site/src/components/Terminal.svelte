@@ -1,5 +1,6 @@
 <script lang="ts">
   import Window from "../components/Window.svelte";
+  import { closeWindow } from "$lib/windows.svelte.js";
 
   import * as xterm from "@xterm/xterm";
   const { Terminal } = xterm;
@@ -34,6 +35,8 @@
     fitAddon?.fit();
   });
 
+  let processChannel: BroadcastChannel;
+
   function onClose() {
     try {
       console.log(`Terminal with PID ${pid} is closing.`);
@@ -41,6 +44,7 @@
     } catch (e) {
       console.error(e);
     }
+    processChannel.close();
   }
 
   const onWindowResize = () => fitAddon?.fit();
@@ -68,6 +72,13 @@
     // Create a process which will start straight away and wont have its streams piped
     // INFO: This will be the shell when it's created
     pid = await window.ProcessManager.createProcess({slave, pipeStdin: false, pipeStdout: false, start: true});
+
+    processChannel = new BroadcastChannel("process");
+    processChannel.onmessage = (ev) => {
+      if ((ev.data.type === "kill" || ev.data.type === "exit") && ev.data.pid === pid) {
+        closeWindow(id);
+      }
+    }
   })
 
   onDestroy(() => {

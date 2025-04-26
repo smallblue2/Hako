@@ -25,12 +25,12 @@ export default class ProcessManager {
   #waitingProcesses;
   #processesToBeInitialised;
   #Filesystem;
-  #onExit
+  #channel;
 
   /**
    * Creates a new ProcessManager instance with a maximum PID capacity.
    */
-  constructor(onExit = null) {
+  constructor() {
     this.#Filesystem = isNode ? globalThis.Filesystem : window.Filesystem;
     /**
      * The ProcessTable instance that stores all process data.
@@ -39,7 +39,18 @@ export default class ProcessManager {
     this.#processesTable = new ProcessTable(MAX_PID);
     this.#waitingProcesses = new Map();
     this.#processesToBeInitialised = [];
-    this.#onExit = onExit;
+    this.#channel = new BroadcastChannel("process");
+  }
+
+  deinit() {
+    this.#channel.close();
+  }
+
+  #removePrefix(str, prefix) {
+    if (str.startsWith(prefix)) {
+      return str.slice(prefix.length);
+    }
+    return str;
   }
 
   /**
@@ -72,9 +83,11 @@ export default class ProcessManager {
       this.#Filesystem.close(fd);
     }
 
+    let fakePath = this.#removePrefix(luaPath, "/persistent");
+
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
-      { args, slave, pipeStdin, pipeStdout, redirectStdin, redirectStdout, start, luaCode, cwd }, // Defined behaviour for web-worker
+      { args, slave, pipeStdin, pipeStdout, redirectStdin, redirectStdout, start, luaCode, cwd, fakePath }, // Defined behaviour for web-worker
     );
 
     // Enqueue process to be initialised
@@ -145,12 +158,13 @@ export default class ProcessManager {
   killProcess(pid) {
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, ProcessExitCodeConventions.KILLED);
+    this.#channel.postMessage({ type: "kill", pid });
   }
 
   #exitProcess(pid, exitCode) {
     this.#stopAndCleanupProcess(pid);
     this.#wakeAwaitingProcesses(pid, exitCode);
-    if (this.#onExit !== null) this.#onExit({ pid, exitCode });
+    this.#channel.postMessage({ type: "exit", exitCode, pid });
   }
 
   #stopAndCleanupProcess(pid) {
@@ -182,8 +196,7 @@ export default class ProcessManager {
           toAwakeProcess.signal.write(exitCode);
           toAwakeProcess.signal.wake();
         } catch (e) {
-          // INFO: Maybe this shouldn't throw an error, but just report it?
-          throw new CustomError(CustomError.symbols.WAITING_PROC_NO_EXIST);
+          console.warn(`Tried to wake process ${waitingPID}, but it doesn't exist!`)
         }
       })
     }

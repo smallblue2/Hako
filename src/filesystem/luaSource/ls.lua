@@ -308,7 +308,7 @@ function list_dir(path, opts, label_paths, first_call)
   else
     print_columns(list, opts)
   end
-  
+
   -- Recurse (-R)
   if opts.recurse then
     for _, e in ipairs(list) do
