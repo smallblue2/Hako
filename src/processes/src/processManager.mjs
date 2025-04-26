@@ -191,8 +191,7 @@ export default class ProcessManager {
           toAwakeProcess.signal.write(exitCode);
           toAwakeProcess.signal.wake();
         } catch (e) {
-          // INFO: Maybe this shouldn't throw an error, but just report it?
-          console.log(`[INFO] Tried to wake process ${waitingPID}, but it doesn't exist!`)
+          console.warn(`Tried to wake process ${waitingPID}, but it doesn't exist!`)
         }
       })
     }
