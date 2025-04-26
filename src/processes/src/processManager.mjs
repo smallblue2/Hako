@@ -42,6 +42,13 @@ export default class ProcessManager {
     this.#onExit = onExit;
   }
 
+  #removePrefix(str, prefix) {
+    if (str.startsWith(prefix)) {
+      return str.slice(prefix.length);
+    }
+    return str;
+  }
+
   /**
    * Creates a new process (a Web Worker) and returns its PID.
    *
@@ -72,9 +79,11 @@ export default class ProcessManager {
       this.#Filesystem.close(fd);
     }
 
+    let fakePath = this.#removePrefix(luaPath, "/persistent");
+
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
-      { args, slave, pipeStdin, pipeStdout, redirectStdin, redirectStdout, start, luaCode, cwd }, // Defined behaviour for web-worker
+      { args, slave, pipeStdin, pipeStdout, redirectStdin, redirectStdout, start, luaCode, cwd, fakePath }, // Defined behaviour for web-worker
     );
 
     // Enqueue process to be initialised
