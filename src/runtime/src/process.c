@@ -237,6 +237,8 @@ int lprocess__list(lua_State *L) {
     lua_newtable(L); // the value to assign
     lua_pushnumber(L, p.pid);
     lua_setfield(L, -2, "pid");
+    lua_pushstring(L, p.path);
+    lua_setfield(L, -2, "path");
     lua_pushnumber(L, p.alive);
     lua_setfield(L, -2, "alive");
     lua_pushnumber(L, p.created);
@@ -262,6 +264,8 @@ int lprocess__list(lua_State *L) {
     }
     lua_setfield(L, -2, "state");
     lua_settable(L, -3);
+
+    free(p.path); // This is allocated in JS
   }
 
   if (list != NULL) free(list); // sanity check as freeing NULL is UB

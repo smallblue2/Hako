@@ -192,7 +192,7 @@ export default class ProcessManager {
           toAwakeProcess.signal.wake();
         } catch (e) {
           // INFO: Maybe this shouldn't throw an error, but just report it?
-          throw new CustomError(CustomError.symbols.WAITING_PROC_NO_EXIST);
+          console.log(`[INFO] Tried to wake process ${waitingPID}, but it doesn't exist!`)
         }
       })
     }
