@@ -90,6 +90,7 @@ export default class ProcessTable {
       redirectStdin: processData.redirectStdin,
       redirectStdout: processData.redirectStdout,
       cwd: processData.cwd,
+      fakePath: processData.fakePath,
       start: processData.start
     }
 
@@ -210,6 +211,7 @@ export default class ProcessTable {
       if (entry !== null) {
         out.push({
           pid: index,
+          path: entry.fakePath,
           created: entry.time,
           alive: (Date.now() / 1000) - entry.time,
           state: entry.state

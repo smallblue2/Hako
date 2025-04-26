@@ -165,6 +165,7 @@ STDOUT --[[@type number]] = nil
 
 ---@class Process_Descriptor
 ---@field pid number The identifier for the process.
+---@field path string The path of the executable of the process.
 ---@field alive number The number of seconds the process has been alive for.
 ---@field created number The timestamp for when the process was created.
 ---@field state Process_State The state of the process.

@@ -46,6 +46,13 @@ export default class ProcessManager {
     this.#channel.close();
   }
 
+  #removePrefix(str, prefix) {
+    if (str.startsWith(prefix)) {
+      return str.slice(prefix.length);
+    }
+    return str;
+  }
+
   /**
    * Creates a new process (a Web Worker) and returns its PID.
    *
@@ -76,9 +83,11 @@ export default class ProcessManager {
       this.#Filesystem.close(fd);
     }
 
+    let fakePath = this.#removePrefix(luaPath, "/persistent");
+
     // Allocate space in the process table and retrieve references to the worker and channels
     let { pid } = await this.#processesTable.allocateProcess(
-      { args, slave, pipeStdin, pipeStdout, redirectStdin, redirectStdout, start, luaCode, cwd }, // Defined behaviour for web-worker
+      { args, slave, pipeStdin, pipeStdout, redirectStdin, redirectStdout, start, luaCode, cwd, fakePath }, // Defined behaviour for web-worker
     );
 
     // Enqueue process to be initialised
@@ -187,8 +196,7 @@ export default class ProcessManager {
           toAwakeProcess.signal.write(exitCode);
           toAwakeProcess.signal.wake();
         } catch (e) {
-          // INFO: Maybe this shouldn't throw an error, but just report it?
-          throw new CustomError(CustomError.symbols.WAITING_PROC_NO_EXIST);
+          console.warn(`Tried to wake process ${waitingPID}, but it doesn't exist!`)
         }
       })
     }
