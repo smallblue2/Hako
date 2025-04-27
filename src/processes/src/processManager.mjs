@@ -4,7 +4,7 @@ import ProcessTable from "./processTable.mjs";
 import Pipe from "./pipe.mjs";
 
 // Allow node to also run (does not have window object)
-let isNode = typeof window === 'undefined';
+const isNode = typeof window === 'undefined';
 
 // The max number of PIDs available to our system
 const MAX_PID = 128;
