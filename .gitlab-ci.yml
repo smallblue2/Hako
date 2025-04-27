@@ -189,6 +189,7 @@ build_site:
     - cd src/site/ && npm install && npm run build
   artifacts:
     paths:
+      - src/site/.svelte-kit
       - build/site/
     expire_in: 1 day
   cache:
@@ -255,36 +256,76 @@ validate_wasm:
 test_filesystem:
   stage: test
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin
     - apt-get update
     - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1 meson nq
     - cd src/filesystem && npm install
     - PATH=$PATH:/root/.deno/bin/ just test-filesystem
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  dependencies:
+    - cached_dependencies
 
 test_processes:
   stage: test
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin
     - apt-get update
     - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1 meson nq
     - cd src/processes && npm install
     - PATH=$PATH:/root/.deno/bin/ just test-processes
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  dependencies:
+    - cached_dependencies
 
 test_runtime:
   stage: test
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin
     - apt-get update
     - apt-get install -y chromium-browser meson
     - just test-runtime
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  dependencies:
+    - cached_dependencies
 
 test_integration:
   stage: test
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin
     - apt-get update
     - apt-get install -y meson
     - just test-integration
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+    - key: vendor-dependencies
+      paths:
+        - src/runtime/vendor/ncurses/
+        - src/runtime/vendor/libedit/
+  dependencies:
+    - build_vendor
+    - cached_dependencies
+
+test_site:
+  stage: test
+  script:
+    - cd src/site
+    - npm install
+    - npx playwright install-deps
+    - npx playwright install
+    - npm run test
+  dependencies:
+    - build_site
 
 # ----------------- DEPLOYMENT -----------------
 
@@ -295,7 +336,7 @@ deploy_site:
     cd build/site && \
     zip -r ../site.zip . && \
     curl -X PUT -H "X-API-Key: $HAKO_DEPLOY_API_KEY" -F "bundle=@../site.zip" "https://deploy.hakoapp.com/artifact?id=site"
-  needs:
+  dependencies:
     - build_site
   only:
     - main

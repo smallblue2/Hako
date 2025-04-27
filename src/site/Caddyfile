@@ -1,0 +1,13 @@
+{
+  debug
+  auto_https off
+}
+
+http://localhost:8080 {
+  header {
+    Cross-Origin-Embedder-Policy require-corp
+    Cross-Origin-Opener-Policy same-origin
+  }
+  root * ../../build/site
+  file_server
+}
