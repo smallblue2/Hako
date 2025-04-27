@@ -127,7 +127,6 @@ CHANGE DIRECTORY
   To change the directory of your shell, you can use the `cd` (Change Directory)
   command.
 
-
 PIPELINES
   You can pipe the output of one command into the input of another
   using the '|' operator.
@@ -258,8 +257,7 @@ DESCRIPTION
 INFO
   You can also use `cd` and `ls` commands to explore your filesystem from the
   terminal.]],
-  ["api-manual-app"] = [[
-NAME
+  ["api-manual-app"] = [[NAME
   Manual - Instructions on how to interact with the system.
 
 HOW TO OPEN
@@ -379,8 +377,7 @@ EXAMPLES
 
 SEE ALSO
   api-manual (fourth icon in taskbar)]],
-  ["terminal"] = [[
-NAME
+  ["terminal"] = [[NAME
   terminal - interacts with the current TTY
 
 SYNOPSIS
@@ -435,8 +432,7 @@ EXAMPLES
 
 SEE ALSO
   api-manual (fourth icon in taskbar)]],
-  ["fmt"] = [[
-NAME
+  ["fmt"] = [[NAME
   fmt - date and time formatting
 
 SYNOPSIS
