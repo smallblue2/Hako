@@ -291,7 +291,11 @@ test_site:
   script:
     - cd src/site
     - npm install
+    - npx playwright install-deps
+    - npx playwright install
     - npm run test
+  dependencies:
+    - build_site
 
 # ----------------- DEPLOYMENT -----------------
 
