@@ -256,36 +256,65 @@ validate_wasm:
 test_filesystem:
   stage: test
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin
     - apt-get update
     - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1 meson nq
     - cd src/filesystem && npm install
     - PATH=$PATH:/root/.deno/bin/ just test-filesystem
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  dependencies:
+    - cached_dependencies
 
 test_processes:
   stage: test
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin
     - apt-get update
     - apt-get install -y ca-certificates wget xdg-utils chromium-browser libgbm1 meson nq
     - cd src/processes && npm install
     - PATH=$PATH:/root/.deno/bin/ just test-processes
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  dependencies:
+    - cached_dependencies
 
 test_runtime:
   stage: test
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin
     - apt-get update
     - apt-get install -y chromium-browser meson
     - just test-runtime
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+  dependencies:
+    - cached_dependencies
 
 test_integration:
   stage: test
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/
+    - cat ./install.sh | bash -s -- --to /usr/local/bin
     - apt-get update
     - apt-get install -y meson
     - just test-integration
+  cache:
+    - key: just-install-script
+      paths:
+        - ./install.sh
+    - key: vendor-dependencies
+      paths:
+        - src/runtime/vendor/ncurses/
+        - src/runtime/vendor/libedit/
+  dependencies:
+    - build_vendor
+    - cached_dependencies
 
 test_site:
   stage: test
