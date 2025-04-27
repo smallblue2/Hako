@@ -40,8 +40,13 @@ local flags = {
     help = "Show this help message",
     handle = function() config.print_usage = true end,
   },
+  ["help"] = {
+    long = true,
+    help = "Show this help message",
+    handle = function() config.print_usage = true end,
+  }
 }
-local flag_order = {"f", "i", "n", "T"}
+local flag_order = {"f", "i", "n", "T", "h"}
 
 local function is_sflag(s)
   return s:match("^%-[^%-]") ~= nil
@@ -90,6 +95,7 @@ end
 
 local function usage()
   usage_banner()
+  output("Options:")
   local max_col1 = 0
   local max_col2 = 0
   for _, flag_name in ipairs(flag_order) do
@@ -146,7 +152,9 @@ while argi <= #argv do
 end
 
 if #argv == 1 or #positional == 1 then
-  config.print_usage = true
+  output([[mv: missing file operand
+Try 'mv --help' for more information.]])
+  process.exit(0)
 end
 
 if config.print_usage then
@@ -199,7 +207,7 @@ if multiple_sources then
   -- Move all the sources into the directory
   for _, src in ipairs(config.sources) do
     local name = basename(src)
-    local dst = trim_slash(config.dest) .. "/" .. basename(name)
+    local dst = trim_slash(config.dest) .. "/" .. name
     if exists(dst) then
       if not config.overwrite_existing or (config.prompt_overwrite and not confirm(string.format("mv: overwrite '%s'? [y/N]", name))) then
         goto continue
@@ -207,7 +215,7 @@ if multiple_sources then
     end
     err = file.move(src, dst)
     if err ~= nil then
-      abort(string.format("moving '%s' to '%s'", src, dst), errors.as_string(err))
+      abort(string.format("error moving '%s' to '%s'", src, dst), errors.as_string(err))
     end
     ::continue::
   end
@@ -225,11 +233,11 @@ else
 
   if dst_exists and src_stat.type == FILE and dst_stat.type == DIRECTORY
       and config.refuse_file_to_dir then
-    abort("moving files", string.format("'%s' is a directory", config.dest))
+    abort("error moving files", string.format("'%s' is a directory", config.dest))
   end
 
   if dst_exists then
-    if not config.overwrite_existing or (config.prompt_overwrite and not confirm(string.format("mv: overwrite '%s'? [y/N]", basename(src)))) then
+    if not config.overwrite_existing or (config.prompt_overwrite and not confirm(string.format("mv: overwrite '%s'? [y/N]", basename(dst)))) then
       goto skip
     end
   end
@@ -240,7 +248,7 @@ else
 
   err = file.move(src, dst)
   if err ~= nil then
-    abort(string.format("moving '%s' to '%s'", src, dst), errors.as_string(err))
+    abort(string.format("error moving '%s' to '%s'", src, dst), errors.as_string(err))
   end
 
   ::skip::

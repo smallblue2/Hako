@@ -15,7 +15,7 @@ local function abort(ctx, msg)
   error(ctx, msg)
   process.exit(1)
 end
- 
+
 local FILES_MATCH = 1
 local FILES_NOMATCH = 2
 
@@ -89,14 +89,14 @@ local flags = {
   },
   ["q"] = {
     help = "Quiet. Return 0 if PATTERN is found, 1 otherwise",
-    handle = function() config.quiet = true end, 
+    handle = function() config.quiet = true end,
   },
   ["s"] = {
     help = "Suppress open and read errors",
     handle = function() config.suppress = true end,
   },
 }
-local flag_order = {"l", "L", "o", "i", "n", "e", "h", "H", "help", "v", "q", "s"}
+local flag_order = { "l", "L", "o", "i", "n", "r", "h", "H", "v", "q", "s", "e" }
 
 local function is_sflag(s)
   return s:match("^%-[^%-]") ~= nil
@@ -135,12 +135,15 @@ local function padr(s, to, unit)
 end
 
 local function usage_banner()
-  output("Usage: grep [-vhilHnoqrsL] { PATTERN | -e PATTERN... } [FILE]...")
-  output("\nSearch for PATTERN in FILEs (or stdin)\n")
+  output([[Usage: grep [OPTION]... PATTERN [FILE]...
+Search for PATTERN in each FILE.
+Example: grep -r ipairs sys
+]])
 end
 
 local function usage()
   usage_banner()
+  output("Options:")
   local max_col1 = 0
   local max_col2 = 0
   for _, flag_name in ipairs(flag_order) do
@@ -172,7 +175,8 @@ while argi <= #argv do
       end
       flag.handle()
       if positional_flag ~= nil then
-        abort("cannot have more than one short flag with positional argument", string.format("'%s' defined before '%s'", positional_flag, sflag))
+        abort("cannot have more than one short flag with positional argument",
+          string.format("'%s' defined before '%s'", positional_flag, sflag))
       end
       if flag.argument ~= nil then -- its positional: just consume the positional argument
         argi = argi + 1
@@ -196,7 +200,10 @@ while argi <= #argv do
 end
 
 if #argv == 1 then
-  config.print_usage = true
+  output([[Usage: grep [OPTION]... PATTERN [FILE]...
+Search for PATTERN in each FILE.
+Try 'grep --help' for more information.]])
+  process.exit(0)
 end
 
 for i, pos in ipairs(positional) do
