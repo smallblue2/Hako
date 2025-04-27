@@ -10,9 +10,9 @@ export function showConsole(page) {
 
 export async function waitCustom(page, event) {
   return page.evaluate(async ({ event }) => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       document.addEventListener(event, () => {
-        resolve()
+        resolve(null);
       })
     })
   }, { event })

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { showConsole, waitCustom, clickTaskbar } from "./helpers.ts";
+import { showConsole, waitCustom, clickTaskbar } from "./helpers";
 
 async function openFileManager(page) {
   await clickTaskbar(page, "file-manager");

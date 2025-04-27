@@ -189,6 +189,7 @@ build_site:
     - cd src/site/ && npm install && npm run build
   artifacts:
     paths:
+      - src/site/.svelte-kit
       - build/site/
     expire_in: 1 day
   cache:

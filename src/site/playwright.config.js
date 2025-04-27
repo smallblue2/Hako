@@ -1,6 +1,6 @@
 const config = {
 	webServer: {
-    command: 'npm run preview',
+    command: 'npx svelte-kit sync && npm run preview',
 		port: 4173
 	},
 	testDir: 'tests',
