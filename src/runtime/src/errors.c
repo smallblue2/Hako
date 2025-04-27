@@ -32,6 +32,7 @@ const char *str_of_errno(int errno_) {
     case -17: return "Invalid arguments passed to process";
     case -18: return "Failed to assign memory";
     case -19: return "Reached EOF";
+    case -20: return "Internal error";
     case 1: return "File exists";
     case 2: return "No such file or directory";
     case 3: return "Operation not permitted";

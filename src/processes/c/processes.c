@@ -52,7 +52,7 @@ EM_JS(int, proc__input_exact_pipe,
 EM_JS(char *, proc__input_all_pipe, (Error * err), {
   const ptr = stringToNewUTF8(self.proc.inputAll());
   if (!ptr) {
-    setValue(err, ERROR_CODES.ENOMEM, 'i32');
+    setValue(err, -18, 'i32'); // -18 is ENOMEM (errors.c)
     return null;
   }
   setValue(err, 0, 'i32');
@@ -64,7 +64,7 @@ EM_JS(char *, proc__input_all_pipe, (Error * err), {
 EM_JS(char *, proc__input_line_pipe, (Error * err), {
   const ptr = stringToNewUTF8(self.proc.inputLine());
   if (!ptr) {
-    setValue(err, ERROR_CODES.ENOMEM, 'i32');
+    setValue(err, -18, 'i32'); // -18 is ENOMEM (errors.c)
     return null;
   }
   setValue(err, 0, 'i32');
@@ -116,7 +116,7 @@ EM_JS(int, proc__create,
             self.proc.create(luaPath, jsArgs, Boolean(pipe_stdin),
                              Boolean(pipe_stdout), redirectIn, redirectOut, jsCwd);
         if (createdPID < 0) {
-          setValue(err, createdPID, 'i32');
+          setValue(err, createdPID, 'i32'); // Just forward error from JS
           return -1;
         }
         setValue(err, 0, 'i32');
@@ -126,7 +126,7 @@ EM_JS(int, proc__create,
 // proc__kill(int pid)
 EM_JS(void, proc__kill, (int pid, Error *err), {
   let errorCode = self.proc.kill(pid);
-  setValue(err, errorCode, 'i32');
+  setValue(err, errorCode, 'i32'); // Forward error from JS
 })
 
 // proc__list(int *length, Error *err)
@@ -149,8 +149,8 @@ EM_JS(Process *, proc__list, (int *restrict length, Error *restrict err), {
     setValue(length, procJSON.length, 'i32');
     return memPointer;
   } catch (e) {
-    throw e;
-    setValue(err, -1, 'i32');
+    // TODO: Categorise errors better here
+    setValue(err, -20, 'i32'); // Internal error catch-all for now
     setValue(length, 0, 'i32');
     return -1;
   }
@@ -179,7 +179,7 @@ EM_JS(char *, proc__get_redirect_out, (Error * err), {
 // proc__pipe(int out_pid, int in_pid, Error *err)
 EM_JS(void, proc__pipe, (int out_pid, int in_pid, Error *err), {
   let errCode = self.proc.pipe(out_pid, in_pid);
-  setValue(err, errCode, 'i32');
+  setValue(err, errCode, 'i32'); // Forward error from JS
 })
 
 // proc__is_stdin_pipe(Error *err)
@@ -225,7 +225,7 @@ int proc__input(char *restrict buf, int max_bytes, Error *restrict err) {
   // Take from stdin
   size_t bytesRead = fread(buf, 1, max_bytes - 1, stdin);
   if (ferror(stdin)) {
-    *err = -9; // TODO: What error to report here?
+    *err = -14; // failed to read stdin (errors.c)
     return -1;
   }
 
@@ -234,6 +234,7 @@ int proc__input(char *restrict buf, int max_bytes, Error *restrict err) {
   return (int)bytesRead;
 }
 
+// NOT USED
 int proc__input_exact(char *restrict buf, int exact_bytes,
                       Error *restrict err) {
   // Short-circuit evaluation as to where we take input
@@ -330,7 +331,7 @@ char *proc__input_all(Error *err) {
   size_t length = 0;
   char *buffer = malloc(capacity);
   if (!buffer) {
-    *err = -18; // Failed to assign memory (processes/js/common.js)
+    *err = -18; // Failed to assign memory (errors.c)
     return NULL;
   }
 
@@ -343,7 +344,7 @@ char *proc__input_all(Error *err) {
       char *temp = realloc(buffer, capacity);
       if (!temp) {
         free(buffer);
-        *err = -18; // Failed to assign memory (processes/js/common.js)
+        *err = -18; // Failed to assign memory (errors.c)
         return NULL;
       }
       buffer = temp;
@@ -389,7 +390,7 @@ char *proc__input_line(Error *err) {
   size_t n = 0;
   char *lineptr = NULL;
   if (getline(&lineptr, &n, stdin) == -1 && ferror(stdin)) {
-    *err = errno;
+    *err = -14; // Failed to read stdin (errors.c)
     return NULL;
   }
 
@@ -435,7 +436,7 @@ void proc__output(const char *restrict buf, int len, Error *restrict err) {
   // Write to stdout
   int num_written = fwrite(buf, 1, len, stdout);
   if (num_written < len) {
-    *err = -13; // Failed to write to stdout (processes.js/js/common.js)
+    *err = -13; // Failed to write to stdout (errors.c)
     return;
   }
   fflush(stdout);
@@ -445,14 +446,14 @@ void proc__output(const char *restrict buf, int len, Error *restrict err) {
 // void proc__start(int pid, Error *err)
 EM_JS(void, proc__start, (int pid, Error *err), {
   let errCode = self.proc.start(pid);
-  setValue(err, errCode, 'i32');
+  setValue(err, errCode, 'i32'); // Forward error from js
 })
 
 // const char *proc__get_lua_code(char *buf, int len, Error *err)
 EM_JS(char *, proc__get_lua_code, (Error * err), {
   const ptr = stringToNewUTF8(self.proc.luaCode);
   if (!ptr) {
-    setValue(err, ERROR_CODES.ENOMEM, 'i32');
+    setValue(err, -18, 'i32'); // Failed to assign memory (errors.c)
     return null;
   }
   return ptr;

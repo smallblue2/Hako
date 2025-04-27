@@ -76,7 +76,7 @@ int lfile__close(lua_State *L) {
   Error err;
   file__close(fd, &err);
   if (err != 0) {
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     return 1;
   }
   lua_pushnil(L);
@@ -93,7 +93,7 @@ int lfile__write(lua_State *L) {
   Error err;
   file__write(fd, content, &err);
   if (err != 0) {
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     return 1;
   }
 
@@ -113,7 +113,7 @@ int lfile__read(lua_State *L) {
   file__read(fd, amt, &rr, &err);
   if (err != 0) {
     lua_pushnil(L);
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     return 2;
   }
   lua_pushlstring(L, rr.data, rr.size);
@@ -133,7 +133,7 @@ int lfile__read_all(lua_State *L) {
   file__read_all(fd, &rr, &err);
   if (err != 0) {
     lua_pushnil(L);
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     return 2;
   }
   lua_pushlstring(L, rr.data, rr.size);
@@ -152,7 +152,7 @@ int lfile__shift(lua_State *L) {
   Error err;
   file__shift(fd, amt, &err);
   if (err != 0) {
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     return 1;
   }
   lua_pushnil(L);
@@ -169,7 +169,7 @@ int lfile__goto(lua_State *L) {
   Error err;
   file__goto(fd, pos, &err);
   if (err != 0) {
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     return 1;
   }
   lua_pushnil(L);
@@ -192,7 +192,7 @@ int lfile__remove(lua_State *L) {
   Error err;
   file__remove(fpath, &err);
   if (err != 0) {
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     goto cleanup;
   }
   lua_pushnil(L);
@@ -225,7 +225,7 @@ int lfile__move(lua_State *L) {
   Error err;
   file__move(old_fpath, new_fpath, &err);
   if (err != 0) {
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     goto cleanup;
   }
   lua_pushnil(L);
@@ -253,7 +253,7 @@ int lfile__make_dir(lua_State *L) {
   file__make_dir(fpath, &err);
 
   if (err != 0) {
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     goto cleanup;
   }
   lua_pushnil(L);
@@ -278,7 +278,7 @@ int lfile__remove_dir(lua_State *L) {
   Error err;
   file__remove_dir(fpath, &err);
   if (err != 0) {
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     goto cleanup;
   }
   lua_pushnil(L);
@@ -303,7 +303,7 @@ int lfile__change_dir(lua_State *L) {
   Error err;
   file__change_dir(fpath, &err);
   if (err != 0) {
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     goto cleanup;
   }
   lua_pushnil(L);
@@ -335,7 +335,7 @@ int lfile__read_dir(lua_State *L) {
   entries = file__read_dir(fpath, &err);
   if (err != 0) {
     lua_pushnil(L);
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     goto cleanup;
   }
 
@@ -457,7 +457,7 @@ int lfile__stat(lua_State *L) {
   file__stat(fpath, &sr, &err);
   if (err != 0) {
     lua_pushnil(L);
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     goto cleanup;
   }
   statr_as_l(L, &sr);
@@ -502,7 +502,7 @@ int lfile__fdstat(lua_State *L) {
   file__fdstat(fd, &sr, &err);
   if (err != 0) {
     lua_pushnil(L);
-    lua_pushnumber(L, translate_errors(errno));
+    lua_pushnumber(L, err);
     return 2;
   }
   statr_as_l(L, &sr);
