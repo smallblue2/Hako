@@ -231,7 +231,7 @@ CODE
 CODE
   Code available at `/bin/pwd.lua`]],
   ["echo"] = [[NAME
-  pwd - displays a line of text
+  echo - displays a line of text
 
 CODE
   Code available at `/bin/echo.lua`]],
