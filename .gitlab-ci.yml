@@ -286,6 +286,13 @@ test_integration:
     - apt-get install -y meson
     - just test-integration
 
+test_site:
+  stage: test
+  script:
+    - cd src/site
+    - npm install
+    - npm run test
+
 # ----------------- DEPLOYMENT -----------------
 
 deploy_site:
@@ -295,7 +302,7 @@ deploy_site:
     cd build/site && \
     zip -r ../site.zip . && \
     curl -X PUT -H "X-API-Key: $HAKO_DEPLOY_API_KEY" -F "bundle=@../site.zip" "https://deploy.hakoapp.com/artifact?id=site"
-  needs:
+  dependencies:
     - build_site
   only:
     - main

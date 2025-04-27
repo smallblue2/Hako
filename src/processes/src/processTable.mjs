@@ -114,6 +114,9 @@ export default class ProcessTable {
     const Module = await initEmscripten({
       onRuntimeInitialized: () => {
         console.log("Runtime emscripten module loaded");
+        if (document !== undefined) {
+          document.dispatchEvent(new CustomEvent("new-runtime"));
+        }
       },
       pty: process.pty,
       pid: pid,
