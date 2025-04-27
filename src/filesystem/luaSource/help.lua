@@ -7,7 +7,7 @@ local content = {
 
 CORE UTILS (COMMANDS)
 
-  File & Firectory
+  File & Directory
     ls        - list files
     cat       - concatenate and print files
     cp        - copy files or directories
@@ -17,6 +17,8 @@ CORE UTILS (COMMANDS)
     rmdir     - remove directories
     touch     - create empty files
     find      - search for files
+    grep      - search for patterns in text
+    chmod     - change file and directory permissions
 
   Shell & Processes
     shell     - start a new shell
@@ -46,7 +48,23 @@ CODE
   Code available at `/bin/ls.lua`
 
 SEE ALSO
-  See 'ls --help' for help and usage details.]],
+  `ls --help` for help and usage details.]],
+  ["grep"] = [[NAME
+  grep - search for patterns in text
+
+CODE
+  Code available at `/bin/grep.lua`
+
+SEE ALSO
+  `grep --help` for help and usage details.]],
+  ["chmod"] = [[NAME
+  chmod - change file and directory permissions
+
+CODE
+  Code available at `/bin/chmod.lua`
+
+SEE ALSO
+  `chmod --help` for help and usage details.]],
   ["cat"] = [[NAME
   cat - concatenate and print files
 
@@ -454,6 +472,7 @@ SEE ALSO
   api-manual (fourth icon in taskbar)]],
 }
 
-local option = #process.argv == 1 and "" or process.argv[2]
+local option = #process.argv == 1 and "" or process.argv[2]:lower()
+local msg = content[option] or string.format("help: '%s' isn't a valid option.\nTry `help` to view options.", option)
 
-output(content[option])
+output(msg)
