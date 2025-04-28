@@ -50,6 +50,9 @@
 
       overlay.toggleLoaded();
       loadingPopup?.close();
+
+      // Raise custom event (used by e2e tests)
+      document.dispatchEvent(new CustomEvent("loaded"));
     }).catch((err) => {
       console.error("Failed to define filesystem API:", err);
     });

@@ -185,6 +185,8 @@ local flags = {
     end,
   },
 }
+local flag_order = { "name", "iname", "path", "ipath", "atime", "mtime", "ctime", "type", "pattern", "maxdepth",
+  "mindepth", "empty", "print", "h" }
 
 local function is_sflag(s)
   return s:match("^%-[^%-]") ~= nil
@@ -212,9 +214,11 @@ end
 
 local function usage()
   usage_banner()
+  output("Options:")
   local max_col1 = 0
   local max_col2 = 0
-  for flag_name, flag in pairs(flags) do
+  for _, flag_name in ipairs(flag_order) do
+    local flag = flags[flag_name]
     if #flag_name > max_col1 then
       max_col1 = #flag_name + (flag.long and #"--" or #"-")
     end
@@ -222,9 +226,11 @@ local function usage()
       max_col2 = #flag.argument
     end
   end
-  for flag_name, flag in pairs(flags) do
+  for _, flag_name in ipairs(flag_order) do
+    local flag = flags[flag_name]
     local flagp = flag.long and "--" or "-"
-    output(string.format("%s %s %s", padl(flagp .. flag_name, max_col1 + 1), padr(flag.argument or "", max_col2), flag.help))
+    output(string.format("%s %s %s", padl(flagp .. flag_name, max_col1 + 1), padr(flag.argument or "", max_col2),
+      flag.help))
   end
 end
 
@@ -243,6 +249,10 @@ end
 local positional = {}
 while argi <= #argv do
   local arg = argv[argi]
+  if arg == "--help" then
+    config.print_usage = true
+    goto continue
+  end
   if is_sflag(arg) then
     local sflag = arg:match("[^%-]+")
     local flag = flags[sflag]
@@ -256,12 +266,13 @@ while argi <= #argv do
   else
     table.insert(positional, arg)
   end
+  ::continue::
   argi = argi + 1
 end
 positional = dedupe(positional)
 
-if #argv == 1 then
-  config.print_usage = true
+if #positional == 0 then
+  table.insert(positional, ".")
 end
 
 if config.print_usage then
@@ -302,7 +313,7 @@ local function action(depth, stat, path)
     if config.name_insensitive then
       name = name:lower()
       fname = fname:lower()
-    end   
+    end
     if name ~= fname then
       return false
     end
@@ -353,7 +364,7 @@ local function action(depth, stat, path)
       return false
     end
   end
-  
+
   if config.cmd then
     local cmd = config.cmd:gsub("{}", path)
     local pid, err = process.create("/sys/shell.lua", { argv = { "/sys/shell.lua", "--subshell", cmd } })
@@ -380,17 +391,17 @@ local function find(depth, parent, files_or_dirs)
   end
   for _, fname in ipairs(files_or_dirs) do
     local full_path
-  
+
     if parent == "/" and fname ~= "." then
       parent = ""
     end
-    
+
     if fname ~= "/" then
       full_path = parent .. "/" .. fname
     else
       full_path = "/"
     end
-    
+
     if fname == "." then
       full_path = parent
     end

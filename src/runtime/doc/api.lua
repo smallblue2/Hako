@@ -127,11 +127,11 @@ function file.stat(path) end
 function file.fdstat(fd) end
 
 ---Change the permissions of an open file.
----@param fd number The file descriptor associated with the file to change the permissions of.
----@param flags string A string containing sequence of "r" (read), "w" (write) and "x" (create).
+---@param path string The path of the file or directory with the to be returned metadata.
+---@param flags string A string containing sequence of "r" (read), "w" (write) and "x" (executable).
 ---@return number | nil err Error code.
 ---@diagnostic disable-next-line: unused-local
-function file.permit(fd, flags) end
+function file.permit(path, flags) end
 
 ---Get the current working directory of the current process.
 ---@return string | nil cwd Current working directory.

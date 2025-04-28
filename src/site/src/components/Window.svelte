@@ -266,31 +266,23 @@
 
   onpointermove={onMoveResizeArea}
   onpointerout={onExitResizeArea}
-  onpointerdown={(ev) => {
-    const middleClick = ev.buttons === 4;
-    if (middleClick) {
-      ev.preventDefault();
-      closeWindow();
-      return;
-    }
-    onHoldResizeArea(ev);
-  }}>
+  onpointerdown={(ev) => onHoldResizeArea(ev)}>
 
   <div bind:this={evWrap} class="ev-wrapper">
     <div bind:this={decoRef} class="decorations" onpointerdown={onHoldDecorations}>
       <p class="title">{title}</p>
       <div class="btns">
-        <button aria-label="Hide" title="Hide" class="btn" onpointerdown={noProp} onclick={() => windows.hideWindow(id)}>
+        <button id="hide-{id}" aria-label="Hide" title="Hide" class="btn" onpointerdown={noProp} onclick={() => windows.hideWindow(id)}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M217-86v-126h526v126H217Z"/></svg>
         </button>
-        <button aria-label="Maximize" title="Maximize" class="btn" onpointerdown={noProp} onclick={() => {
+        <button id="maximize-{id}" aria-label="Maximize" title="Maximize" class="btn" onpointerdown={noProp} onclick={() => {
           root.classList.toggle("window-maximized");
           maximized = !maximized;
           if (maximized) { onMaximize?.(); } else { onUnMaximize?.(); }
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed"><path d="M480-152 152-480l328-328 328 328-328 328Zm0-179 149-149-149-149-149 149 149 149Zm0-149Z"/></svg>
         </button>
-        <button aria-label="Close" title="Close" class="btn" onpointerdown={noProp} onclick={() => closeWindow()}>
+        <button id="close-{id}" aria-label="Close" title="Close" class="btn" onpointerdown={noProp} onclick={() => closeWindow()}>
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
         </button>
       </div>

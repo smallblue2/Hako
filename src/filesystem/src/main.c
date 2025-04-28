@@ -50,7 +50,7 @@ bool can_exec(struct stat *node_stat) {
 
 // Helper function for guarding system nodes based on stat
 bool is_system_file(struct stat *node_stat) {
-  return !S_ISDIR(node_stat->st_mode) && ((node_stat->st_mode & PROTECTED_BIT) == PROTECTED_BIT);
+  return (node_stat->st_mode & PROTECTED_BIT) == PROTECTED_BIT;
 }
 
 // Explicitly forces a filesystem synchronisation.

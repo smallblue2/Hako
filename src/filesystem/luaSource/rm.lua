@@ -82,8 +82,7 @@ Options:
   -f, --force         ignore nonexistent files; never prompt
   -i, --interactive   prompt before every removal
   -r, --recursive     remove directories and their contents recursively
-  -h, --help          display this help and exit
-]])
+  -h, --help          display this help and exit]])
 end
 
 -- ===================================================
