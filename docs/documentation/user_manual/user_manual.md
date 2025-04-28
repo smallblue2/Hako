@@ -1,6 +1,6 @@
 ---
 title: "Hako User Manual"
-author: [Niall Ryan (21454746), Cathal O'Grady]
+author: [Niall Ryan (21454746), Cathal O'Grady (69420)]
 date: "2025-04-28"
 titlepage: true
 titlepage-logo: "../../logos/hako_banner.png"
@@ -9,7 +9,6 @@ logo-width: 32em
 titlepage-color: E1C396
 titlepage-rule-color: 553F2A
 titlepage-text-color: 553F2A
-footer-center: "Hako - Web Native OS"
 page-background-opacity: 0.1
 lang: "en"
 ---
