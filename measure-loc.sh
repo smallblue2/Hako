@@ -41,4 +41,5 @@ src/glue/* \
 src/deapi/meson.build \
 src/deapi/src/* \
 src/deploy-server/* \
+src/site/tests/* \
 | wc -l

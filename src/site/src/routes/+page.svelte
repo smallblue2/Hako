@@ -9,7 +9,7 @@
   onMount(async () => {
     loadingPopup.showModal();
 
-    deapi.expose();
+    await deapi.expose();
     const { initialiseAPI, Filesystem } = await import(/* @vite-ignore */ new URL("/api.mjs", import.meta.url).href) as unknown as { initialiseAPI: Function, Filesystem: any };
     window.isFilesystemInitialised = false;
 
