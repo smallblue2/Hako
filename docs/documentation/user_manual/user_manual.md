@@ -1,6 +1,6 @@
 ---
 title: "Hako User Manual"
-author: [Niall Ryan (21454746), Cathal O'Grady (69420)]
+author: [Niall Ryan (21454746), Cathal O'Grady]
 date: "2025-04-28"
 titlepage: true
 titlepage-logo: "../../logos/hako_banner.png"
@@ -9,6 +9,7 @@ logo-width: 32em
 titlepage-color: E1C396
 titlepage-rule-color: 553F2A
 titlepage-text-color: 553F2A
+footer-center: "Hako - Web Native OS"
 page-background-opacity: 0.1
 lang: "en"
 ---
@@ -309,19 +310,472 @@ The alternative is the `help` command that you can enter into your terminal, whi
 
 ### Core-Utils
 
+Hako comes with a powerful set of core-utils to make interacting with your system easy and productive.
+
+Core-utils are a set of essential command-line programs that are fundamental for interacting with your operating system.
+
+The core-utils are in the `/bin` directory, and by default, any files in this directory are accessible anywhere in your system from your shell.
+
+For example, the `ls.lua` core-util can be accessed no matter where you are in your filesystem with the `ls` or `ls.lua` command -- and you can place any tool you create yourself in here to access them from anywhere in your system too!
+
+#### ls
+
+\
+
+List the files in a directory.
+
+If there is no directory listed, it defaults to listing the current directory.
+
+Help Message:
+
+```
+Usage: ls [OPTION]... [FILE]...
+List information about the FILEs (the current directory by default)
+Sorts entries alphabetically by default.
+
+Options:
+ -1, --one         list one file per line
+ -a, --all         do not ignore directories starting with .
+ -A, --almost-all  do not list implied . and ..
+ -R, --recurse     follow sub-directories and list their contents too
+ -l, --long        long format
+ -i, --inode       list inode numbers
+ -s, --block       lists allocated blocks
+ -p,               append / to directory names
+ -c, --ctime       list ctime
+ -u, --atime       list atime
+ -h, --human       list human readable sizes (1K, 243M, 2G)
+ -S, --size        sort by size
+ -X, --ext         sort by extension
+ -t, --smtime      sort by mtime
+ -m, --sctime      sort by ctime
+ -e, --satime      sort by atime
+ -r, --reverse     reverse sort order
+```
+
+Code:
+
+The code is available at `/bin/ls.lua`.
+
+#### cat
+
+\
+
+Con**cat**enates and prints files.
+
+Typically used to print files out at the command line to see their contents.
+
+Help Message:
+
+```
+Usage: cat [OPTION]... [FILE]...
+Concatenate FILE(s) to standard output.
+With no FILE, or when FILE is -, read standard input.
+
+Options:
+  -n, --number      number all output lines
+  -E, --show-ends   display $ at the end of each line
+  -T, --show-tabs   display TAB characters as ^I
+  -h, --help        display this help and exit
+```
+
+Code:
+
+The code is available at `/bin/cat.lua`.
+
+#### cp
+
+\
+
+Copies files or directories.
+
+Help Message:
+
+```
+Usage: cp [OPTION]... SOURCE... DEST
+
+Copy SOURCE to DEST, or multiple SOURCE(s) into directory DEST.
+
+Options:
+  -f, --force        overwrite without prompting
+  -n, --no-clobber   do not overwrite existing files
+  -i, --interactive  prompt before overwrite
+  -r, --recursive    copy directories recursively
+  -h, --help         display this help and exit
+```
+
+Code:
+
+The code is available at `/bin/cp.lua`.
+
+#### mv
+
+\
+
+Moves / renames files or directories.
+
+Help Message:
+
+```
+Usage: mv [-finT] SOURCE DEST
+or: mv [-fin] SOURCE... DIRECTORY
+
+Rename SOURCE to DEST, or move SOURCEs to DIRECTORY
+
+Options:
+ -f  Don't prompt before overwriting
+ -i  Interactive, prompt before overwrite
+ -n  Don't overwrite an existing file
+ -T  Refuse to move if DEST is a directory
+ -h  Show this help message
+```
+
+Code:
+
+The code is available at `/bin/mv.lua`.
+
+#### rm
+
+\
+
+Removes files or directories.
+
+Will not remove a directory unless `-r` is specified.
+
+Help Message:
+
+```
+Usage: rm [OPTION]... FILE...
+Remove (unlink) each FILE.
+By default, it does not remove directories. Use -r to do so.
+    
+Options:
+  -f, --force         ignore nonexistent files; never prompt
+  -i, --interactive   prompt before every removal
+  -r, --recursive     remove directories and their contents recursively
+  -h, --help          display this help and exit
+```
+
+Code:
+
+The code is available at `/bin/rm.lua`.
+
+#### mkdir
+
+\
+
+Makes a directory.
+
+Help Message:
+
+```
+Usage: mkdir [OPTION]... DIRECTORY...
+Create the DIRECTORY(ies), if they do not already exist.
+
+Options:
+  -h, --help    displays this help and then exits
+```
+
+Code:
+
+The code is available at `/bin/mkdir.lua`.
+
+#### rmdir
+
+\
+
+Removes a directory (only if it's empty).
+
+Help Message:
+
+```
+Usage: rmdir DIRECTORY...
+Remove DIRECTORY if it is empty
+```
+
+Code:
+
+The code is available at `/bin/rmdir.lua`.
+
+#### touch
+
+\
+
+Create empty files.
+
+Useful for creating files before opening or manipulating.
+
+Example: `touch script.lua`.
+
+Code:
+
+The code is available at `/bin/touch.lua`.
+
+#### find
+
+\
+
+Search for files.
+
+Also allows much more complex behaviour, such as executing a command on each file via the `-exec` flag.
+
+Help Message:
+
+```
+Usage: find [OPTION|PATH]...
+
+Search for files and perform actions on them.
+
+Options:
+    -name PATTERN Match file name (without directory name) to PATTERN
+   -iname PATTERN Case insensitive -name
+    -path PATTERN Match path to PATTERN
+   -ipath PATTERN Case insensistive -path
+   -atime DAYS    Match access time greater or equal than DAYS
+   -mtime DAYS    Match modified time greater or equal than DAYS
+   -ctime DAYS    Match creation time greater or equal than DAYS
+    -type X       File type is X (one of: f,d)
+ -pattern PATTERN Match pattern (lua pattern match string)
+-maxdepth N       Descend at most N levels
+-mindepth N       Don't act on first N levels
+   -empty         Match empty file/directory
+   -print         Print file name (default)
+       -h         Print this help message.
+```
+
+Code:
+
+The code is available at `/bin/find.lua`
+
+#### grep
+
+\
+
+Search for patterns in text.
+
+Help Message:
+
+```
+Search for PATTERN in each FILE.
+Example: grep -r ipairs sys
+
+Options:
+ -l         Show only names of files that match
+ -L         Show only names of files that don't match
+ -o         Show only the matching part of line
+ -i         Ignore case
+ -n         Add 'line_no:' prefix
+ -r         Recurse directories
+ -h         Do not add 'filename:' prefix
+ -H         Add 'filename:' prefix
+ -v         Select non-matching lines
+ -q         Quiet. Return 0 if PATTERN is found, 1 otherwise
+ -s         Suppress open and read errors
+ -e PATTERN Pattern to match
+```
+
+Code:
+
+The code is available at `/bin/grep.lua`.
+
+#### chmod
+
+\
+
+Change file and directory permissions.
+
+Help Message:
+
+```
+Usage: chmod [OPTION]... [r|w|x] FILE...
+Change the permissions of files.
+
+Options:
+ -R  Recurse on directories
+ -f  Hide errors
+ -h  Print this help message
+```
+
+Code:
+
+The code is available at `/bin/chmod.lua`.
+
 #### Shell
 
-AND OTHERS
+\
+
+All operating systems (Windows, MacOS, Linux), including Hako, have shells to control them with.
+
+The shell gives you a text interface, letting you type commands instead of clicking on graphical elements, to control your operating system.
+
+Change Directory:
+
+To change the directory of your shell, you can use the `cd` (Change Directory) command.
+
+Example:
+
+ - `cd /sys` will bring you into the `sys` directory.
+
+Pipelines:
+
+You can pipe the output of one command into the input of another using the `|` operator.
+
+Example:
+
+ - `ls -l | grep hello.txt` causes grep to search the ls comman's output for `hello.txt`
+
+Short Circuit Evaluation:
+
+You can join pipelines together with logical operators '&&' (AND) and '||' (OR).
+
+ - `&&` -- Executes the next pipeline IFF the previous one was succesful (the exit code was 0)
+ - `||` -- Executes the next pipeline IFF the previous one failed (the exit code was not 0)
+
+Examples:
+
+ - `cat hello.txt || echo "hello world" > hello.txt` -- if `cat` fails (hello.txt doesn't exist), we create it by echoing into `hello.txt`
+ - `ls bad_dir && rm -rf bad_dir` -- if `ls` succeeds (bad_dir exists), then we delete it.
+
+I/O Redirection:
+
+You can redirect the input or output to your commands.
+
+ - `<` -- redirects stdin
+ - `>` -- redirects stdout
+
+Examples:
+
+ - `echo hello world > hello.txt` -- writes to (or creates) hello.txt, with content "hello world"
+ - `cat - < hello.txt` -- cat uses stdin, and stdin is replaced with `hello.txt`, so we print the contents of `hello.txt` (equivelant to `cat hello.txt`)
+
+Grouping:
+
+You can group your commands with operators `{`, `}`.
+This does not spin up a sub-shell.
+
+Multiple Lines:
+
+You can have multiple lines by using the `;` operator.
+
+Example:
+
+ - `ls -l ; touch foobar.txt` -- runs the two commands seperately
+
+Subshell:
+
+Can use `--subshell` to execute commands in a sub-shell (seperate shell), everything after `--subshell` will be the input to the subshell.
+
+Code:
+
+The code is available at `/bin/shell.lua`.
+
+#### ps
+
+\
+
+List running processes.
+
+Help Message:
+
+```
+Usage: ps [OPTION]
+List current processes.
+    
+Options:
+  -h        display this help and exit
+  --help    display this help and exit
+```
+
+Code:
+
+The code is available at `/bin/shell.lua`.
+
+#### kill
+
+\
+
+Kills a running process.
+
+Help Command:
+
+```
+Usage: kill PID...
+```
+
+Code:
+
+The code is available at `/bin/kill.lua`.
+
+#### lua
+
+\
+
+Runs Lua code in the shell
+
+Example:
+
+ - `lua 'output("Hello, Hako!")'`
+
+Code:
+
+The code is available at `/bin/lua.lua`.
+
+#### clear
+
+\
+
+Clears the screen.
+
+You can also type `Ctrl+L` to clear the terminal too!
+
+Code:
+
+The code is available at `/bin/clear.lua`.
+
+#### pwd
+
+\
+
+Prints the current directory.
+
+Code:
+
+The code is available at `/bin/pwd.lua`.
+
+#### echo
+
+\
+
+Displays a line of text.
+
+Example: 
+
+ - `echo hello Hako "this is a test!"` outputs `hello Hako this is a test!`.
+
+Code:
+
+The code is available at `/bin/echo.lua`.
 
 ### System APIs
 
-#### Global Constants
+Hako exposes many APIs for you to manipulate the operating system with, it's how you can ask Hako to "do something".
 
 #### Desktop Environment API (window)
 
+  TERMINAL = 0.0,
+  FILE_MANAGER = 1.0,
+  EDITOR = 2.0,
+  MANUAL = 3.0,
+
 #### Process API (process)
 
+  STDIN = 0.0,
+  STDOUT = 1.0,
+
 #### Filesystem API (file)
+
+  DIRECTORY = 1.0,
+  FILE = 0.0,
 
 #### Terminal API (terminal)
 
