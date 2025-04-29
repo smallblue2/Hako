@@ -1,0 +1,12 @@
+{
+  auto_https off
+}
+
+:80
+
+header {
+  Cross-Origin-Embedder-Policy require-corp
+  Cross-Origin-Opener-Policy same-origin
+}
+root * /opt/srv
+file_server
