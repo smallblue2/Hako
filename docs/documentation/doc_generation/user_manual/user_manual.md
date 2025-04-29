@@ -1,11 +1,11 @@
 ---
 title: "Hako User Manual"
-author: [Niall Ryan (21454746), Cathal O'Grady]
+author: [Niall Ryan (21454746), Cathal O'Grady (21442084), Supervised by Prof. Stephen Blott]
 date: "2025-04-28"
 titlepage: true
-titlepage-logo: "../../logos/hako_banner.png"
+titlepage-background: "./assets/background-title.png"
+footer-left: "Niall Ryan, Cathal O'Grady"
 toc-own-page: true
-logo-width: 32em
 titlepage-color: E1C396
 titlepage-rule-color: 553F2A
 titlepage-text-color: 553F2A
@@ -26,7 +26,6 @@ This manual is intended for Hako's two target audiences;
 
  - Students
  - Mentors
- - Contributors
  
 ## Content
 
@@ -76,7 +75,7 @@ just site
 
 You can then run it with any webserver. Just make sure that the following response headers are added:
 
-```
+```txt
 Cross-Origin-Embedder-Policy require-corp
 Cross-Origin-Opener-Policy same-origin
 ```
@@ -90,10 +89,13 @@ If you wish to simply run Hako for personal use, you can run it using a developm
 A development server is a simple server on your own machine for personal use, and allows you to use the application easily - often used for the actual development of Hako.
 
 Once you build Hako (see build instructions above), a development server can be ran via:
+
 ```
 just site-run-dev
 ```
+
 or more succinctly
+
 ```
 just srd
 ```
@@ -243,6 +245,8 @@ There are two indicators in the bottom right:
  - **Save indicator** -- The circle. Blue indicates saved, Red indicates not-saved.
  - **File Permissions** -- Whether the file is Read Only \[RO\] or Read Write \[RW\]
 
+ You can also alternatively force a save with the 'Ctrl + S'.
+
 #### File Browser
 
 The file browser is an application that provides a graphical interface for you to view, organise and manage the files and folders on Hako.
@@ -328,7 +332,7 @@ If there is no directory listed, it defaults to listing the current directory.
 
 Help Message:
 
-```
+```txt
 Usage: ls [OPTION]... [FILE]...
 List information about the FILEs (the current directory by default)
 Sorts entries alphabetically by default.
@@ -367,7 +371,7 @@ Typically used to print files out at the command line to see their contents.
 
 Help Message:
 
-```
+```txt
 Usage: cat [OPTION]... [FILE]...
 Concatenate FILE(s) to standard output.
 With no FILE, or when FILE is -, read standard input.
@@ -391,7 +395,7 @@ Copies files or directories.
 
 Help Message:
 
-```
+```txt
 Usage: cp [OPTION]... SOURCE... DEST
 
 Copy SOURCE to DEST, or multiple SOURCE(s) into directory DEST.
@@ -416,7 +420,7 @@ Moves / renames files or directories.
 
 Help Message:
 
-```
+```txt
 Usage: mv [-finT] SOURCE DEST
 or: mv [-fin] SOURCE... DIRECTORY
 
@@ -444,7 +448,7 @@ Will not remove a directory unless `-r` is specified.
 
 Help Message:
 
-```
+```txt
 Usage: rm [OPTION]... FILE...
 Remove (unlink) each FILE.
 By default, it does not remove directories. Use -r to do so.
@@ -468,7 +472,7 @@ Makes a directory.
 
 Help Message:
 
-```
+```txt
 Usage: mkdir [OPTION]... DIRECTORY...
 Create the DIRECTORY(ies), if they do not already exist.
 
@@ -488,7 +492,7 @@ Removes a directory (only if it's empty).
 
 Help Message:
 
-```
+```txt
 Usage: rmdir DIRECTORY...
 Remove DIRECTORY if it is empty
 ```
@@ -521,7 +525,7 @@ Also allows much more complex behaviour, such as executing a command on each fil
 
 Help Message:
 
-```
+```txt
 Usage: find [OPTION|PATH]...
 
 Search for files and perform actions on them.
@@ -555,7 +559,7 @@ Search for patterns in text.
 
 Help Message:
 
-```
+```txt
 Search for PATTERN in each FILE.
 Example: grep -r ipairs sys
 
@@ -586,7 +590,7 @@ Change file and directory permissions.
 
 Help Message:
 
-```
+```txt
 Usage: chmod [OPTION]... [r|w|x] FILE...
 Change the permissions of files.
 
@@ -677,7 +681,7 @@ List running processes.
 
 Help Message:
 
-```
+```txt
 Usage: ps [OPTION]
 List current processes.
     
@@ -696,9 +700,9 @@ The code is available at `/bin/shell.lua`.
 
 Kills a running process.
 
-Help Command:
+Help Message:
 
-```
+```txt
 Usage: kill PID...
 ```
 
@@ -762,23 +766,285 @@ Hako exposes many APIs for you to manipulate the operating system with, it's how
 
 #### Desktop Environment API (window)
 
+\
+
+Hako's desktop environment API (Also known as window api) lets you create, hide/show, move, resize and focus GUI windows of predefined types.
+
+Window Types (Global constants in Lua):
+
+```lua
   TERMINAL = 0.0,
   FILE_MANAGER = 1.0,
   EDITOR = 2.0,
   MANUAL = 3.0,
+```
+
+API Methods:
+
+```lua
+size = window.area()
+list = window.list()
+size = window.dimensions(id)
+pos  = window.position(id)
+id   = window.open(window_type)
+window.hide(id)
+window.show(id)
+window.focus(id)
+window.move(id, x, y)
+window.resize(id, w, h)
+window.close(id)
+```
+
+Examples:
+
+```lua
+-- Open a terminal window
+local id = window.open(TERMINAL)
+
+-- Create a window and keep moving it
+local id = window.open(TERMINAL)
+for true do
+    local position = window.position(id)
+    window.move(id, position.x + 10, position.y + 10)
+end 
+```
+
+For more information on the API methods, see the API Manual in Hako.
 
 #### Process API (process)
 
+\
+
+Hako's process API allows you to launch new Lua scripts as subprocesses, send and receive their I/O, wait for them to exit, or prematurely terminate them.
+
+Creation (`create`) does not start execution until `start(pid)`!
+
+Process I/O Labels (Global Constants in Lua):
+
+```lua
   STDIN = 0.0,
   STDOUT = 1.0,
+```
+
+API Methods:
+
+```lua
+pid, err  = process.create(path, opts)
+err       = process.start(pid)
+err       = process.kill(pid)
+err       = process.wait(pid)
+list      = process.list()
+err       = process.output(text, opts)
+err       = process.close_output()
+str, err  = process.input()
+line, err = process.input_line()
+str, err  = process.input_all()
+err       = process.close_input()
+ok, err   = process.isatty(I_O_LABEL)
+err       = process.pipe(in_pid, out_pid)
+pid, err  = process.get_pid()
+process.exit(code)
+```
+
+> Furthermore, `process.output` has additional alias to `output`, as it's a common function call, so you can just call `output` in your code.
+
+Options for the `create` method and their default values:
+
+```lua
+opts = {
+    argv = {}, -- A list of the arguments to pass to the process
+    pipe_in = false, -- Tells process to take input from pipe instead of terminal
+    pipe_out = false, -- Tells process to output to pipe instead of terminal
+    redirect_in = "", -- Path to redirect input from the filesystem
+    redirect_out = "", -- Path to redirect output to in the filesystem
+}
+```
+
+Options for the `output` method and their default values:
+
+```lua
+opts = {
+    newline = true -- Appends a newline character after the text
+}
+```
+
+Examples:
+
+```lua
+-- run 'ls' in a process
+local pid, err = process.create("/bin/ls.lua", { argv = {"-l", "."}})
+if err then
+    output("Failed to create process: " .. errors.as_string(err))
+end
+process.start(pid)
+process.wait(pid)
+
+-- get the current process's pid
+local pid, err = process.get_pid()
+if not err then output("My pid: " .. tostring(pid)) end
+```
+
+For more information on the API methods, see the API Manual in Hako.
 
 #### Filesystem API (file)
 
-  DIRECTORY = 1.0,
-  FILE = 0.0,
+\
+
+The filesystem API provdes low-level primitives for creating, reading, writing, moving and deleting files and directories. 
+
+API Methods:
+
+```lua
+fd, err = file.open(path, flags)
+err     = file.close(fd)
+n, err  = file.write(fd, text)
+n, err  = file.read(fd, amt)
+s, err  = file.read_all(fd)
+err     = file.shift(fd, amount)
+err     = file.jump(fd, position)
+err     = file.remove(path)
+err     = file.move(old_path, new_path)
+err     = file.make_dir(path)
+err     = file.remove_dir(path)
+entries, err = file.read_dir(path)
+info, err    = file.stat(path)
+info, err    = file.fdstat(fd)
+cwd, err     = file.cwd()
+err     = file.change_dir(path)
+err     = file.permit(fd, flags)
+```
+
+Open flags for opening a file are any combination of:
+
+ - `"r"` = read -- Open with read access
+ - `"w"` = write -- Open with write access
+ - `"c"` = create -- Create if it doesn't exist (fails if it does exist)
+ 
+Permission flags for changing the permissions of a file/directory are any combination of:
+
+ - `"r"` = read -- Can be opened for reading
+ - `"w"` = write -- Can be opened for writing
+ - `"x"` = execute -- Can be executed
+
+`stat` returns a data structure of the filesystem node stat'd, containing:
+
+```lua
+info = {
+    ctime = { -- When the node was created
+        nsec = 0.0, -- nano seconds
+        sec = 0.0 -- seconds
+    },
+    mtime = { -- The last time the node was changed
+        nsec = 0.0,
+        sec = 0.0
+    },
+    atime = { -- The last time the node was accessed
+        nsec = 0.0,
+        sec = 0.0
+    },
+    blocks = 0.0, -- how many blocks of storage the node uses
+    blocksize = 4096.0, -- the size of a block on disk
+    ino = 0.0, -- the inode of the node (its unique identifier in the filesystem)
+    perm = "rwx", -- The permissions of the node
+    size = 0, -- The size of the node, in bytes
+    type = DIRECTORY | FILE -- What type of node it is
+    
+}
+```
+
+> `DIRECTORY` and `FILE` are global constants in Lua.
+
+Examples:
+
+```lua
+-- Creating and writing "Hello" into new file `notes.txt`
+local fd, err = file.open("notes.txt", "wc")
+if err then output(errors.as_string(err)) end
+file.write(fd, "Hello")
+file.close(fd)
+
+-- List the current directory's contents
+local entries, err = file.read_dir(".")
+for _, entry in ipairs(entries) do
+    output(entry)
+end
+```
+
+For more information on the API methods, see the API Manual in Hako.
 
 #### Terminal API (terminal)
 
+\
+
+The `terminal` API offers simple control over your text console:
+
+ - Clearing the screen
+ - Prompting the user and receiving input
+ - Getting the width of the terminal
+ - Getting the height of the terminal
+
+API Methods:
+
+```lua
+err  = terminal.clear()
+text = terminal.prompt(prompt_text)
+w    = terminal.width()
+h    = terminal.height()
+```
+
+Examples:
+
+```lua
+-- Clearing the terminal
+terminal.clear()
+
+-- Prompting the user for their name
+local name = terminal.prompt("What is your name? ")
+output("Your name: " .. name)
+```
+
+For more information on the API methods, see the API Manual in Hako.
+
 #### Format API (fmt)
 
+\
+
+The `fmt` API allows you to easily format time. It wraps Lua's existing `os.date` and `os.time` methods.
+
+ - `fmt.date` -- returns a formatted string (or table) for a given epoch seconds or the current time
+ - `fmt.time` -- returns the current timestamp or converts a date-table into seconds since epoch
+ 
+API Methods:
+
+```lua
+str = fmt.date(format, time)
+t   = fmt.time(date_table)
+```
+
+Examples:
+
+```lua
+output("Now: " .. fmt.date("Y%-%m-%d %H:%M:%S"))
+```
+
+For more information on the API methods, see the API Manual in Hako.
+
 #### Error API (errors)
+
+\
+
+The `errors` API converts numeric error codes into human-readable strings and provides a convenient `ok()` helper to abort with context when a call fails.
+
+API Methods:
+
+```lua
+-- Aborting with `errors.ok`
+local fd, err = file.open("foo.txt", "r")
+errors.ok(err, "opening foo.txt") -- exits if `err` is not nil
+
+-- Converting an error code to a string
+local fd, err = file.open("foo.txt", "r")
+if err then output("Error: " .. errors.as_string(err)) end
+```
+
+For more information on the API methods, see the API Manual in Hako.
