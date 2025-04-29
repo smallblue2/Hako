@@ -183,10 +183,10 @@ local flags = {
       end
       config.cmd = positional
     end,
-  },
+  }
 }
 local flag_order = { "name", "iname", "path", "ipath", "atime", "mtime", "ctime", "type", "pattern", "maxdepth",
-  "mindepth", "empty", "print", "h" }
+  "mindepth", "empty", "print", "exec", "h" }
 
 local function is_sflag(s)
   return s:match("^%-[^%-]") ~= nil
