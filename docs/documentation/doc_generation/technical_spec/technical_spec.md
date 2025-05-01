@@ -68,7 +68,7 @@ Kanban was appropriate in this case, as the only stakeholders in this project ar
 
 Kanban was envisioned via Jira, the issue and project tracking software.
 
-![](http://md.cathal.xyz/uploads/bff534d1-1c8a-4485-9239-518c2774e87a.png)
+![]()
 
  > A sample view into our backlog
 
@@ -80,7 +80,7 @@ We created three "Epics":
  
 An example "Epic" can be seen below.
 
-![](http://md.cathal.xyz/uploads/0fe5603a-7d00-4d8f-ac90-55a376feeac7.png)
+![]()
 
 Both developers would occasionally meet for backlog refinment and grooming, but backlog items would also naturally form as they were encountered -- as is intended with Lean software development.
 
@@ -99,13 +99,13 @@ Backlog items would additionally be defined with:
  
 Developers would then pick up a ticket when finished with their current one.
  
-![](http://md.cathal.xyz/uploads/541fe04a-49da-4536-86d4-11ee19807e86.png) 
+![]() 
 
  > Story points and priority for this are offscreen, but were '8' and 'Medium' respectively
  
 Below, you can see a cumulative issue flow graph, showing we were **working from September 2024 to May 2025**.
 
-![](http://md.cathal.xyz/uploads/039f301a-0f12-4176-a75a-c44add25921f.png)
+![]()
 
 ## Engineering Practices
 
@@ -124,7 +124,7 @@ Hako's engineering practices bore heavy influence from Extreme Programming (XP),
 
 Hako used extensive CI/CD, with a Gitlab pipeline.
 
-![](http://md.cathal.xyz/uploads/461a35a8-02b7-46de-8569-50f776ab1763.png)
+![]()
 
 Our pipeline stages included:
 
@@ -181,7 +181,7 @@ To ensure code quality and the collective ownership of the codebase, **all merge
 
 An example "Merge Request" is listed below.
 
-![](http://md.cathal.xyz/uploads/24fc2d8f-d2e2-4e9c-ba4d-649cbda4d4d8.png)
+![]()
 
  > More discussion is involved in this ticket below which can't be captured in a single screenshot
 
@@ -240,11 +240,11 @@ In white, are components we wrote entirely ourselves from scratch.
 
 ### Site (Main Thread) Abstraction Diagram
 
-![](http://md.cathal.xyz/uploads/d474387e-a235-41f4-8eeb-b60344bc46fe.png)
+![]()
 
 ### Process (Web Worker) Abstraction Diagram
 
-![](http://md.cathal.xyz/uploads/2c143bf4-c7fe-4b1a-8515-6e711c1c7950.png)
+![]()
 
 # Implementation
 
@@ -569,7 +569,7 @@ There are five primary components in Hako's process system:
  
 A **highly** abstracted diagram of how these components interact.
 
-![](http://md.cathal.xyz/uploads/12e36bf8-9f08-4e55-9152-c2bd8e1be4db.png)
+![]()
 
 ### Process
 
@@ -713,7 +713,7 @@ if (ENVIRONMENT_IS_PTHREAD) {
 
 A diagram to better visualise the interception:
 
-![](http://md.cathal.xyz/uploads/ae4c28f5-7c7a-4da4-9265-31c34388dfbe.png)
+![]()
 
 The steps to intercepting Emscripten's initialisation in the Main Thread:
 
@@ -790,7 +790,7 @@ They are both circularly bounded buffers on shared memory (SharedArrayBuffers) w
 
 A diagram showing the interaction of two processes piped together via a Pipe is shown below.
 
-![](http://md.cathal.xyz/uploads/240d1f74-8bc5-495e-bd34-e34254e3a89c.png)
+![]()
 
 Here is a snippet of `Pipe`'s write function, which writes onto the SharedArrayBuffer, synchronising via javascript [Atomics](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics).
 
@@ -855,7 +855,7 @@ An example of a calling `process.create` from Lua, which requires synchronisatio
 
 You can see that a process creation object `obj` is passed down into the main thread from the Web Worker, and a `pid` is returned back.
 
-![](http://md.cathal.xyz/uploads/2b0cc1cf-f7c8-47b0-9fbb-ca6eaffbbece.png)
+![]()
 
 ### Process Manager
 
