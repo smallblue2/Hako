@@ -72,6 +72,8 @@ function env()
   end
 end
 
+local working_dir = file.cwd()
+
 function cd(cmd)
   -- Home is '/', default to it with no second argument
   local path = "/"
@@ -80,6 +82,7 @@ function cd(cmd)
   if err ~= nil then
     output(string.format("cd: %s", errors.as_string(err)))
   end
+  working_dir = file.cwd()
 end
 
 function pwd(cmd)
@@ -1139,6 +1142,11 @@ end
 -- Handle flags
 handle_flags()
 
+local function prompt()
+  local ps1 = string.format("user@hako %s $ ", working_dir)
+  return terminal.prompt(ps1)
+end
+
 -- handle subshelling
 if subshell then
   local tokens, err = tokenise(subshell)
@@ -1155,7 +1163,7 @@ if subshell then
   end
 else
 -- Not a subshell, execute interatively
-  local line = terminal.prompt("$ ")
+  local line = prompt()
   while true do
     if line == nil then
       output("\nEOF: exiting")
@@ -1177,7 +1185,7 @@ else
     else
       output("Error: " .. token_err)
     end
-    line = terminal.prompt("$ ")
+    line = prompt()
   end
 end
 
