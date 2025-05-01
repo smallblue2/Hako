@@ -575,7 +575,7 @@ describe("Filesystem tests", () => {
     assert.ok(error0 == null, "Make_dir reported an error");
     assert.ok(error1 == null, "Read_dir reported an error");
     assert.ok(entries.length == 4, "Read_dir returned an incorrect number of entries");
-    assert.deepStrictEqual(entries, [".", "..", "sys", "mydir"], "Read_dir returned incorrect entries");
+    assert.deepStrictEqual(entries, [".", "..", "bin", "mydir"], "Read_dir returned incorrect entries");
   })
 
   it("Change active directory", async () => {

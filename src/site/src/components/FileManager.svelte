@@ -136,8 +136,8 @@
   }
 
   async function renameFileOrDir(fileOrDirName: string) {
-    if (fsView.hasSingleEntry("persistent") && fileOrDirName === "sys") {
-      openAlertModal("Operation Failed", "'sys' directory cannot be removed");
+    if (fsView.hasSingleEntry("persistent") && fileOrDirName === "bin") {
+      openAlertModal("Operation Failed", "'bin' directory cannot be removed");
       return;
     }
     let { error, stat } = window.Filesystem.stat(fsView.relative(fileOrDirName));
@@ -162,8 +162,8 @@
   }
 
   async function deleteDir(dirName: string) {
-    if (fsView.hasSingleEntry("persistent") && dirName === "sys") {
-      openAlertModal("Operation Failed", "'sys' directory cannot be removed");
+    if (fsView.hasSingleEntry("persistent") && dirName === "bin") {
+      openAlertModal("Operation Failed", "'bin' directory cannot be removed");
       return;
     }
     const { error } = window.Filesystem.remove_dir(fsView.relative(dirName));
@@ -231,8 +231,8 @@
 
   // --- Drag and drop ---
   function move(srcPath: string, destPath: string) {
-    if (srcPath === "/persistent/sys") {
-      openAlertModal("Operation Failed", "Cannot move 'sys' directory");
+    if (srcPath === "/persistent/bin") {
+      openAlertModal("Operation Failed", "Cannot move 'bin' directory");
       return;
     }
     if (srcPath === destPath) {

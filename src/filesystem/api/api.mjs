@@ -98,7 +98,7 @@ export function initialiseAPI(Module) {
       console.log("Moving fresh system files in...");
 
       // Initialise system files
-      let systemFilePath = "/persistent/sys";
+      let systemFilePath = "/persistent/bin";
 
       // WARNING: IDBFS requires write access - however users will not be
       //          able modify regardless due to the PROTECTED_BIT being

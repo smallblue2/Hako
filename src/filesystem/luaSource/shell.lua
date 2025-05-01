@@ -31,7 +31,7 @@ end
 -- #####################################
 
 local env_table = {
-  PATH = "/sys",
+  PATH = "/bin",
   HOME = "/",
   PROMPT = "$ "
 }

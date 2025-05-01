@@ -367,9 +367,9 @@ local function action(depth, stat, path)
 
   if config.cmd then
     local cmd = config.cmd:gsub("{}", path)
-    local pid, err = process.create("/sys/shell.lua", { argv = { "/sys/shell.lua", "--subshell", cmd } })
+    local pid, err = process.create("/bin/shell.lua", { argv = { "/bin/shell.lua", "--subshell", cmd } })
     if err ~= nil then
-      error("creating process /sys/shell.lua", errors.as_string(err))
+      error("creating process /bin/shell.lua", errors.as_string(err))
       return false
     end
     process.start(pid)

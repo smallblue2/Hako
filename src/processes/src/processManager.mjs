@@ -62,7 +62,7 @@ export default class ProcessManager {
    *
    * @throws {Error} If the process table is full and cannot allocate another PID.
    */
-  async createProcess({ luaPath = "/persistent/sys/shell.lua", args = [], slave = undefined, pipeStdin = false, pipeStdout = false, redirectStdin = null, redirectStdout = null, callerSignal = null, start = false, cwd = "/persistent" }) {
+  async createProcess({ luaPath = "/persistent/bin/shell.lua", args = [], slave = undefined, pipeStdin = false, pipeStdout = false, redirectStdin = null, redirectStdout = null, callerSignal = null, start = false, cwd = "/persistent" }) {
     if (!isNode && slave === undefined && (pipeStdin == false || pipeStdout == false)) {
       throw new CustomError(CustomError.symbols.PTY_PROCESS_NO_PTY);
     }

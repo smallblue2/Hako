@@ -137,7 +137,7 @@ end
 local function usage_banner()
   output([[Usage: grep [OPTION]... PATTERN [FILE]...
 Search for PATTERN in each FILE.
-Example: grep -r ipairs sys
+Example: grep -r ipairs bin
 ]])
 end
 
