@@ -1,10 +1,11 @@
 import * as windows from "$lib/windows.svelte";
-import * as creflect from "/creflect.mjs?url";
 
 // Exposes desktop environment api functions to the window object
-export function expose() {
+export async function expose() {
+  const creflect = await import(/* @vite-ignore */ new URL("/creflect.mjs?url", import.meta.url).href) as any;
+
   window.deapi = {
-    creflect, 
+    creflect,
     windowOpen(type: WindowType): number {
       return windows.applications[type as number].create();
     },

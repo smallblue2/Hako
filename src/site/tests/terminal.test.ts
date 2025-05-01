@@ -3,7 +3,7 @@ import { showConsole, waitCustom, clickTaskbar } from "./helpers";
 
 async function openTerminal(page) {
   await clickTaskbar(page, "terminal");
-  const prompt = page.getByText("$", { exact: true });
+  const prompt = page.getByText("user@hako / $", { exact: true });
   await prompt.waitFor();
 }
 

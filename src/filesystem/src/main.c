@@ -448,7 +448,7 @@ void file__make_dir(const char *restrict path, Error *restrict err) {
   // NOTE: No permission checks as we're not enforcing permissions
   //       on directories.
 
-  int error = mkdir(path, 0755);
+  int error = mkdir(path, 0700);
   if (error < 0) {
     *err = translate_errors(errno);
     return;
