@@ -1,3 +1,19 @@
+---
+title: "Hako Testing Documentation"
+author: [Niall Ryan (21454746), Cathal O'Grady (21442084), Supervised by Prof. Stephen Blott]
+date: "2025-04-28"
+titlepage: true
+titlepage-background: "./assets/background-title.png"
+footer-left: "Niall Ryan, Cathal O'Grady"
+toc-own-page: true
+titlepage-color: E1C396
+titlepage-rule-color: 553F2A
+titlepage-text-color: 553F2A
+footer-center: "Hako - Web Native OS"
+page-background-opacity: 0.1
+lang: "en"
+---
+
 # Testing strategy
 
 Hako was a very ambitious project, and ended up being a very large system, composed of almost **18,000 lines of code**.
@@ -154,7 +170,7 @@ An example testcase below creates a `Pipe` object with a buffer of 9 bytes. We t
 
 An example of our testing output for `Pipe` in the `test_processes` job:
 
-![](./assets/pipes-output.png)
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/pipes-output.png}
 
 We perform quite a few tests on our `Pipe` implementation, testing various edgecases, and testing its concurrent safety.
 
@@ -223,7 +239,7 @@ You can see below an example of the test case that tests the `Filesystem.truncat
 Running the tests is done by running `just test-filesystem` (note make sure you have dependencies installed and that `npm install` is ran in the `src/filesystem` directory)
 You can also see the output of running these tests below:
 
-![](./assets/filesystem-output.png)
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/filesystem-output.png}
 
 #### Lua Filesystem API Shims
 
@@ -267,7 +283,7 @@ void test_file_permit(void) {
 
 To run these tests you need to run `just test-runtime`. The output of them is below (removing any build output ran before the tests).
 
-![](./assets/runtime-output.png)
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/runtime-output.png}
 
 > NOTE: 16 tests are run under a higher level Meson test step "Test lua file API".
 
@@ -322,7 +338,7 @@ end)
 
 You can run the tests using `just test-integration`. The output will look like so:
 
-![](./assets/integration-output.png)
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/integration-output.png}
 
 ### End-To-End Testing
 
@@ -364,7 +380,7 @@ test('Create file', async ({ page }) => {
 
 You can run these test cases in the `src/site/` directory using `npm run test`. The output will look like so:
 
-![](./assets/site-output.png)
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/site-output.png}
 
 ## Continous Software Engineering
 
@@ -379,4 +395,4 @@ Furthermore, if we're on the `main` branch, and all tests pass, a deploy is made
 
 Our pipeline on the `main` branch can be seen below:
 
-![](./assets/pipeline.png)
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/pipeline.png}
