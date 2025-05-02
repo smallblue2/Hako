@@ -75,13 +75,6 @@ You can also build the site as a static bundle with:
 just site
 ```
 
-You can then run it with any webserver. Just make sure that the following response headers are added:
-
-```txt
-Cross-Origin-Embedder-Policy require-corp
-Cross-Origin-Opener-Policy same-origin
-```
-
 ## Running
 
 ### Development Server (Easiest)
@@ -106,11 +99,29 @@ It will then be available on `127.0.0.1:5173` (`localhost:5173`) in your browser
 
 ### Self-Hosting
 
-Hako is incredibly simple to self-host as it  is **completely client-side**, which means it all runs on your device. There are no servers or any other compute required to run the application.
+Hako is mostly simple to self-host as it  is **completely client-side**, which means it all runs on your device. There are no servers or any other compute required to run the application.
 
-If you build the site (see build instructions above), you have a fully self-contained static bundle of Hako. It contains all the HTML, JS, CSS, Web Assembly, etc required for Hako to run.
+If you are trying to deploy the website yourself, you might find the `Containerfile` useful. This can be used to build a container image, using a tool like docker. Building the image can be done as follows, from the root of the repository (using docker):
 
-This can be exposed via a simple web server (like Nginx, Apache, Vercel, etc).
+```bash
+docker build -f Containerfile -t hakob .                                  
+```
+
+Then you can run the container like so:
+
+```bash
+docker run -it -p 8000:80 --rm --name hakob localhost/hakob
+```
+
+This will host the website on port 8000.
+
+If you want to use your own solution and webserver, do note that the following headers need to be set:
+
+
+```txt
+Cross-Origin-Embedder-Policy require-corp
+Cross-Origin-Opener-Policy same-origin
+```
 
 ## Features
 
@@ -224,8 +235,6 @@ If the shell process attached to a terminal dies, the terminal instance will clo
 
 #### Editor
 
-\
-
 The text editor is a lightweight and fast application that lets you to edit and view plain text easily.
 
 It's primary features are:
@@ -252,8 +261,6 @@ There are two indicators in the bottom right:
  You can also alternatively force a save with the 'Ctrl + S'.
 
 #### File Browser
-
-\
 
 The file browser is an application that provides a graphical interface for you to view, organise and manage the files and folders on Hako.
 
