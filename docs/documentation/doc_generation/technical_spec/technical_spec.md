@@ -1,3 +1,20 @@
+---
+title: "Hako Technical Specification"
+author: [Niall Ryan (21454746), Cathal O'Grady (21442084), Supervised by Prof. Stephen Blott]
+date: "2025-04-28"
+titlepage: true
+titlepage-background: "./assets/background-title.png"
+footer-left: "Niall Ryan, Cathal O'Grady"
+toc-own-page: true
+titlepage-color: E1C396
+titlepage-rule-color: 553F2A
+titlepage-text-color: 553F2A
+footer-center: "Hako - Web Native OS"
+page-background-opacity: 0.1
+lang: "en"
+---
+
+
 # Motivation
 
 Modern programming education often prioritises ease of entry at the cost of system-level understanding. While abstraction helps to reduce the initial learning curve, it can leave learners with a fragmented mental model of how software interacts with the underlying machine. As a result, progressing beyond beginner-level programming often requires a difficult transition -- one that demands unlearning oversimplifications and grappling with the complexity of real world systems.
@@ -8,7 +25,7 @@ Our design is constrained on purpose: tools are intentionally minimal, APIs are 
 
 By lowering the barrier to understanding rather than hiding it, Hako aspires to teach programming as an act of systematic engagement -- encouraging users to see code not just as syntax, but as a tool for mastering the systems they inhabit.
 
-# Research
+# Research {#research}
 
 Research for this project involved a mix of reading about potential technologies that we could use as well as prototyping things in them to see if they are viable for our particular use case. This meant that initially there was a lot of discussion amongst ourselves and sharing of findings and prototypes.
 
@@ -68,7 +85,7 @@ Kanban was appropriate in this case, as the only stakeholders in this project ar
 
 Kanban was envisioned via Jira, the issue and project tracking software.
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/backlog-example.png}
 
  > A sample view into our backlog
 
@@ -80,7 +97,7 @@ We created three "Epics":
  
 An example "Epic" can be seen below.
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/example-epic.png}
 
 Both developers would occasionally meet for backlog refinment and grooming, but backlog items would also naturally form as they were encountered -- as is intended with Lean software development.
 
@@ -99,13 +116,13 @@ Backlog items would additionally be defined with:
  
 Developers would then pick up a ticket when finished with their current one.
  
-![]() 
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/example-issue.png}
 
  > Story points and priority for this are offscreen, but were '8' and 'Medium' respectively
  
 Below, you can see a cumulative issue flow graph, showing we were **working from September 2024 to May 2025**.
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/cumulative-flow-issues.png}
 
 ## Engineering Practices
 
@@ -124,7 +141,7 @@ Hako's engineering practices bore heavy influence from Extreme Programming (XP),
 
 Hako used extensive CI/CD, with a Gitlab pipeline.
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/pipeline.png}
 
 Our pipeline stages included:
 
@@ -134,7 +151,7 @@ Our pipeline stages included:
  - **Test** -- All testing, including unit, integration and e2e tests.
  - **Deploy** -- Only on `main`, for deploying to our own self-hosted server.
 
-Build **aggresively** caches vendor dependencies as they are very large. This is handled specifically in the `build_vendor` job. `cached_dependencies` specifically caches 3rd party build dependencies, such as Just (similar to Make), the task manager we used - as we encountered rate limiting. (see [Building](#Building) for more details)
+Build **aggresively** caches vendor dependencies as they are very large. This is handled specifically in the `build_vendor` job. `cached_dependencies` specifically caches 3rd party build dependencies, such as Just (similar to Make), the task manager we used - as we encountered rate limiting. (see [Building](#building) for more details)
 
 The Deploy stage will only run on the `main` branch, once the Test stage succesfully passes.
 
@@ -161,7 +178,7 @@ Hako is comprised of technologies and tools that the developers have absolutely 
  - **IndexedDB** -- Persistent, site-local storage in the web.
  - **Web Workers** -- Threads of which the browser owns.
 
-**This is by no means an exhaustive list**. There was an substantial amount of research performed (See [Research](#Research) section for more details), and problems that were come across (See [Problems](#Problems-Solved) section for more details).
+**This is by no means an exhaustive list**. There was an substantial amount of research performed (See [Research](#research) section for more details), and problems that were come across (See [Problems](#problems) section for more details).
 
 Due to this, we performed rapid prototyping often to mitigate risk; see what was possible, the constraints of the technologies we were dealing with, and whether our designs would work.
 
@@ -181,7 +198,7 @@ To ensure code quality and the collective ownership of the codebase, **all merge
 
 An example "Merge Request" is listed below.
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/example-mr.png}
 
  > More discussion is involved in this ticket below which can't be captured in a single screenshot
 
@@ -189,11 +206,11 @@ These would quite often involve change requests, inquiries into implementations 
 
 # Design
 
-## Module Overview
+## Module Overview {#moduleoverview}
 
 Below is a diagram of the main dependencies between the modules of the system.
 
-[![](https://img.plantuml.biz/plantuml/svg/RLDHRiCW3FttARX0Su8gwZsYQcB4ITY0H41MJLFlFWXk83HV0Rzdv_dPt9pdrgzQ0NGzyaNUsVMgvETsRdZRGZT8XUxNUTI4vK0YsDLugV4EtM9dWSwX8-P-JyHHhP7bf0yVMBZuvYEoNEuZI9435zwnFs05q3ouq-ooBXTMoZboz9SxeJm1OYVduAw1MgW4K9J-tiyF4_BtRZE-5Q_XPwx-WwQVRLLSp7gP3HhFZ5Xjy2XPHfVDi98K8EobJwHuUZ4IVQBkA7rJXxnNqk2EKU8cBReGWSgGFB24vO52seWKJfi2mkAWKFY30Md8D6MAjky6ruIpBQWvDCYySOViPZe1YePEKEgfHAmS9n-WUcQ7vNuJLBwH5rYw0t0BzS8p-mS0)](https://editor.plantuml.com/uml/RLDHRiCW3FttARX0Su8gwZsYQcB4ITY0H41MJLFlFWXk83HV0Rzdv_dPt9pdrgzQ0NGzyaNUsVMgvETsRdZRGZT8XUxNUTI4vK0YsDLugV4EtM9dWSwX8-P-JyHHhP7bf0yVMBZuvYEoNEuZI9435zwnFs05q3ouq-ooBXTMoZboz9SxeJm1OYVduAw1MgW4K9J-tiyF4_BtRZE-5Q_XPwx-WwQVRLLSp7gP3HhFZ5Xjy2XPHfVDi98K8EobJwHuUZ4IVQBkA7rJXxnNqk2EKU8cBReGWSgGFB24vO52seWKJfi2mkAWKFY30Md8D6MAjky6ruIpBQWvDCYySOViPZe1YePEKEgfHAmS9n-WUcQ7vNuJLBwH5rYw0t0BzS8p-mS0)
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/build-dependency.png}
 
 The system has the following core modules:
 
@@ -240,17 +257,17 @@ In white, are components we wrote entirely ourselves from scratch.
 
 ### Site (Main Thread) Abstraction Diagram
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/main-thread-abstraction-layers.png}
 
 ### Process (Web Worker) Abstraction Diagram
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/webworker-abstraction-layers.png}
 
 # Implementation
 
-## Building
+## Building {#building}
 
-The build for this project is particularly unique, due to the mix of technology being atypical. Since the project is a website all of the C code needs to be compiled into WebAssembly. The project uses [Meson](https://mesonbuild.com/) as the main build system for C code. Configuring Meson to compile code to WebAssembly is done by using a cross-compilation file, which describes the platform and compiler toolchain (i.e. CPU architecture (WASM), endianess, c compiler (Emcc), etc), you will find this file at `src/emscripten.ini`. As mentioned in [Module Overview](#Module-Overview), the project is split up into modules which provide different archive files. Each of these modules have separate `meson.build` files -- these just describe how to build each module to meson.
+The build for this project is particularly unique, due to the mix of technology being atypical. Since the project is a website all of the C code needs to be compiled into WebAssembly. The project uses [Meson](https://mesonbuild.com/) as the main build system for C code. Configuring Meson to compile code to WebAssembly is done by using a cross-compilation file, which describes the platform and compiler toolchain (i.e. CPU architecture (WASM), endianess, c compiler (Emcc), etc), you will find this file at `src/emscripten.ini`. As mentioned in [Module Overview](#moduleoverview), the project is split up into modules which provide different archive files. Each of these modules have separate `meson.build` files -- these just describe how to build each module to meson.
 
 Given that the modules are compiled separately, a higher-level task runner, [Just](https://github.com/casey/just), is used to build the entire site. This allows us to build all of the module artifacts separately and copy them into the site's `static/` folder -- which is not part of the source code, and is used for the particular case of build artifacts in the project. The file describing the higher level orchastrated build for Just is at the root of the source repository named `justfile`.
 
@@ -440,25 +457,25 @@ For file moving specifically in contrast to the window manager the builtin brows
   }
 ```
 
-Addtionally the file manager has a special mode of operation as a file dialog. This is specifically used by the text editor, when opened directly, to allow the user to use the file manager and select a file to be opened. This mode is implemeneted by constructing a javascript [promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) on the editor which shares its resolve and reject functions with a new instance of the file manager. These functions are used to indicate a file selected by the user, or that the dialog was cancelled. Note also that this greys the window area and disables input, only bringing the file manager to the foreground (see [Desktop](#Desktop) for more details on the overlay).
+Addtionally the file manager has a special mode of operation as a file dialog. This is specifically used by the text editor, when opened directly, to allow the user to use the file manager and select a file to be opened. This mode is implemeneted by constructing a javascript [promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) on the editor which shares its resolve and reject functions with a new instance of the file manager. These functions are used to indicate a file selected by the user, or that the dialog was cancelled. Note also that this greys the window area and disables input, only bringing the file manager to the foreground (see [Desktop](#desktop) for more details on the overlay).
 
 ### Text Editor
 
 For the text editor, [CodeMirror](https://codemirror.net/) is used, due to how modular it is. You can find the code that integrates it at `src/site/components/Editor.svelte`. The integration is mostly enabling the features of CodeMirror that we want: editing keybinds, history, search and syntax highlighting. The autosave functionality is implemented by debouncing "change"-like events raised by the editor and saving to the systems filesystem.
 
-### Terminal
+### Terminal {#terminal}
 
-The terminal is implemented using the following libraries: [Xterm.js](https://xtermjs.org/), [Xterm-PTY](https://github.com/mame/xterm-pty). Xterm.js provides a primitive terminal interface, whereas Xterm-pty provides a [PTY](https://en.wikipedia.org/wiki/Pseudoterminal) layer for Emscripten to use. A PTY allows us to have more advanced terminal features, as it handles things like line buffering, the mode of operation of the terminal as well as providing [Termios](https://pubs.opengroup.org/onlinepubs/7908799/xsh/termios.h.html) for Emscripten programs - both of which are typically provided by the operating system, however being in the web means we have to provide these ourselves. Effectively we need this to support [Libedit](https://www.thrysoee.dk/editline/) via [Ncurses](https://invisible-island.net/ncurses/) for interactive shell features (see [Runtime](#Runtime-module-runtime) for more details).
+The terminal is implemented using the following libraries: [Xterm.js](https://xtermjs.org/), [Xterm-PTY](https://github.com/mame/xterm-pty). Xterm.js provides a primitive terminal interface, whereas Xterm-pty provides a [PTY](https://en.wikipedia.org/wiki/Pseudoterminal) layer for Emscripten to use. A PTY allows us to have more advanced terminal features, as it handles things like line buffering, the mode of operation of the terminal as well as providing [Termios](https://pubs.opengroup.org/onlinepubs/7908799/xsh/termios.h.html) for Emscripten programs - both of which are typically provided by the operating system, however being in the web means we have to provide these ourselves. Effectively we need this to support [Libedit](https://www.thrysoee.dk/editline/) via [Ncurses](https://invisible-island.net/ncurses/) for interactive shell features (see [Runtime](#runtime) for more details).
 
 Note also that the pty provided by Xterm-PTY is also used as a handle to give terminal access to the runtime. This allows sub processes to share the same output as the process that created them. Essentially the slave side of the PTY is passed at creation of a process, allowing it to read input from the terminal, or produce output on the terminal. If you do not pass a PTY slave, the process must be setup to read standard input and write standard output on a pipe.
 
-One unfortunate downside to using Xterm-pty, apart from the fact that the library is not very heavily tested (see [problems solved](#Problems-Solved) for more details), is that it forces us to compile our runtime with specific Emscripten features like proxying the main thread into a worker via specifically the `PROXY_TO_PTHREAD` flag, i.e. you cant use other mechanisms of running the module in a worker.
+One unfortunate downside to using Xterm-pty, apart from the fact that the library is not very heavily tested (see [Problems Solved](#problems) for more details), is that it forces us to compile our runtime with specific Emscripten features like proxying the main thread into a worker via specifically the `PROXY_TO_PTHREAD` flag, i.e. you cant use other mechanisms of running the module in a worker.
 
 ### Documentation
 
 The documentation application of the website is just an [iframe](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe) which holds generated documentation site using [Ldoc](https://github.com/lunarmodules/ldoc). The actual input to this generator is in the runtime module under `src/runtime/docs/api.lua`. This Lua file just describes each of the platform API functions as well as their signatures and types. While the docs are generated using Ldoc, the format used in the `api.lua` file is a superset which supports more rich features like describing custom types, these are not represented in the generated docs unfortunately. However the extra type information does make the experience of developing Lua files using the API better with a LSP. Note however that no LSP client or server are shipped with Hako itself.
 
-### Desktop
+### Desktop {#desktop}
 
 When refering to the "Desktop", it is in reference to not only the high level component which lays out the top level components of the website (window area, taskbar), but also the miscellaneous interactive features of the website, such as dialog menus, context menus and the input overlay.
 
@@ -470,8 +487,7 @@ There are two main dialogs in the system; text dialog and alert dialog. Both dia
 
 The "input overlay" is container which spans across the entire screen at the highest z-index. Its code can be found at `src/site/src/components/Overlay.svelte`. This is used by the website to disable input events. For example, the overlay is used at initialisation to disable all website input when showing the loading screen. It is also used by the window manager to disable all local input, i.e. any input not on the root document element, so that we can prevent things like accidental selection while moving windows -- not perfect but does prevent a lot of cases.
 
-
-## Runtime (module `runtime`)
+## Runtime (module `runtime`) {#runtime}
 
 The Hako platform API is provided as a [Lua](https://www.lua.org/) API. In fact, this API is exactly what is used to implement the shell and the core utilities in Hako. This was done to ensure that the platform API was sufficient in producing programs of reasonable complexity for learning. Lua was used for its ease of embedding in other code, making it a perfect fit for Hako as one can provide functionality from various different sources, and expose it in a transparent way to the user.
 
@@ -547,9 +563,9 @@ cleanup:
 }
 ```
 
-You can see how the function internally calls our C filesystem API function `file__read_dir`, but also has to collect all of the entries of it's result into a Lua table (datastructure used in Lua for arrays as well as hash maps). You will also notice a call to `fake_path`, this normalises the path and ensures that it is called under the false root setup for persistence at `/persistent` (See [false root](#Simulate-False-Root) for more information). This just ensures that Lua code cannot escape this path. You can find the code for `fake_path` in `src/runtime/src/shared.c`, it is essentially a stack based path normalization implementation, which at the end prefixes the absolute path with `/persistent`.
+You can see how the function internally calls our C filesystem API function `file__read_dir`, but also has to collect all of the entries of it's result into a Lua table (datastructure used in Lua for arrays as well as hash maps). You will also notice a call to `fake_path`, this normalises the path and ensures that it is called under the false root setup for persistence at `/persistent` (See [False Root](#falseroot) for more information). This just ensures that Lua code cannot escape this path. You can find the code for `fake_path` in `src/runtime/src/shared.c`, it is essentially a stack based path normalization implementation, which at the end prefixes the absolute path with `/persistent`.
 
-Note also that for persistence inside of the runtime, each instance sets up a [PROXYFS](https://emscripten.org/docs/api_reference/Filesystem-API.html#filesystem-api-proxyfs) which forwards requests to the actual persistent filesystem which runs in a different emscripten module in a separate worker (see [Sharing the Persistent Filesystem](#Sharing-the-Persistent-filesystem) in the problems section for more details).
+Note also that for persistence inside of the runtime, each instance sets up a [PROXYFS](https://emscripten.org/docs/api_reference/Filesystem-API.html#filesystem-api-proxyfs) which forwards requests to the actual persistent filesystem which runs in a different emscripten module in a separate worker (see [Sharing the Persistent Filesystem](#sharepersistent) in the problems section for more details).
 
 ## Process System (module `processes`)
 
@@ -569,7 +585,7 @@ There are five primary components in Hako's process system:
  
 A **highly** abstracted diagram of how these components interact.
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/process-relationships.png}
 
 ### Process
 
@@ -670,11 +686,11 @@ EM_JS(int, proc__wait, (int pid, Error *err), {
 
 This combination of technology and methods allow us to access the JS Process API, and build a runtime C Process API on top of it. **Giving the runtime access to control and interact with its own and other process instances**.
 
-#### Intercepting Emscripten's pThread
+#### Intercepting Emscripten's pThread {#intercepting}
 
 Processes were originally implemented completely from scratch by us via Web Workers, but as the runtime evolved, we realised that we would be constrained by Emscripten.
 
-The runtime runs in a pthread (for reasons stated in [Terminal](#Terminal)) -- specifically Emscripten's interpretation of what a `pthread` would look like in the web, its own implementation of the pthread library.
+The runtime runs in a pthread (for reasons stated in [Terminal](#terminal)) -- specifically Emscripten's interpretation of what a `pthread` would look like in the web, its own implementation of the pthread library.
 
 This poses two main challenges:
 
@@ -713,7 +729,7 @@ if (ENVIRONMENT_IS_PTHREAD) {
 
 A diagram to better visualise the interception:
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/intercept-data-flow.png}
 
 The steps to intercepting Emscripten's initialisation in the Main Thread:
 
@@ -790,7 +806,7 @@ They are both circularly bounded buffers on shared memory (SharedArrayBuffers) w
 
 A diagram showing the interaction of two processes piped together via a Pipe is shown below.
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/two-processes-piping.png}
 
 Here is a snippet of `Pipe`'s write function, which writes onto the SharedArrayBuffer, synchronising via javascript [Atomics](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics).
 
@@ -838,7 +854,7 @@ So processes can easily be piped together via different streams.
 
 Each process has one signal which it shares with the main thread, the primary difference between pipes and signals being that **signals allow sleeping and notifying of the Web Worker thread.**
 
-As stated in the [Intercepting Emscripten](#Intercepting-Emscriptens-pThread) section, Emscripten's Web Workers refuse to yield to the event loop, so we cannot use traditional message passing mechanisms to pass data back and forth from the Process Manager on the main thread, and the Web Worker itself.
+As stated in the [Intercepting Emscripten](#intercepting) section, Emscripten's Web Workers refuse to yield to the event loop, so we cannot use traditional message passing mechanisms to pass data back and forth from the Process Manager on the main thread, and the Web Worker itself.
 
 So we are forced to use shared memory via SharedArrayBuffers, and utilise the synchronisations allowed on these - such as `Atomics.wait` and `Atomics.notify` as seen above.
 
@@ -855,13 +871,13 @@ An example of a calling `process.create` from Lua, which requires synchronisatio
 
 You can see that a process creation object `obj` is passed down into the main thread from the Web Worker, and a `pid` is returned back.
 
-![]()
+\includegraphics[width=1\textwidth,keepaspectratio]{./assets/lua-creates-process-sequence.png}
 
 ### Process Manager
 
 The Process Manager is the orchestrator of all Hako processes and resides on the main thread.
 
-When Emscripten creates Web Workers, they're intercepted and registered with our Process Manager so we can have full control over their lifetime. As described above in [intercepting Emscripten](#Intercepting-Emscriptens-pThread).
+When Emscripten creates Web Workers, they're intercepted and registered with our Process Manager so we can have full control over their lifetime. As described above in [Intercepting Emscripten](#intercepting).
 
 The Process Manager owns:
 
@@ -1043,7 +1059,7 @@ The following is the primary stub, allowing us to call WebAssembly functions.
 
 All of our filesystem functions have an error out parameter, so we have to **allocate on the WebAssembly stack** (specifically four bytes for an integer) to pass into the WebAssembly call.
 
-An example of us using this stub is for our `remove` (unlink) call below, where we also pass a path. Note this would be analogous to the previously listed C implementation of `remove`, which you can see at [intercepting Emscripten](#Intercepting-Emscriptens-pThread).
+An example of us using this stub is for our `remove` (unlink) call below, where we also pass a path. Note this would be analogous to the previously listed C implementation of `remove`, which you can see at [Intercepting Emscripten](#intercepting).
 
 ```javascript
   Filesystem.remove = (path) => {
@@ -1308,7 +1324,7 @@ The methods that specifically handle the AST evaluation are:
  
 This is perhaps some of the most complex code in our project, and snippets are difficult to understand out of context, so we won't include any here -- but the code is available in Hako within the `"/bin"` directory or at `src/filesystem/luaSource/shell.lua` in the repository.
 
-# Problems Solved
+# Problems Solved {#problems}
 
 Note that this is by no means an exaustive list, and especially for this project. There were many problems that we faced due to the mere fact that we were unfamiliar with the particularly obscure technology that we used. Many of our problems are certainly forgotten at this point. The following list is the most memorable and interesting set of problems that we were faced with. Other problems either directly or indirectly discussed in the rest of the document are omitted from here for brevity.
 
@@ -1344,7 +1360,7 @@ Since the website is fully client side and just a static bundle, it made sense t
 
 The webserver is implented in Go and the code can be found at `src/deploy-server`. It is run under Caddy on our own server.
     
-## Sharing the Persistent Filesystem
+## Sharing the Persistent Filesystem {#sharepersistent}
 
 ### Problem
 
@@ -1378,7 +1394,7 @@ The fix was to make sure that filesystem initialization would only resolve a pro
 
 ### Problem
 
-Xterm-PTY is a library that we needed to integrate Emscripten and Xterm.js (see [Terminal](#Terminal) for more details). Unfortunately it is a very small project maintained at least from what we could see, by a single benevelant individual. That being said, a couple issues were found throughout the project, both of which were raised with the maintainer. The first issue was that when reading a buffered line of input, if the terminal was resized raising a `SIGWINCH` signal it would interrupt the reading of the current line (you can see the issue discussion [here](https://github.com/mame/xterm-pty/issues/41) - leath-dub is the user name of Cathal O'Grady). The second issue was that EOF (End Of File) was not being sent properly when typeing Ctrl-D, this was because when `EAGAIN` was returned twice from reading from the TTY, it was not interpretted correctly as a EOF and would return `EAGAIN` to the caller instead of a read of 0 (as should be returned from read on EOF) -- (you can see more discussion [here](https://github.com/mame/xterm-pty/issues/47)).
+Xterm-PTY is a library that we needed to integrate Emscripten and Xterm.js (see [Terminal](#terminal) for more details). Unfortunately it is a very small project maintained at least from what we could see, by a single benevelant individual. That being said, a couple issues were found throughout the project, both of which were raised with the maintainer. The first issue was that when reading a buffered line of input, if the terminal was resized raising a `SIGWINCH` signal it would interrupt the reading of the current line (you can see the issue discussion [here](https://github.com/mame/xterm-pty/issues/41) - leath-dub is the user name of Cathal O'Grady). The second issue was that EOF (End Of File) was not being sent properly when typeing Ctrl-D, this was because when `EAGAIN` was returned twice from reading from the TTY, it was not interpretted correctly as a EOF and would return `EAGAIN` to the caller instead of a read of 0 (as should be returned from read on EOF) -- (you can see more discussion [here](https://github.com/mame/xterm-pty/issues/47)).
 
 ### Resolution
 
@@ -1553,7 +1569,7 @@ We added the `--embed-file luaSource` build flag to the filesystem component, wh
 
 We could then use this to write them to the persistent filesystem mount if missing.
 
-## Simulate False Root
+## Simulate False Root {#falseroot}
 
 ### Problem
 
@@ -1589,7 +1605,83 @@ This involved a full re-write in C of the filesystem.
 
 # Results
 
-Refer to testing document.
+## Technical Achievements
+
+### Persistent Filesystem in the Web
+
+Hako has a persistent filesystem in the Web. It is a traditional hierarchical single-user filesystem, which can store arbitrary information.
+
+This was achieved by using Emscripten's [IDBFS](https://emscripten.org/docs/api_reference/Filesystem-API.html#filesystem-api-idbfs), which is Emscripten's virtual filesystem built atop [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API), and writing our own custom filesystem calls and permission logic.
+
+### Client-Side Code Execution in the Web
+
+We successfully embedded Lua on the Web, in which execution is entirely client side using WebAssembly. Addtionally we provide an all in one platform for writing and developing of code on the Web.
+
+### Platform API
+
+We designed a custom "standard library" for the Hako platform which exposes the functionality of the platform through a programmable interface. This includes functionality like operating on files, processes and the windows and appications of the Desktop.
+
+### Self-Hosted Coreutils
+
+We developed a suite of applications which are subsets of the standard utilities that you would find on a Unix system. Crucially these core utilities were developed in Hako itself, entirely using the Platform API we had built. Even the shell was developed from scratch using only our Platform API.
+
+### Process-Emulation on the Web
+
+Hako has a Unix-inspired process system wrapped around Web Workers. There is process orchestration (via the Process Manager), and a flat process table. Hako's process system is flat, non-hierarchical, but processes can still synchronise and communicate with eachother.
+
+Thread-safe inter-process communication mechanisms were also developed, via Pipes (communicating with other threads) and Signals (communicating with the process orchestrator).
+
+### Desktop Environment
+
+We successfully provided a rich user experience which is akin to native operating systems like Windows, MacOS, Linux and ChromeOS. This environment has its own unique style along with a focus on simplicity and intentionality.
+
+### Auto-Deploy System and Self-Hosting
+
+We wrote our own deploy server in Golang. It's a simple REST server protected via an API token. It accepts artefacts and hosts them for us on our own server.
+
+## What we Learnt
+
+We used and combined a lot of new unconventional technology that aren't inherently main-stream or common.
+
+Specifically, new technologies that we had to become familiar with were:
+
+ - WebAssembly.
+ - Emscripten.
+ - IndexedDB.
+ - Meson & Ninja.
+ - Typescript.
+ - Svelte.
+ - Vite.
+ - Puppeteer.
+ - Playwright.
+ - Unity (testing framework).
+ - Lua.
+ - Web Workers.
+ - JS libraries (Xterm.js, Xterm-pty, CodeMirror)
+ 
+Additionally there were many concepts either one or both authors were unfamiliar with in building a virtual operating system:
+
+ - Implementing a floating window manager.
+ - Shared memory model on the Web.
+ - Synchronisation of Web Workers.
+ - Implementing custom inter-process communication of Web Workers.
+ - Synchronisation and race conditions between entire system components.
+ - Handwritten lexing and parsing.
+ - Debugging system with poor tooling for inspection
+ - Debugging third party dependencies, not assuming external code "just works".
+ - Complementing project work with Open Source contribution and discussion
+ - Writing reliable C code under atypical constraints
+ - Taming the build orchastration of independent  components spanning different technologies.
+ - Handling continuous integration of a large build system, caching certain components.
+ - Compiling third party C projects using Emscripten (e.g. ncurses and libedit)
+ - Managing the growing complexity and accumulated technical debt of a larger project relative to previous work of the authors.
+ - Designing an easy and usable platform API guided by the development of our self-hosted utilities.
+
+Due to the unfamiliar and unusual mix of technology being used, there was a lot of prototyping throughout, especially early on. One interesting thing we learned the hard way was that in a project like this, adding extensive tests too early risked a lot of rework and time spent fixing incorrect assumptions. We discuss this more in our testing document.
+
+# Testing
+
+See seperate testing documentation for testing content.
 
 # Future Work
 
