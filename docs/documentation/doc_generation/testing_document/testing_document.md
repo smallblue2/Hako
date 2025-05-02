@@ -1,7 +1,9 @@
 ---
 title: "Hako Testing Documentation"
-author: [Niall Ryan (21454746), Cathal O'Grady (21442084), Supervised by Prof. Stephen Blott]
-date: "2025-04-28"
+subtitle: |
+  \textbf{Authors:} Niall Ryan (21454746), Cathal O'Grady (21442084)
+  \textbf{Supervisor:} Prof. Stephen Blott
+date: "2025-05-02"
 titlepage: true
 titlepage-background: "./assets/background-title.png"
 footer-left: "Niall Ryan, Cathal O'Grady"
@@ -201,6 +203,8 @@ More detail about all of these is discussed below.
 
 #### Filesystem JS API Tests
 
+\
+
 These test cases are run in the `test_filesystem` job of our GitLab pipeline. You can find the source code for the tests at `src/filesystem/tests/filesystem.test.js`. These particular test cases use [Puppeteer](https://pptr.dev/) to run our code in a sandboxed headless browser. They use [Mocha](https://mochajs.org/) for defining the test cases and assertions within them.
 
 You can see below an example of the test case that tests the `Filesystem.truncate` function. Note that everything inside of the `page.evaluate` function is run in the headless browser environment provided by Puppeteer.
@@ -242,6 +246,8 @@ You can also see the output of running these tests below:
 \includegraphics[width=1\textwidth,keepaspectratio]{./assets/filesystem-output.png}
 
 #### Lua Filesystem API Shims
+
+\
 
 We wrap our C based filesystem API in Lua shims to expose them to the Lua virtual machine. We wanted to test our use of Lua specifically without depending on the Web browser. We wrote native tests for this use case specifically as they would run directly on hardware and not through a browser running WebAssembly which makes them much faster. This did mean we had to tweak our build to be able to build the runtime as a native library as well as guard Emscripten specific things behind preprocessor macros.
 
@@ -288,6 +294,8 @@ To run these tests you need to run `just test-runtime`. The output of them is be
 > NOTE: 16 tests are run under a higher level Meson test step "Test lua file API".
 
 #### Selective Platform Regression Tests
+
+\
 
 At one point in the project, apart from the Lua shim tests, we did not have a place to test other APIs. In a similar train of thought to Lua shim tests, we wanted to avoid more in-the-browser tests as they were slower to run. For this reason we decided to alter our build again to additionally have the runtime target node, which in this case would be faster than the browser based tests but slower than the native compiled tests. The upside however is that unlike the native tests we would be able to test things like processes as node has its own form of worker threads that Emscripten supports.
 

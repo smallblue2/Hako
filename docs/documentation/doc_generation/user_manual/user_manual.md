@@ -1,7 +1,9 @@
 ---
 title: "Hako User Manual"
-author: [Niall Ryan (21454746), Cathal O'Grady (21442084), Supervised by Prof. Stephen Blott]
-date: "2025-04-28"
+subtitle: |
+  \textbf{Authors:} Niall Ryan (21454746), Cathal O'Grady (21442084)
+  \textbf{Supervisor:} Prof. Stephen Blott
+date: "2025-05-02"
 titlepage: true
 titlepage-background: "./assets/background-title.png"
 footer-left: "Niall Ryan, Cathal O'Grady"
@@ -222,6 +224,8 @@ If the shell process attached to a terminal dies, the terminal instance will clo
 
 #### Editor
 
+\
+
 The text editor is a lightweight and fast application that lets you to edit and view plain text easily.
 
 It's primary features are:
@@ -248,6 +252,8 @@ There are two indicators in the bottom right:
  You can also alternatively force a save with the 'Ctrl + S'.
 
 #### File Browser
+
+\
 
 The file browser is an application that provides a graphical interface for you to view, organise and manage the files and folders on Hako.
 

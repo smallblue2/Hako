@@ -1,7 +1,9 @@
 ---
 title: "Hako Technical Specification"
-author: [Niall Ryan (21454746), Cathal O'Grady (21442084), Supervised by Prof. Stephen Blott]
-date: "2025-04-28"
+subtitle: |
+  \textbf{Authors:} Niall Ryan (21454746), Cathal O'Grady (21442084)
+  \textbf{Supervisor:} Prof. Stephen Blott
+date: "2025-05-02"
 titlepage: true
 titlepage-background: "./assets/background-title.png"
 footer-left: "Niall Ryan, Cathal O'Grady"
@@ -687,6 +689,8 @@ EM_JS(int, proc__wait, (int pid, Error *err), {
 This combination of technology and methods allow us to access the JS Process API, and build a runtime C Process API on top of it. **Giving the runtime access to control and interact with its own and other process instances**.
 
 #### Intercepting Emscripten's pThread {#intercepting}
+
+\
 
 Processes were originally implemented completely from scratch by us via Web Workers, but as the runtime evolved, we realised that we would be constrained by Emscripten.
 
