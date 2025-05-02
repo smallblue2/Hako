@@ -24,7 +24,7 @@ Hako is a platform agnostic Unix-like integrated development platform for the pu
 
 ## Target Readers
 
-This manual is intended for Hako's two target audiences;
+This manual is intended for Hako's two target audiences:
 
  - Students
  - Mentors
@@ -36,7 +36,7 @@ If you want to build from source, and host locally, this manual will describe:
  - How to build hako from source
  - How to run it locally 
 
-This manual will also describe the features of Hako;
+This manual will also describe the features of Hako:
 
  - Applications
  - Core-Utils
@@ -219,8 +219,8 @@ The terminal is an application that provides a text-based interface that lets yo
 
 Through a terminal you can:
 
- - **Run commands** to control the system (like managing files, prcoesses, windows, etc)
- - **Automate tasks** by writing and running lua scripts
+ - **Run commands** to control the system (like managing files, processes, windows, etc)
+ - **Automate tasks** by writing and running Lua scripts
  - **Interact with programs** that don't have a graphical user interface (GUI)
 
 The default program that the terminal runs is the **shell**, which you can read more about below in the "core-utils" section.
@@ -276,9 +276,9 @@ The primary features of the file browser are:
 \includegraphics[width=1\textwidth,keepaspectratio]{./assets/filebrowser-labelled.png}
 
 Directories have a "folder" icon.
-Files have a "notes" icon.
+Files have a "file" icon.
 
-The bottom-left contains "breadcrumbs", which shows your relative path from the root.
+The bottom-left contains "breadcrumbs", which shows your relative path from the root (NOTE: you can click them too).
 
 \includegraphics[width=1\textwidth,keepaspectratio]{./assets/filebrowserctx-labelled.png}
 
@@ -523,6 +523,14 @@ Create empty files.
 Useful for creating files before opening or manipulating.
 
 Example: `touch script.lua`.
+
+Help Message:
+
+```txt
+Usage: touch FILE...
+
+Create or access files.
+```
 
 Code:
 
