@@ -151,3 +151,4 @@ local state = { line_number = 1 }
 for _, path in ipairs(files) do
   cat_file(path, opts, state)
 end
+process.exit(0)

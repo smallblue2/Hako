@@ -30,3 +30,4 @@ for i = 2, #process.argv do
     error("killing process " .. process.argv[i], errors.as_string(err))
   end
 end
+process.exit(0)

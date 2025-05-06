@@ -265,3 +265,4 @@ end
 if err_flag[1] then
   process.exit(1)
 end
+process.exit(0)

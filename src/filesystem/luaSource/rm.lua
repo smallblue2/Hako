@@ -169,3 +169,5 @@ end
 for _, path in ipairs(files) do
   remove_path(path, opts, true)
 end
+
+process.exit(0)

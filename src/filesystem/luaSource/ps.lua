@@ -48,3 +48,5 @@ for _, p in ipairs(procs) do
       p.path
     ))
 end
+
+process.exit(0)
