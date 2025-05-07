@@ -23,3 +23,5 @@ for _, dir in ipairs(dirs) do
 
   ::continue::
 end
+
+process.exit(0)

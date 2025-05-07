@@ -37,7 +37,7 @@ export const W_OK = 2;		/* Test for write permission.  */
 export const X_OK = 1;		/* Test for execute permission.  */
 export const F_OK = 0;		/* Test for existence.  */
 
-// See `filesystem/src/main.h` for error definitions
+// See `filesystem/src/file.h` for error definitions
 // This is due to emscripten using its own strange errno system
 export function errnoToString(errno) {
   switch (errno) {

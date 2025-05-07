@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "../processes/c/processes.h"
-#include "../../filesystem/src/main.h"
+#include "../../filesystem/src/file.h"
 
 typedef struct {
   bool pipe_in;

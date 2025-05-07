@@ -1161,6 +1161,8 @@ if subshell then
   if err3 then
     process.exit(1)
   end
+
+  process.exit(0)
 else
 -- Not a subshell, execute interatively
   local line = prompt()

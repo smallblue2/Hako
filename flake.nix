@@ -14,6 +14,9 @@
         devShells.default = pkgs.mkShell {
           name = "build-hako";
           buildInputs = with pkgs; [ bun emscripten just gnupg nodejs meson ninja luajitPackages.ldoc ];
+          shellHook = ''
+            export EM_CACHE="$HOME/.cache/emscripten"
+          '';
         };
         default = pkgs.hello;
       }

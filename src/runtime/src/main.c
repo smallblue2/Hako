@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include "../../filesystem/src/main.h"
+#include "../../filesystem/src/file.h"
 #include "../../processes/c/processes.h"
 
 #include "lauxlib.h"
