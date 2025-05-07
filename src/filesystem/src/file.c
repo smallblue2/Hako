@@ -1,7 +1,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #define FILE_IMPL
-#include "main.h"
+#include "file.h"
 #include <stdio.h>
 
 // Emscripten uses its own errno convention when compiled which

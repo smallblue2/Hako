@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "../../processes/c/processes.h"
-#include "../../filesystem/src/main.h"
+#include "../../filesystem/src/file.h"
 
 // Not in mainline lua, but adapted from: https://github.com/luau-lang/luau/pull/221
 bool checkboolean(lua_State *L, int narg) {

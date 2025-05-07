@@ -1,5 +1,5 @@
-#ifndef FILE_H
-#define FILE_H
+#ifndef RFILE_H
+#define RFILE_H
 
 #include <lua.h>
 

@@ -9,7 +9,7 @@ run:
 build:
 	emcc \
   	-lidbfs.js \
-  	src/main.c \
+  	src/file.c \
   	-o $(BUILD_DIR)/compiled.mjs \
   	-s FORCE_FILESYSTEM \
   	-s EXPORTED_FUNCTIONS=_file__pullFromPersist,_file__pushToPersist,_file__initialiseFS,_file__open,_file__close,_file__read,_file__write,_file__read_all,_file__shift,_file__goto,_file__remove,_file__move,_file__make_dir,_file__remove_dir,_file__read_dir,_file__stat,_file__fdstat,_file__change_dir,_file__permit,_file__truncate,_malloc,_free \
@@ -17,9 +17,9 @@ build:
 	cp $(BUILD_DIR)/compiled.* $(OUTPUT_DIR)/.
 
 lint:
-	emcc -c -o out/main.o src/main.c -sSTRICT
-	clang-tidy src/main.c -- -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
-	cppcheck src/main.c --force --enable=all --suppress=unmatchedSuppression --suppress=unusedFunction -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
+	emcc -c -o out/file.o src/file.c -sSTRICT
+	clang-tidy src/file.c -- -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
+	cppcheck src/file.c --force --enable=all --suppress=unmatchedSuppression --suppress=unusedFunction -I$(EMSDK)/upstream/emscripten/cache/sysroot/include
 
 
 clean:

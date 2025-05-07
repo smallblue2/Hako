@@ -2,7 +2,7 @@
 #define LIB_H
 
 #include <lua.h>
-#include "file.h"
+#include "rfile.h"
 #include "process.h"
 #include "errors.h"
 #include "terminal.h"

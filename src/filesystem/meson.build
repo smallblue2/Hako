@@ -16,7 +16,7 @@ configure_file(input: 'post.js', output: 'post.js', copy: true)
 
 configure_file(input: '../glue/creflect.mjs', output: 'creflect.mjs', copy: true)
 
-sources = files('src/main.c')
+sources = files('src/file.c')
 
 # Copy static directory - this is used for static asset files in emscripten
 custom_target('copy_lua_source_dir',
