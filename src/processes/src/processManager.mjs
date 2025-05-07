@@ -177,17 +177,24 @@ export default class ProcessManager {
       throw new CustomError(CustomError.symbols.PROC_NO_WORKER);
     }
     // Close pipes
-    toKill.stdin.close()
-    toKill.stdout.close()
-    toKill.stderr.close()
+    toKill.stdin.close();
+    toKill.stdout.close();
+    toKill.stderr.close();
 
+    // Clean this up from the waiting set
+    this.#waitingProcesses.delete(toKill)
+
+    // Clear
     toKill.worker.terminate();
     this.#processesTable.freeProcess(pid);
   }
 
   #wakeAwaitingProcesses(pid, exitCode) {
     // Check if anybody else was waiting on it
-    let waitingSet = this.#waitingProcesses.get(pid)
+    let waitingSet = Array.from(this.#waitingProcesses.entries())
+      .filter(([_, waitedOn]) => waitedOn === pid)
+      .map(([waitingFor, _]) => waitingFor);
+
     if (waitingSet) {
       waitingSet.forEach(waitingPID => {
         try {
@@ -195,11 +202,13 @@ export default class ProcessManager {
           // return exit code before awaking
           toAwakeProcess.signal.write(exitCode);
           toAwakeProcess.signal.wake();
+          this.#waitingProcesses.delete(waitingPID);
         } catch (e) {
           console.warn(`Tried to wake process ${waitingPID}, but it doesn't exist!`)
         }
       })
     }
+
   }
 
   // Pipes the stdout of the first argument to the stdin of the second argument
@@ -270,13 +279,8 @@ export default class ProcessManager {
           sendBackSignal.wake();
         }
 
-        // Store (waiting_for: Set{ requestor })
-        let waitingSet = this.#waitingProcesses.get(waiting_on);
-        if (!waitingSet) {
-          waitingSet = new Set();
-          this.#waitingProcesses.set(waiting_on, waitingSet);
-        }
-        waitingSet.add(requestor);
+        // Store (requestor: waiting_for)
+        this.#waitingProcesses.set(requestor, waiting_on)
         break;
       }
       case ProcessOperations.CREATE_PROCESS: {
