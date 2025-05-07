@@ -58,3 +58,5 @@ end
 validate_args()
 do_flags()
 mkdirs()
+
+process.exit(0)

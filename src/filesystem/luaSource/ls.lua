@@ -284,6 +284,10 @@ function list_dir(path, opts, label_paths, first_call)
   local key = get_key(opts)
   table.sort(list, function(a, b)
       local ka, kb = key(a), key(b)
+      if ka.sec and kb.sec then
+        ka = ka.sec
+        kb = kb.sec
+      end
       if ka == kb then
         return a.name:lower() < b.name:lower()
       else
@@ -333,3 +337,4 @@ end
 for i, p in ipairs(paths) do
   list_dir(p, opts, label_needed, i == 1)
 end
+process.exit(0)

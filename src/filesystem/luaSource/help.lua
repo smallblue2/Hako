@@ -476,3 +476,4 @@ local option = #process.argv == 1 and "" or process.argv[2]:lower()
 local msg = content[option] or string.format("help: '%s' isn't a valid option.\nTry `help` to view options.", option)
 
 output(msg)
+process.exit(0)
