@@ -2,7 +2,7 @@
 <p>
   <img src="./docs/logos/hako_banner.png" alt="Project Banner" style="image-rendering: pixelated; width: 100%; max-width: 512px;" />
 
-  <h1> <a href="https://hakoapp.com">Hako Site</a> | <a href="https://gitlab.computing.dcu.ie/ryann62/2025-csc1097-ryann62-ogradc23/-/tree/main/docs">Documentation</a> </h1>
+  <h1> <a href="https://hakoapp.com">Hako Site</a> | <a href="https://github.com/smallblue2/Hako/tree/main/docs">Documentation</a> </h1>
 </p>
 
 <p>
@@ -15,14 +15,16 @@
 </p>
 
 <p>
- <img src="https://gitlab.computing.dcu.ie/ryann62/2025-csc1097-ryann62-ogradc23/badges/main/pipeline.svg" alt="Pipeline status"/>
-
  <img src="https://img.shields.io/badge/dynamic/json?color=blue&label=Lines%20Of%20Code&query=$.loc&url=https%3A%2F%2Fartifacts.hakoapp.com%2Floc.json" alt="Lines of Code"/>
 </p>
 
 <hr/>
 
 </div>
+
+**Note: This is a read-only mirror of the main repository hosted on Gitlab. All development, CI/CD, and issue tracking happens on Gitlab.**
+
+> ⚠️ **No Longer in Development** - This project was a final year College paired project.
 
 # Hako - A friendly box to learn development principles
 
